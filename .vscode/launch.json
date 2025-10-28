@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Qt App",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/debug/DynamicFormQML.exe",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "D:/SoftWare/QT/Tools/mingw1310_64/bin/gdb.exe",
+            "visualizerFile": "c:\\Users\\YongL\\AppData\\Roaming\\Code\\User\\workspaceStorage\\221c510bfe141493d9dd48bd8ed7c835\\tonka3000.qtvsctools\\qt.natvis.xml"
+        }
+    ]
+}

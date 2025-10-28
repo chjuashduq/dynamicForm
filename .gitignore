@@ -1,0 +1,4 @@
+# 取消 build 文件和常见构建产物
+/build/
+/build/*
+/build/**

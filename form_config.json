@@ -1,0 +1,108 @@
+{
+    "grid": {
+        "rows": 8,
+        "columns": 2,
+        "rowHeights": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2
+        ],
+        "columnWidths": [
+            1,
+            2
+        ],
+        "rowSpacing": 5,
+        "columnSpacing": 10
+    },
+    "controls": [
+        {
+            "type": "text",
+            "label": "姓名",
+            "placeholder": "请输入姓名",
+            "value": "",
+            "row": 0,
+            "column": 0,
+            "rowSpan": 1,
+            "colSpan": 2,
+            "labelRatio": 0.2,
+            "style": {
+                "labelColor": "blue",
+                "labelBold": true,
+                "inputColor": "black",
+                "inputFontSize": 14,
+                "inputBackground": "#f0f0f0",
+                "inputRadius": 4,
+                "borderColor": "red",
+                "borderWidth": 1,
+                "margin": 10
+            }
+        },
+        {
+            "type": "number",
+            "label": "年龄",
+            "value": 18,
+            "row": 1,
+            "column": 0,
+            "rowSpan": 1,
+            "colSpan": 2,
+            "labelRatio": 0.2
+        },
+        {
+            "type": "dropdown",
+            "label": "性别",
+            "options": [
+                "男",
+                "女"
+            ],
+            "value": "男",
+            "row": 2,
+            "column": 0,
+            "rowSpan": 1,
+            "colSpan": 1,
+            "labelRatio": 0.2
+        },
+        {
+            "type": "checkbox",
+            "label": "兴趣",
+            "options": [
+                "足球",
+                "篮球",
+                "音乐"
+            ],
+            "value": [
+                "音乐"
+            ],
+            "row": 3,
+            "column": 0,
+            "rowSpan": 1,
+            "colSpan": 1,
+            "labelRatio": 0.3,
+            "direction": "horizontal",
+            "style": {
+                "borderColor": "red",
+                "borderWidth": 1
+            }
+        },
+        {
+            "type": "button",
+            "label": "",
+            "text": "提交表单",
+            "action": "submit",
+            "row": 6,
+            "column": 0,
+            "rowSpan": 1,
+            "colSpan": 2,
+            "labelRatio": 0,
+            "style": {
+                "buttonColor": "#007acc",
+                "textColor": "white",
+                "fontSize": 16
+            }
+        }
+    ]
+}
