@@ -1,6 +1,12 @@
 <RCC>
     <qresource prefix="/">
         <file>qml/main.qml</file>
+        <file>qml/render/FormPreview.qml</file>
+        <file>qml/render/ControlFactory.qml</file>
+        <file>qml/config/ConfigEditor.qml</file>
+        <file>qml/config/ControlConfigItem.qml</file>
+        <file>qml/core/FormAPI.qml</file>
+        <file>qml/core/ScriptEngine.qml</file>
         <file>form_config.json</file>
     </qresource>
 </RCC>

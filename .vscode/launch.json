@@ -2,14 +2,35 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Qt App",
+            "name": "C++ + QML 调试 (GDB)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/debug/DynamicFormQML.exe",
+            "args": [
+                "-qmljsdebugger=port:3768,block"
+            ],
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
+            "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "D:/SoftWare/QT/Tools/mingw1310_64/bin/gdb.exe",
-            "visualizerFile": "c:\\Users\\YongL\\AppData\\Roaming\\Code\\User\\workspaceStorage\\221c510bfe141493d9dd48bd8ed7c835\\tonka3000.qtvsctools\\qt.natvis.xml"
+            "environment": [
+                {
+                    "name": "QT_LOGGING_RULES",
+                    "value": "qt.qml.debug=true"
+                }
+            ],
+            "visualizerFile": "c:\\Users\\YongL\\AppData\\Roaming\\Code\\User\\workspaceStorage\\221c510bfe141493d9dd48bd8ed7c835\\tonka3000.qtvsctools\\qt.natvis.xml",
+            "setupCommands": [
+                {
+                    "description": "Set GDB output encoding",
+                    "text": "set target-charset UTF-8"
+                },
+                {
+                    "description": "Enable pretty printing",
+                    "text": "-enable-pretty-printing"
+                }
+            ]
         }
     ]
 }
