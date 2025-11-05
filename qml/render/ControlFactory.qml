@@ -54,6 +54,9 @@ QtObject {
         // 设置行高
         _setRowHeight(container, config)
         
+        // 设置列宽
+        _setColumnWidth(container, config)
+        
         // 创建Label
         var label = _createLabel(container, config)
         
@@ -85,6 +88,17 @@ QtObject {
             container.Layout.minimumHeight = minHeight * rowHeightRatio
             container.Layout.preferredHeight = preferredHeight * rowHeightRatio
             container.Layout.maximumHeight = maxHeight * rowHeightRatio
+        }
+    }
+    
+    /**
+     * 设置容器列宽
+     */
+    function _setColumnWidth(container, config) {
+        if (formConfig.grid && formConfig.grid.columnWidths && config.column < formConfig.grid.columnWidths.length) {
+            var baseWidth = 200
+            var columnWidthRatio = formConfig.grid.columnWidths[config.column]
+            container.Layout.preferredWidth = baseWidth * columnWidthRatio
         }
     }
     

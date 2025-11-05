@@ -71,7 +71,9 @@ Item {
                 anchors.fill: parent
                 source: "config/ConfigEditor.qml"
                 onLoaded: {
+                    // 只有在用户主动应用配置时才更新表单预览
                     item.configChanged.connect(function(newConfig) {
+                        console.log("ConfigEditor configChanged - updating form preview");
                         root.formConfig = newConfig
                         if (formPreviewLoader.item) {
                             formPreviewLoader.item.formConfig = newConfig

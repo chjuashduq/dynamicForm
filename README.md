@@ -7,8 +7,14 @@
 ```
 ├── qml/
 │   ├── config/                       # 配置编辑相关组件
-│   │   ├── ConfigEditor.qml          # 配置编辑器主组件 (完整功能版)
-│   │   └── ControlConfigItem.qml     # 控件配置项组件
+│   │   ├── ConfigEditor.qml          # 配置编辑器主组件 (重构版)
+│   │   ├── ConfigManager.qml         # 配置数据管理器
+│   │   ├── ControlTypeManager.qml    # 控件类型管理器
+│   │   ├── GridConfigPanel.qml       # 网格配置面板
+│   │   ├── ControlToolbar.qml        # 控件工具栏
+│   │   ├── GridPreview.qml           # 网格预览组件
+│   │   ├── ControlEditDialog.qml     # 控件编辑对话框
+│   │   └── ControlTypeEditor.qml     # 控件类型编辑器
 │   ├── render/                       # 表单渲染相关组件
 │   │   ├── FormPreview.qml           # 表单预览组件
 │   │   └── ControlFactory.qml        # 控件工厂组件

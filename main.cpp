@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     // ✅ 启用 QML 调试
-    QQmlDebuggingEnabler enabler(true);
+    QQmlDebuggingEnabler::enableDebugging(true);
     // 启用所有Qt日志输出
     QLoggingCategory::setFilterRules("*=true");
     
