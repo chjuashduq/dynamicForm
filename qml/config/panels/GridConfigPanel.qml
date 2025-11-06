@@ -19,7 +19,6 @@ Rectangle {
     })
     
     onGridConfigChanged: {
-        console.log("GridConfigPanel gridConfig changed:", JSON.stringify(gridConfig));
         // 更新UI控件的值
         if (gridConfig) {
             rowsSpinBox.value = gridConfig.rows || 8;
@@ -63,10 +62,7 @@ Rectangle {
                     from: 1
                     to: 20
                     value: gridConfig.rows || 8
-                    onValueChanged: {
-                        console.log("rowsSpinBox valueChanged:", value);
-                        updateConfig();
-                    }
+                    onValueChanged: updateConfig()
                 }
             }
 
@@ -77,10 +73,7 @@ Rectangle {
                     from: 1
                     to: 10
                     value: gridConfig.columns || 2
-                    onValueChanged: {
-                        console.log("columnsSpinBox valueChanged:", value);
-                        updateConfig();
-                    }
+                    onValueChanged: updateConfig()
                 }
             }
 
@@ -187,13 +180,11 @@ Rectangle {
                 columnWidthsField.text = formatArrayForEdit(columnWidths);
             }
             
-            console.log("GridConfigPanel emitting configChanged:", JSON.stringify(newConfig));
             configChanged(newConfig);
         }
     }
     
     function updateConfig() {
-        console.log("GridConfigPanel updateConfig called");
         updateTimer.restart();
     }
     

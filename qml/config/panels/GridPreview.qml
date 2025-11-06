@@ -12,12 +12,11 @@ Rectangle {
     property var controls: []
     
     onGridConfigChanged: {
-        console.log("GridPreview gridConfig changed:", JSON.stringify(gridConfig));
-        refresh();
+        gridPreviewHeight = calculateRequiredHeight();
+        refreshTimer.restart();
     }
     
     onControlsChanged: {
-        console.log("GridPreview controls changed, count:", controls ? controls.length : 0);
         // 强制刷新Repeater以显示新的控件
         cellRepeater.model = 0;
         cellRepeater.model = (gridConfig.rows || 8) * (gridConfig.columns || 2);
@@ -25,44 +24,95 @@ Rectangle {
     
     signal controlClicked(int row, int col, var control)
     signal controlRightClicked(int row, int col, var control)
+    signal gridHeightChanged()
     
     width: parent ? parent.width - 20 : 400
-    height: calculateTotalHeight()
+    height: gridPreviewHeight
     anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+    visible: true
     
-    function calculateTotalHeight() {
-        var totalHeight = 20; // 上下边距
-        if (gridConfig.rowHeights && gridConfig.rowHeights.length > 0) {
-            for (var i = 0; i < (gridConfig.rows || 8); i++) {
-                totalHeight += getCellHeight(i);
-                if (i < (gridConfig.rows || 8) - 1) {
-                    totalHeight += (gridConfig.rowSpacing || 5);
-                }
-            }
-        } else {
-            totalHeight += (gridConfig.rows || 8) * 80 + ((gridConfig.rows || 8) - 1) * (gridConfig.rowSpacing || 5);
-        }
-        return Math.max(200, totalHeight);
+
+    
+    property int gridPreviewHeight: 300  // 初始化为最小高度，等待配置加载后更新
+    
+    onHeightChanged: {
+        gridHeightChanged();
     }
+    
+    onGridPreviewHeightChanged: {
+        gridHeightChanged();
+    }
+    
+    // 计算所需的总高度
+    function calculateRequiredHeight() {
+        var totalHeight = 0;
+        var rows = gridConfig.rows || 8;
+        var rowHeights = gridConfig.rowHeights || [1,1,1,1,1,1,1,2]; // 使用默认的行高配置
+        var rowSpacing = gridConfig.rowSpacing || 5;
+        
+        // 计算所有行的总高度
+        for (var i = 0; i < rows; i++) {
+            if (i < rowHeights.length) {
+                totalHeight += Math.max(30, rowHeights[i] * 80);
+            } else {
+                totalHeight += 80; // 默认高度
+            }
+            
+            // 添加行间距（除了最后一行）
+            if (i < rows - 1) {
+                totalHeight += rowSpacing;
+            }
+        }
+        
+        // 添加容器的上下边距和缓冲空间
+        totalHeight += 30; // 上下边距各10px + 额外缓冲10px
+        
+        return Math.max(300, totalHeight);
+    }
+    
+
     color: "#f8f9fa"
-    border.color: "#ff0000"  // 临时使用红色边框便于调试
+    border.color: "#dee2e6"
     border.width: 2
     radius: 4
 
     property var typeManagerLoader: Loader {
-        source: "ControlTypeManager.qml"
+        source: "../managers/ControlTypeManager.qml"
     }
     property var typeManager: typeManagerLoader.item
 
+
+    
+
+    
     Grid {
         id: gridLayout
-        anchors.fill: parent
-        anchors.margins: 10
+        anchors.left: parent.left
+        anchors.leftMargin: 10
+        anchors.top: parent.top
+        anchors.topMargin: 10
+        width: parent.width - 20
+        visible: true
         
         rows: gridConfig.rows || 8
         columns: gridConfig.columns || 2
         rowSpacing: gridConfig.rowSpacing || 5
         columnSpacing: gridConfig.columnSpacing || 10
+        
+        onImplicitHeightChanged: {
+            // 使用更准确的高度计算
+            updateContainerHeight();
+        }
+        
+        // 监听行间距变化
+        onRowSpacingChanged: {
+            updateContainerHeight();
+        }
+        
+        // 监听列间距变化  
+        onColumnSpacingChanged: {
+            updateContainerHeight();
+        }
 
         Repeater {
             id: cellRepeater
@@ -75,6 +125,7 @@ Rectangle {
                 
                 width: getCellWidth(cellCol)
                 height: getCellHeight(cellRow)
+                visible: true
                 
                 color: {
                     if (cellControl && typeManager) {
@@ -124,17 +175,12 @@ Rectangle {
                     hoverEnabled: true
                     
                     onClicked: function(mouse) {
-                        console.log("Cell clicked:", cellRow, cellCol, "hasControl:", !!cellControl);
                         if (cellControl) {
                             if (mouse.button === Qt.RightButton) {
-                                console.log("Right click - delete control:", cellControl.label);
                                 controlRightClicked(cellRow, cellCol, cellControl);
                             } else {
-                                console.log("Left click - edit control:", cellControl.label);
                                 controlClicked(cellRow, cellCol, cellControl);
                             }
-                        } else {
-                            console.log("Empty cell clicked - no action");
                         }
                     }
                 }
@@ -165,7 +211,7 @@ Rectangle {
     function getCellWidth(col) {
         if (gridConfig.columnWidths && col < gridConfig.columnWidths.length) {
             var width = gridConfig.columnWidths[col] * 180;
-            return width;
+            return Math.max(50, width);
         }
         return 180;
     }
@@ -173,9 +219,39 @@ Rectangle {
     function getCellHeight(row) {
         if (gridConfig.rowHeights && row < gridConfig.rowHeights.length) {
             var height = gridConfig.rowHeights[row] * 80;
-            return height;
+            return Math.max(30, height);
         }
         return 80;
+    }
+    
+    function calculateEstimatedHeight() {
+        var totalHeight = 0;
+        var rows = gridConfig.rows || 8;
+        var rowHeights = gridConfig.rowHeights || [];
+        var rowSpacing = gridConfig.rowSpacing || 5;
+        
+        // 计算所有行的总高度
+        for (var i = 0; i < rows; i++) {
+            if (i < rowHeights.length) {
+                totalHeight += Math.max(30, rowHeights[i] * 80);
+            } else {
+                totalHeight += 80; // 默认高度
+            }
+            
+            // 添加行间距（除了最后一行）
+            if (i < rows - 1) {
+                totalHeight += rowSpacing;
+            }
+        }
+        
+        return totalHeight > 0 ? totalHeight : (rows * 80 + (rows - 1) * rowSpacing);
+    }
+    
+    function updateContainerHeight() {
+        var calculatedHeight = calculateRequiredHeight();
+        var gridImplicitHeight = gridLayout.implicitHeight;
+        var finalHeight = Math.max(calculatedHeight, gridImplicitHeight + 30);
+        gridPreviewHeight = finalHeight;
     }
     
     function getControlAtPosition(row, col) {
@@ -197,30 +273,42 @@ Rectangle {
     }
     
     Component.onCompleted: {
-        console.log("GridPreview Component.onCompleted");
-        console.log("Initial gridConfig:", JSON.stringify(gridConfig));
-        console.log("Initial controls:", controls ? controls.length : "null");
-        refresh();
+        gridPreviewHeight = calculateRequiredHeight();
+        refreshTimer.start();
     }
     
+
+    
+    Timer {
+        id: refreshTimer
+        interval: 50
+        onTriggered: {
+            refresh();
+        }
+    }
+    
+    Timer {
+        id: heightUpdateTimer
+        interval: 150  // 增加延迟确保Grid完全布局
+        repeat: false
+        onTriggered: {
+            updateContainerHeight();
+        }
+    }
+    
+
+    
     function refresh() {
-        console.log("GridPreview refresh called");
-        console.log("Current gridConfig:", JSON.stringify(gridConfig));
-        
-        // 强制更新Grid属性
         gridLayout.rows = gridConfig.rows || 8;
         gridLayout.columns = gridConfig.columns || 2;
         gridLayout.rowSpacing = gridConfig.rowSpacing || 5;
         gridLayout.columnSpacing = gridConfig.columnSpacing || 10;
         
         var newModel = (gridConfig.rows || 8) * (gridConfig.columns || 2);
-        console.log("Setting cellRepeater model to:", newModel, "rows:", gridLayout.rows, "columns:", gridLayout.columns);
         cellRepeater.model = 0;
         cellRepeater.model = newModel;
         
-        // 更新GridPreview的高度
-        var newHeight = calculateTotalHeight();
-        console.log("Updating GridPreview height to:", newHeight);
-        gridPreview.height = newHeight;
+        gridPreviewHeight = calculateRequiredHeight();
+        heightUpdateTimer.restart();
     }
 }

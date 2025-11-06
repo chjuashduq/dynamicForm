@@ -19,7 +19,7 @@ Rectangle {
     radius: 8
 
     property var typeManagerLoader: Loader {
-        source: "ControlTypeManager.qml"
+        source: "../managers/ControlTypeManager.qml"
     }
     property var typeManager: typeManagerLoader.item
 

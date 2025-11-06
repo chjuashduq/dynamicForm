@@ -78,23 +78,7 @@ QtObject {
      * 注意：由于Qt样式限制，暂时禁用背景设置以避免警告
      */
     function setControlBackground(controlKey, color) {
-        // 设置控件背景色（已禁用，避免样式警告）
-        // 暂时注释掉背景设置，避免Qt样式不兼容警告
-        // if (controlsMap[controlKey]) {
-        //     var control = controlsMap[controlKey]
-        //     try {
-        //         if (control.background && control.background.hasOwnProperty("color")) {
-        //             control.background.color = color
-        //         } else {
-        //             control.background = Qt.createQmlObject(
-        //                 'import QtQuick 6.5; Rectangle { color: "' + color + '"; radius: 4 }',
-        //                 control
-        //             )
-        //         }
-        //     } catch (error) {
-        //         console.warn("⚠️ 无法设置控件背景:", controlKey, error.message)
-        //     }
-        // }
+        // 背景设置已禁用，避免Qt样式不兼容警告
     }
     
     /**

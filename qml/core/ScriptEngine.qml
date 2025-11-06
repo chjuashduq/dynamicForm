@@ -74,7 +74,7 @@ QtObject {
                 formAPI.validateNumber
             )
         } catch (error) {
-            // 静默处理错误，避免控制台输出
+            // 静默处理脚本执行错误
         }
     }
 }

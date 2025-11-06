@@ -4,17 +4,16 @@
         <file>qml/render/FormPreview.qml</file>
         <file>qml/render/ControlFactory.qml</file>
         <file>qml/config/ConfigEditor.qml</file>
-        <file>qml/config/ConfigManager.qml</file>
-        <file>qml/config/ControlTypeManager.qml</file>
-        <file>qml/config/GridConfigPanel.qml</file>
-        <file>qml/config/ControlToolbar.qml</file>
-        <file>qml/config/GridPreview.qml</file>
+        <file>qml/config/ControlTypeEditor.qml</file>
+        <file>qml/config/managers/ConfigManager.qml</file>
+        <file>qml/config/managers/ControlTypeManager.qml</file>
+        <file>qml/config/panels/GridConfigPanel.qml</file>
+        <file>qml/config/panels/ControlToolbar.qml</file>
+        <file>qml/config/panels/GridPreview.qml</file>
         <file>qml/config/dialog/ControlEditDialog.qml</file>
         <file>qml/config/dialog/FunctionHelpDialog.qml</file>
         <file>qml/config/dialog/BasicPropertiesPanel.qml</file>
         <file>qml/config/dialog/EventConfigPanel.qml</file>
-        <file>qml/config/qmldir</file>
-        <file>qml/config/ControlTypeEditor.qml</file>
         <file>qml/core/FormAPI.qml</file>
         <file>qml/core/ScriptEngine.qml</file>
         <file>form_config.json</file>
