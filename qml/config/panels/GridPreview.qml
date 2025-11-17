@@ -129,9 +129,8 @@ Rectangle {
                 
                 color: {
                     if (cellControl && typeManager) {
-                        return mouseArea.containsMouse ? 
-                               Qt.lighter(typeManager.getControlTypeInfo(cellControl.type).color, 1.2) :
-                               typeManager.getControlTypeInfo(cellControl.type).color;
+                        var baseColor = typeManager.getTypeColor(cellControl.type);
+                        return mouseArea.containsMouse ? Qt.lighter(baseColor, 1.2) : baseColor;
                     }
                     return mouseArea.containsMouse ? "#f0f0f0" : "#ffffff";
                 }

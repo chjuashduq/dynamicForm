@@ -3,7 +3,6 @@ import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.4
 import "../core"
 
-/**
  * 表单预览组件
  * 显示根据JSON配置生成的表单
  */

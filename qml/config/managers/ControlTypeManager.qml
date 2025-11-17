@@ -27,9 +27,36 @@ QtObject {
         return { type: type, icon: "❓", label: "未知", color: "#ffffff", borderColor: "#dee2e6" };
     }
     
+    /**
+     * 获取控件类型的默认标签
+     * 优化版本：直接返回标签，避免调用getControlTypeInfo造成的性能损耗
+     * 
+     * @param type 控件类型
+     * @return 默认标签文本
+     */
     function getDefaultLabel(type) {
-        var typeInfo = getControlTypeInfo(type);
-        return type === "button" ? "" : typeInfo.label.replace("框", "输入").replace("按钮", "");
+        // 按钮类型不需要标签
+        if (type === "button") {
+            return "";
+        }
+        
+        // 直接根据类型返回相应的默认标签，避免查找controlTypes数组
+        switch (type) {
+        case "text":
+            return "文本输入";
+        case "number":
+            return "数字输入";
+        case "password":
+            return "密码输入";
+        case "dropdown":
+            return "下拉输入";
+        case "checkbox":
+            return "复选输入";
+        case "radio":
+            return "单选输入";
+        default:
+            return "未知输入";
+        }
     }
     
     function createDefaultControl(type) {
@@ -107,5 +134,80 @@ QtObject {
     
     function hasTypeSpecificProps(type) {
         return ["text", "number", "dropdown", "checkbox", "radio", "button"].indexOf(type) !== -1;
+    }
+    
+    /**
+     * 直接获取控件类型的颜色
+     * 优化版本：避免调用getControlTypeInfo
+     */
+    function getTypeColor(type) {
+        switch (type) {
+        case "text":
+            return "#e3f2fd";
+        case "number":
+            return "#e8f5e8";
+        case "password":
+            return "#f3e5f5";
+        case "dropdown":
+            return "#fff3e0";
+        case "checkbox":
+            return "#ffebee";
+        case "radio":
+            return "#f5f5f5";
+        case "button":
+            return "#ffebee";
+        default:
+            return "#ffffff";
+        }
+    }
+    
+    /**
+     * 直接获取控件类型的边框颜色
+     * 优化版本：避免调用getControlTypeInfo
+     */
+    function getTypeBorderColor(type) {
+        switch (type) {
+        case "text":
+            return "#2196f3";
+        case "number":
+            return "#4caf50";
+        case "password":
+            return "#9c27b0";
+        case "dropdown":
+            return "#ff9800";
+        case "checkbox":
+            return "#f44336";
+        case "radio":
+            return "#9e9e9e";
+        case "button":
+            return "#f44336";
+        default:
+            return "#dee2e6";
+        }
+    }
+    
+    /**
+     * 直接获取控件类型的图标
+     * 优化版本：避免调用getControlTypeInfo
+     */
+    function getTypeIcon(type) {
+        switch (type) {
+        case "text":
+            return "📝";
+        case "number":
+            return "🔢";
+        case "password":
+            return "🔒";
+        case "dropdown":
+            return "📋";
+        case "checkbox":
+            return "☑️";
+        case "radio":
+            return "🔘";
+        case "button":
+            return "🎯";
+        default:
+            return "❓";
+        }
     }
 }

@@ -250,7 +250,7 @@ Item {                                                  // 配置编辑器主容
                 // 操作按钮区域容器
                 Rectangle {                             // 按钮区域背景容器
                     width: parent ? parent.width - 40 : 400 // 宽度：父容器宽度减去40像素边距，或默认400像素
-                    height: 80                          // 固定高度80像素
+                    height: 80                          // 恢复到80像素高度
                     anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined // 水平居中对齐
                     color: "#f8f9fa"                    // 浅灰色背景
                     border.color: "#dee2e6"             // 浅灰色边框
@@ -277,11 +277,13 @@ Item {                                                  // 配置编辑器主容
                             text: "导出配置"            // 按钮文本
                             onClicked: {                // 按钮点击事件处理
                                 if (configManager) {    // 如果配置管理器已准备好
-                                    var jsonString = configManager.exportConfig(); // 导出当前配置为JSON字符串
-                                    // 注意：这里可以添加保存到文件或复制到剪贴板的功能
+                                    var jsonString = configManager.exportConfig();
+                                    showConfigContent(jsonString, "config.json");
                                 }
                             }
                         }
+
+
 
                         // 重置配置按钮
                         Button {                        // 重置配置按钮
@@ -320,4 +322,226 @@ Item {                                                  // 配置编辑器主容
 
     // 编辑对话框别名属性，提供向后兼容性和便捷访问
     property alias editDialog: editDialogLoader.item // 创建editDialog别名，指向加载的对话框实例
+
+
+    
+
+    
+    // ========== 文件操作函数 ==========
+    
+
+    
+
+    
+    /**
+     * 显示消息提示
+     * @param message 消息内容
+     * @param type 消息类型 (success, error, info, warning)
+     */
+    function showMessage(message, type) {
+        messageDialog.messageText = message;
+        messageDialog.messageType = type || "info";
+        messageDialog.open();
+    }
+    
+    // ========== 消息提示对话框 ==========
+    
+    /**
+     * 通用消息提示对话框
+     */
+    Dialog {
+        id: messageDialog
+        title: "提示"
+        anchors.centerIn: Overlay.overlay
+        modal: true
+        width: Math.min(400, configEditor.width * 0.8)
+        height: Math.min(200, configEditor.height * 0.3)
+        
+        property string messageText: ""
+        property string messageType: "info"
+        
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 10
+            color: getMessageColor()
+            radius: 8
+            border.width: 1
+            border.color: getMessageBorderColor()
+            
+            function getMessageColor() {
+                switch (messageDialog.messageType) {
+                case "success": return "#d4edda";
+                case "error": return "#f8d7da";
+                case "warning": return "#fff3cd";
+                default: return "#d1ecf1";
+                }
+            }
+            
+            function getMessageBorderColor() {
+                switch (messageDialog.messageType) {
+                case "success": return "#c3e6cb";
+                case "error": return "#f5c6cb";
+                case "warning": return "#ffeaa7";
+                default: return "#bee5eb";
+                }
+            }
+            
+            ScrollView {
+                anchors.fill: parent
+                anchors.margins: 15
+                clip: true
+                
+                Text {
+                    width: parent.width
+                    text: messageDialog.messageText
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    color: getTextColor()
+                    font.pixelSize: 14
+                    
+                    function getTextColor() {
+                        switch (messageDialog.messageType) {
+                        case "success": return "#155724";
+                        case "error": return "#721c24";
+                        case "warning": return "#856404";
+                        default: return "#0c5460";
+                        }
+                    }
+                }
+            }
+        }
+        
+        standardButtons: Dialog.Ok
+    }
+    
+    /**
+     * 配置内容显示对话框
+     * 显示配置内容供用户复制和保存
+     */
+    Dialog {
+        id: configContentDialog
+        title: "导出配置"
+        anchors.centerIn: Overlay.overlay
+        modal: true
+        width: Math.min(700, configEditor.width * 0.9)
+        height: Math.min(600, configEditor.height * 0.8)
+        
+        property string configContent: ""
+        property string fileName: ""
+        
+        Column {
+            anchors.fill: parent
+            anchors.margins: 15
+            spacing: 15
+            
+            // 说明文本
+            Rectangle {
+                width: parent.width
+                height: 60
+                color: "#e3f2fd"
+                border.color: "#2196f3"
+                border.width: 1
+                radius: 8
+                
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 5
+                    
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "📋 配置导出"
+                        font.bold: true
+                        font.pixelSize: 16
+                        color: "#1976d2"
+                    }
+                    
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "请复制以下配置内容，保存为 " + configContentDialog.fileName + " 文件"
+                        font.pixelSize: 12
+                        color: "#1976d2"
+                    }
+                }
+            }
+            
+            // 配置内容区域
+            Rectangle {
+                width: parent.width
+                height: parent.height - 140
+                color: "#f8f9fa"
+                border.color: "#dee2e6"
+                border.width: 1
+                radius: 8
+                
+                ScrollView {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    clip: true
+                    
+                    TextArea {
+                        id: configTextArea
+                        text: configContentDialog.configContent
+                        readOnly: true
+                        selectByMouse: true
+                        selectByKeyboard: true
+                        wrapMode: TextArea.Wrap
+                        font.family: "Consolas, Monaco, 'Courier New', monospace"
+                        font.pixelSize: 11
+                        color: "#333333"
+                        
+                        // 全选功能
+                        Component.onCompleted: {
+                            selectAll();
+                        }
+                    }
+                }
+            }
+            
+            // 操作按钮
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 15
+                
+                Button {
+                    text: "📋 复制到剪贴板"
+                    font.pixelSize: 14
+                    onClicked: {
+                        if (typeof Qt !== 'undefined' && Qt.application && Qt.application.clipboard) {
+                            Qt.application.clipboard.text = configContentDialog.configContent;
+                            showMessage("✅ 配置已复制到剪贴板！\n请粘贴到文本编辑器中保存为 " + configContentDialog.fileName, "success");
+                        } else {
+                            showMessage("❌ 无法访问剪贴板，请手动选择并复制文本", "error");
+                        }
+                    }
+                }
+                
+                Button {
+                    text: "🔄 全选文本"
+                    font.pixelSize: 14
+                    onClicked: {
+                        configTextArea.selectAll();
+                        configTextArea.forceActiveFocus();
+                    }
+                }
+                
+                Button {
+                    text: "❌ 关闭"
+                    font.pixelSize: 14
+                    onClicked: configContentDialog.close()
+                }
+            }
+        }
+    }
+    
+    /**
+     * 显示配置内容对话框
+     * @param content 配置内容
+     * @param filePath 文件路径
+     */
+    function showConfigContent(content, filePath) {
+        configContentDialog.configContent = content;
+        configContentDialog.fileName = filePath;
+        configContentDialog.open();
+    }
 }

@@ -1,12 +1,19 @@
+/*
+ * @Author: 刘勇 yongliu_s@163.com
+ * @Date: 2025-10-27 16:16:13
+ * @LastEditors: 刘勇 yongliu_s@163.com
+ * @LastEditTime: 2025-11-12 16:23:16
+ * @FilePath: \DynamicFormQML\main.cpp
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 #include "mainwindow.h"
-
+#include "MySqlConnectionManager.h"
 #include <QApplication>
 #include <QLocale>
 #include <QLoggingCategory>
 #include <QDebug>
 #include <iostream>
 #include <QQmlDebuggingEnabler>
-
 #ifdef _WIN32
 #include <windows.h>
 #include <io.h>
@@ -14,15 +21,9 @@
 #endif
 
 using namespace std;
-
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    // 启用 QML 调试（仅在调试模式下）
-    #ifdef QT_DEBUG
-    // QQmlDebuggingEnabler::enableDebugging(true); // 暂时禁用以避免闪退问题
-    #endif
-    
     // 设置中文编码支持 (Qt 6方式)
     #ifdef QT_DEBUG
     #ifdef _WIN32
@@ -44,3 +45,5 @@ int main(int argc, char *argv[])
     
     return a.exec();
 }
+
+ 

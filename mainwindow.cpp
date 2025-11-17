@@ -1,12 +1,13 @@
+/*
+ * @Author: 刘勇 yongliu_s@163.com
+ * @Date: 2025-10-27 16:16:13
+ * @LastEditors: 刘勇 yongliu_s@163.com
+ * @LastEditTime: 2025-11-13 16:10:25
+ * @FilePath: \DynamicFormQML\mainwindow.cpp
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QQuickWidget>
-#include <QQmlContext>
-#include <QFile>
-#include <QLoggingCategory>
-#include <QQmlEngine>
-#include <QDebug>
-#include <iostream>
 
 using namespace std;
 
@@ -31,7 +32,12 @@ MainWindow::MainWindow(QWidget *parent)
         jsonStr = QString(file.readAll());
         file.close();
     }
-
+    qmlRegisterSingletonType<MySqlHelper>("mysqlhelper", 1, 0, "MySqlHelper", [](QQmlEngine *, QJSEngine *) -> QObject * {
+        return new MySqlHelper;
+    });
+    qmlRegisterSingletonType<MySqlConnectionManager>("mysqlconnectionmanager", 1, 0, "MySqlConnectionManager", [](QQmlEngine *, QJSEngine *) -> QObject * {
+        return MySqlConnectionManager::getInstance();
+    });
     // 传入 QML
     quickWidget->rootContext()->setContextProperty("formJson", jsonStr);
     quickWidget->setSource(QUrl("qrc:/qml/main.qml"));

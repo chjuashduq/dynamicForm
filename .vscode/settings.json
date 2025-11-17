@@ -13,7 +13,22 @@
         "xtr1common": "cpp",
         "utility": "cpp",
         "ostream": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "qsqldatabase": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "algorithm": "cpp",
+        "format": "cpp",
+        "qvector": "cpp",
+        "qsqlquery": "cpp",
+        "new": "cpp",
+        "qquickwidget": "cpp"
     },
-    "kiroAgent.configureMCP": "Disabled"
+    "cmake.debugConfig": {
+        "visualizerFile": "${workspaceFolder}/.vscode/Qt6.natvis",
+        "showDisplayString": true
+    }
+
 }

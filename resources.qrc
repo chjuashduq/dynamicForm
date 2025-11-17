@@ -16,6 +16,7 @@
         <file>qml/config/dialog/EventConfigPanel.qml</file>
         <file>qml/core/FormAPI.qml</file>
         <file>qml/core/ScriptEngine.qml</file>
+        <file>qml/dynamic/dynamicList.qml</file>
         <file>form_config.json</file>
     </qresource>
 </RCC>

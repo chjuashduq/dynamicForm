@@ -2,7 +2,16 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-
+#include <QQuickWidget>
+#include <QQmlContext>
+#include <QFile>
+#include <QLoggingCategory>
+#include <QQmlEngine>
+#include <QDebug>
+#include <iostream>
+#include <QQmlApplicationEngine>
+#include "mysql/MySqlHelper/MySqlHelper.h"
+#include "mysql/MySqlConnectionManager/MySqlConnectionManager.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE

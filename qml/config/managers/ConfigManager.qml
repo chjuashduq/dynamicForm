@@ -84,13 +84,14 @@ QtObject {                                          // 定义配置管理器对�
      */
     function updateControl(index, controlConfig) {  // 更新控件配置的函数
         // 验证控件列表存在且索引有效
-        if (currentConfig.controls && index >= 0 && index < currentConfig.controls.length) {
-            currentConfig.controls[index] = controlConfig; // 更新指定索引位置的控件配置
-            // 强制触发数组变化，确保QML能检测到数组内容的改变
-            var tempControls = currentConfig.controls.slice(); // 创建数组的浅拷贝
-            currentConfig.controls = tempControls;     // 重新赋值以触发属性变化信号
-            internalConfigChanged(currentConfig);      // 触发内部配置变化信号
+        if (!currentConfig.controls || index < 0 || index >= currentConfig.controls.length) {
+            console.warn("Invalid index or controls array missing")
+            return
         }
+        // 使用 splice 替换元素，可触发绑定更新
+        currentConfig.controls.splice(index, 1, controlConfig)
+        // 发出内部变化信号
+        internalConfigChanged(currentConfig)
     }
     
     /**
@@ -99,10 +100,12 @@ QtObject {                                          // 定义配置管理器对�
      */
     function removeControl(index) {                 // 删除控件的函数
         // 验证控件列表存在且索引有效
-        if (currentConfig.controls && index >= 0 && index < currentConfig.controls.length) {
-            currentConfig.controls.splice(index, 1); // 从数组中删除指定索引的控件
-            internalConfigChanged(currentConfig);    // 触发内部配置变化信号
+        if (!currentConfig.controls || index < 0 || index >= currentConfig.controls.length) {
+            console.warn("Invalid index or controls array missing")
+            return
         }
+        currentConfig.controls.splice(index, 1); // 从数组中删除指定索引的控件
+        internalConfigChanged(currentConfig);    // 触发内部配置变化信号        
     }
     
     /**
