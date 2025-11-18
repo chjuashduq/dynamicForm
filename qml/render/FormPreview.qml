@@ -13,10 +13,15 @@ Item {
     
     property var formConfig: ({})
     property var controlsMap: ({})
+    property var labelsMap: ({})
     property var stackViewRef: ({})
     property var loaderInstanceRef: ({})
     property string formName: ""
     property int recordId: -1
+    property int dataRecordId: -1  // 数据记录ID（编辑模式）
+    property var initialData: ({})  // 初始数据（编辑模式）
+    property bool isEditMode: false // 是否为编辑模式
+    property bool fromDataRecordList: false // 是否从数据记录列表进入
     
     // 监听配置变化
     onFormConfigChanged: {
@@ -29,20 +34,44 @@ Item {
     FormAPI {
         id: formAPI
         controlsMap: formPreview.controlsMap
-
+        labelsMap: formPreview.labelsMap
+        scriptEngine: scriptEngine
     }
     
     ScriptEngine {
         id: scriptEngine
-        formAPI: formAPI
+        formId: formPreview.recordId
+        dataRecordId: formPreview.dataRecordId
+        isEditMode: formPreview.isEditMode
+    }
+    
+    Component.onCompleted: {
+        scriptEngine.formAPI = formAPI
+    }
+    
+    // 当recordId变化时更新scriptEngine的formId
+    onRecordIdChanged: {
+        scriptEngine.formId = recordId
+    }
+    
+    // 当dataRecordId变化时更新scriptEngine
+    onDataRecordIdChanged: {
+        scriptEngine.dataRecordId = dataRecordId
+    }
+    
+    // 当isEditMode变化时更新scriptEngine
+    onIsEditModeChanged: {
+        scriptEngine.isEditMode = isEditMode
     }
     
     ControlFactory {
         id: controlFactory
         parentGrid: grid
         controlsMap: formPreview.controlsMap
+        labelsMap: formPreview.labelsMap
         scriptEngine: scriptEngine
         formConfig: formPreview.formConfig
+        formAPI: formAPI
     }
     
     // 延迟加载定时器
@@ -81,7 +110,18 @@ Item {
                         onClicked: {
                             if (loaderInstanceRef && loaderInstanceRef.formPreviewLoader) {
                                 loaderInstanceRef.formPreviewLoader.visible = false
-                                loaderInstanceRef.dynamicListLoadingLoader.visible = true
+                                
+                                // 如果是从数据记录列表进入的，返回数据记录列表并刷新
+                                if (fromDataRecordList && loaderInstanceRef.dataRecordListLoader) {
+                                    loaderInstanceRef.dataRecordListLoader.visible = true
+                                    if (loaderInstanceRef.dataRecordListLoader.item) {
+                                        loaderInstanceRef.dataRecordListLoader.item.loadData()
+                                    }
+                                } else {
+                                    // 否则返回表单列表
+                                    loaderInstanceRef.dynamicListLoadingLoader.visible = true
+                                }
+                                
                                 stackViewRef.pop()
                             }
                         }
@@ -244,11 +284,64 @@ Item {
     }
     
     // 初始化表单（用于新增记录）
-    function initForm(id, name, configJson) {
+    function initForm(id, name, configJson, fromRecordList) {
         recordId = id
         formName = name
+        isEditMode = false
+        dataRecordId = -1
+        initialData = {}
+        fromDataRecordList = fromRecordList || false
+        
         if (configJson && configJson !== "") {
             formConfig = JSON.parse(configJson)
+        }
+    }
+    
+    // 初始化表单（用于编辑记录）
+    function initFormForEdit(id, name, configJson, recordDataId, dataJson) {
+        recordId = id
+        formName = name
+        isEditMode = true
+        dataRecordId = recordDataId
+        fromDataRecordList = true  // 编辑模式一定是从数据记录列表进入的
+        
+        // 解析初始数据
+        if (dataJson && dataJson !== "") {
+            try {
+                initialData = typeof dataJson === "string" ? JSON.parse(dataJson) : dataJson
+            } catch(e) {
+                initialData = {}
+            }
+        } else {
+            initialData = {}
+        }
+        
+        if (configJson && configJson !== "") {
+            formConfig = JSON.parse(configJson)
+        }
+        
+        // 使用 Timer 延迟填充数据，确保表单完全加载
+        fillDataTimer.start()
+    }
+    
+    // 填充数据的定时器
+    Timer {
+        id: fillDataTimer
+        interval: 200
+        repeat: false
+        onTriggered: fillFormData()
+    }
+    
+    // 填充表单数据
+    function fillFormData() {
+        if (!initialData || Object.keys(initialData).length === 0) {
+            return
+        }
+        
+        for (var key in initialData) {
+            if (initialData.hasOwnProperty(key)) {
+                formAPI.setControlValue(key, initialData[key])
+            }
         }
     }
 }

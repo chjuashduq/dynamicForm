@@ -69,10 +69,10 @@ QtObject {
     
     // ===== 输入框样式 =====
     readonly property color inputBackground: surfaceColor
-    readonly property color inputBorder: borderColor
+    readonly property color inputBorder: "#cbd5e0"         // 更深的边框色，更清晰
     readonly property color inputBorderFocus: primaryColor
     readonly property color inputBorderError: errorColor
-    readonly property int inputBorderWidth: 1
+    readonly property int inputBorderWidth: 2               // 增加边框宽度
     readonly property int inputRadius: radiusMedium
     readonly property int inputHeight: controlHeightMedium
     readonly property int inputPadding: paddingMedium

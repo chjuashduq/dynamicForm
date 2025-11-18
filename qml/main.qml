@@ -36,11 +36,10 @@ Item  {
         id: dynamicListLoadingTab
         Item {
             // 页面根节点
-            width: parent.width
-            height: parent.height
             Loader {
                 id: dynamicListLoadingLoader
-                anchors.fill: parent
+                width: parent.width
+                height: parent.height
                 source: "dynamic/dynamicList.qml"
                 onLoaded: {
                     root.loaderInstance.dynamicListLoadingLoader = dynamicListLoadingLoader;
@@ -59,11 +58,10 @@ Item  {
         id: formPreviewTab
         Item {
             // 页面根节点
-            width: parent.width
-            height: parent.height
             Loader {
                 id: formPreviewLoader
-                anchors.fill: parent
+                width: parent.width
+                height: parent.height
                 source: "render/FormPreview.qml"
                 asynchronous: true
                 active: true
@@ -76,6 +74,21 @@ Item  {
                     item.loaderInstanceRef = root.loaderInstance;
                 }
             }
+            
+            Loader {
+                id: dataRecordListLoader
+                width: parent.width
+                height: parent.height
+                source: "dynamic/dataRecordList.qml"
+                asynchronous: true
+                active: true
+                visible: false
+                onLoaded: {
+                    root.loaderInstance.dataRecordListLoader = dataRecordListLoader;
+                    item.stackViewRef = stackView;
+                    item.loaderInstanceRef = root.loaderInstance;
+                }
+            }
         }
     }
 
@@ -84,11 +97,10 @@ Item  {
         id: configEditorTab
         Item {
             // 页面根节点
-            width: parent.width
-            height: parent.height
             Loader {
                 id: configEditorLoader
-                anchors.fill: parent
+                width: parent.width
+                height: parent.height
                 source: "config/ConfigEditor.qml"
                 asynchronous: true   // 异步加载
                 active: true        // 始终加载（后台加载）

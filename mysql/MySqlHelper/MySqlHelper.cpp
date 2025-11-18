@@ -10,6 +10,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QSqlError>
 bool MySqlHelper::insert(const QString& tableName, const QMap<QString, QVariant>& data)
 {
     if(data.isEmpty()){
@@ -31,7 +32,8 @@ bool MySqlHelper::insert(const QString& tableName, const QMap<QString, QVariant>
         /* code */
     }
     if (!query.exec()) {
-        qCritical() << "Insert failed" ;
+        qCritical() << "Insert failed:" << query.lastError().text();
+        qCritical() << "SQL:" << keyString;
         return false;
     }
     return true;

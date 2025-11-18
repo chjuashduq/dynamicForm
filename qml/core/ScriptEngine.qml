@@ -15,6 +15,12 @@ QtObject {
     // 表单ID（用于提交时识别表单）
     property int formId: -1
     
+    // 数据记录ID（编辑模式）
+    property int dataRecordId: -1
+    
+    // 是否为编辑模式
+    property bool isEditMode: false
+    
     // 获取全局MySqlHelper对象
     function getMySqlHelper() {
         return MySqlHelper;
@@ -23,6 +29,26 @@ QtObject {
     // 获取全局MessageManager对象
     function getMessageManager() {
         return MessageManager;
+    }
+    
+    /**
+     * 格式化日期时间为 MySQL DATETIME 格式
+     * @param date - Date 对象，如果不传则使用当前时间
+     * @return 格式化后的日期时间字符串，如 "2025-11-18 13:31:33"
+     */
+    function formatDateTime(date) {
+        if (!date) {
+            date = new Date();
+        }
+        
+        var year = date.getFullYear();
+        var month = String(date.getMonth() + 1).padStart(2, '0');
+        var day = String(date.getDate()).padStart(2, '0');
+        var hours = String(date.getHours()).padStart(2, '0');
+        var minutes = String(date.getMinutes()).padStart(2, '0');
+        var seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
     }
     
     /**
@@ -43,6 +69,8 @@ QtObject {
                 'formId',                 // 表单ID
                 'formData',               // 表单数据（JSON格式）
                 'value',                  // 当前控件的值（用于验证函数）
+                'dataRecordId',           // 数据记录ID（编辑模式）
+                'isEditMode',             // 是否为编辑模式
                 'MySqlHelper',            // 数据库操作对象
                 'MessageManager',         // 消息管理器
                 'controlsMap',            // 所有控件的映射表
@@ -68,6 +96,7 @@ QtObject {
                 'validateIdCard',         // 身份证验证
                 'validateChinese',        // 中文验证
                 'validateNumber',         // 数字验证
+                'formatDateTime',         // 格式化日期时间
                 funcCode                  // 用户编写的函数代码
             )
             
@@ -85,6 +114,8 @@ QtObject {
                 formId,
                 formData,
                 context.value,
+                dataRecordId,
+                isEditMode,
                 mySqlHelperObj,
                 messageManagerObj,
                 formAPI.controlsMap,
@@ -109,7 +140,8 @@ QtObject {
                 formAPI.validatePhone,
                 formAPI.validateIdCard,
                 formAPI.validateChinese,
-                formAPI.validateNumber
+                formAPI.validateNumber,
+                formatDateTime
             )
             
             return result

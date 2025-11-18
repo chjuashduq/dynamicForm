@@ -14,6 +14,7 @@
 #include <QDebug>
 #include <iostream>
 #include <QQmlDebuggingEnabler>
+#include <QQuickStyle>
 #ifdef _WIN32
 #include <windows.h>
 #include <io.h>
@@ -24,6 +25,9 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    
+    // 设置 Qt Quick Controls 样式为 Basic，支持自定义
+    QQuickStyle::setStyle("Basic");
     // 设置中文编码支持 (Qt 6方式)
     #ifdef QT_DEBUG
     #ifdef _WIN32

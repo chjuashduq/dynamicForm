@@ -167,10 +167,9 @@ Item {                                                  // 配置编辑器主容
                     color: "#667eea"                    // 设置蓝紫色背景
                     radius: 8                           // 设置8像素圆角
 
-                    Column{
+                    Item {
                         anchors.fill: parent
                         anchors.margins: 10
-                        spacing: 5
 
                         Button{
                             text: "返回列表"
@@ -221,16 +220,16 @@ Item {                                                  // 配置编辑器主容
                             TextField {
                                 id: dynamicName
                                 text: dynamicNameText
-                                padding: 6   // 加回默认 padding
-                                implicitHeight: 20
-                                implicitWidth: 200
+                                implicitHeight: 35
+                                implicitWidth: 300
+                                verticalAlignment: TextInput.AlignVCenter
 
                                 // 自定义背景
                                 background: Rectangle {
                                     id: bg
                                     color: "white"
-
                                     border.color: "lightgray"
+                                    border.width: 1
                                     radius: 4
                                 }
                                 onEditingFinished: {
@@ -377,15 +376,19 @@ Item {                                                  // 配置编辑器主容
                                             dynamicName: dynamicName.text
                                         });
                                     try {
-                                        MySqlHelper.insert("dynamicForm", data);
-                                        MessageManager.showDialog("表单配置提交成功！", "success", function () {
-                                            dynamicName.text = "";
-                                            configManager.resetConfig();
-                                            loaderInstanceRef.configEditorLoader.visible = false;
-                                            loaderInstanceRef.dynamicListLoadingLoader.visible = true;
-                                            loaderInstanceRef.dynamicListLoadingLoader.item.getData();
-                                            stackViewRef.pop();
-                                        });
+                                        var result = MySqlHelper.insert("dynamicForm", data);
+                                        if (result) {
+                                            MessageManager.showDialog("表单配置提交成功！", "success", function () {
+                                                dynamicName.text = "";
+                                                configManager.resetConfig();
+                                                loaderInstanceRef.configEditorLoader.visible = false;
+                                                loaderInstanceRef.dynamicListLoadingLoader.visible = true;
+                                                loaderInstanceRef.dynamicListLoadingLoader.item.getData();
+                                                stackViewRef.pop();
+                                            });
+                                        } else {
+                                            MessageManager.showToast("提交表单配置失败，请检查数据库连接和表结构", "error");
+                                        }
                                     } catch (e) {
                                         MessageManager.showToast("提交表单配置失败: " + e, "error", null);
                                     }

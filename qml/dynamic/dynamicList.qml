@@ -33,19 +33,35 @@ Item {
         }
     }
 
+    // 整体布局
+    Rectangle {
+        anchors.fill: parent
+        color: AppStyles.backgroundColor
+    }
+    
     RowLayout {
         id: topBar
         anchors.top: parent.top
         anchors.left: parent.left
+        anchors.right: parent.right
         anchors.topMargin: AppStyles.spacingLarge
         anchors.leftMargin: AppStyles.spacingXLarge
-        Layout.fillWidth: true
+        anchors.rightMargin: AppStyles.spacingXLarge
+        height: 40
+        z: 1  // 确保在最上层
 
         spacing: AppStyles.spacingSmall
+        
+        Text {
+            text: "表单列表"
+            font.pixelSize: AppStyles.fontSizeTitle
+            color: AppStyles.textPrimary
+            Layout.fillWidth: true
+        }
+        
         StyledButton {
             text: "新增表单"
             buttonType: "primary"
-            Layout.fillWidth: true
             onClicked: {
                 if (stackViewRef && loaderInstanceRef) {
                     loaderInstanceRef.dynamicListLoadingLoader.visible = false;
@@ -56,12 +72,6 @@ Item {
                 }
             }
         }
-    }
-
-    // 整体布局
-    Rectangle {
-        anchors.fill: parent
-        color: AppStyles.backgroundColor
     }
     
     ScrollView {
@@ -207,8 +217,24 @@ Item {
                             buttonType: "secondary"
                             Layout.fillWidth: true
                             onClicked: {
-                                // TODO: 实现查询记录功能
-                                MessageManager.showToast("查询功能开发中", "info");
+                                if (loaderInstanceRef && loaderInstanceRef.dataRecordListLoader) {
+                                    var loader = loaderInstanceRef.dataRecordListLoader;
+                                    
+                                    if (!loader.item) {
+                                        var connection = loader.onLoaded.connect(function() {
+                                            if (loader.item) {
+                                                loader.item.initPage(model.id, model.dynamicName, model.dynamicConfig);
+                                            }
+                                            loader.onLoaded.disconnect(connection);
+                                        });
+                                    } else {
+                                        loader.item.initPage(model.id, model.dynamicName, model.dynamicConfig);
+                                    }
+                                    
+                                    loaderInstanceRef.dynamicListLoadingLoader.visible = false;
+                                    loader.visible = true;
+                                    stackViewRef.push(loader);
+                                }
                             }
                         }
                         StyledButton {
