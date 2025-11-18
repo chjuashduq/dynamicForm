@@ -10,18 +10,18 @@ Rectangle {
     id: gridConfigPanel
     
     property var gridConfig: ({
-        "rows": 8,
+        "rows": 4,
         "columns": 2,
         "rowSpacing": 5,
         "columnSpacing": 10,
-        "rowHeights": [1, 1, 1, 1, 1, 1, 1, 2],
+        "rowHeights": [ 1, 1, 1, 2],
         "columnWidths": [1, 2]
     })
     
     onGridConfigChanged: {
         // 更新UI控件的值
         if (gridConfig) {
-            rowsSpinBox.value = gridConfig.rows || 8;
+            rowsSpinBox.value = gridConfig.rows || 4;
             columnsSpinBox.value = gridConfig.columns || 2;
             rowSpacingSpinBox.value = gridConfig.rowSpacing || 5;
             columnSpacingSpinBox.value = gridConfig.columnSpacing || 10;
@@ -61,7 +61,7 @@ Rectangle {
                     id: rowsSpinBox
                     from: 1
                     to: 20
-                    value: gridConfig.rows || 8
+                    value: gridConfig.rows || 4
                     onValueChanged: updateConfig()
                 }
             }
@@ -123,7 +123,7 @@ Rectangle {
                 TextField {
                     id: rowHeightsField
                     width: Math.max(parent.width - 20, 300)
-                    placeholderText: "1,1,1,1,1,1,1,2"
+                    placeholderText: "1,1,1,2"
                     text: formatArrayForEdit(gridConfig.rowHeights || [])
                     onEditingFinished: updateConfig()
                 }

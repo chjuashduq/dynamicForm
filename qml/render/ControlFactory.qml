@@ -53,6 +53,7 @@ QtObject {                                              // 控件工厂对象
     property var controlsMap: ({})                      // 控件映射表，用于通过key访问控件实例
     property var scriptEngine: null                     // 脚本引擎引用，用于执行用户自定义的JavaScript代码
     property var formConfig: null                       // 表单配置对象，包含网格布局等信息
+    property var formAPI: null                          // FormAPI引用，用于访问表单操作API
     
     /**
      * 创建单个表单控件的主函数
@@ -96,7 +97,12 @@ QtObject {                                              // 控件工厂对象
             var controlKey = config.key || config.label // 使用key或label作为控件的唯一标识
             controlsMap[controlKey] = input             // 将控件注册到映射表中，供API访问
             
-            // ===== 第五步：应用配置 =====
+            // ===== 第五步：注册校验规则 =====
+            if (config.validation && formAPI) {
+                formAPI.registerValidation(controlKey, config.validation)
+            }
+            
+            // ===== 第六步：应用配置 =====
             _applyStyles(input, config)                 // 应用样式配置（颜色、字体等）
             _bindEvents(input, config)                  // 绑定事件处理函数
         }

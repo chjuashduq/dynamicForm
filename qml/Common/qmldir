@@ -1,0 +1,2 @@
+module Common
+singleton MessageManager 1.0 MessageManager.qml

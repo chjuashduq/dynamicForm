@@ -39,7 +39,7 @@ Rectangle {
             spacing: 15
 
             Repeater {
-                model: typeManager ? typeManager.controlTypes.slice(0, 4) : []
+                model: typeManager ? typeManager.controlTypes.slice(0, 8) : []
                 
                 Button {
                     text: modelData.icon + " " + modelData.label
@@ -53,7 +53,7 @@ Rectangle {
             spacing: 15
 
             Repeater {
-                model: typeManager ? typeManager.controlTypes.slice(4) : []
+                model: typeManager ? typeManager.controlTypes.slice(8) : []
                 
                 Button {
                     text: modelData.icon + " " + modelData.label

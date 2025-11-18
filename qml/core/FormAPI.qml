@@ -1,5 +1,5 @@
 import QtQuick 6.5
-
+import Common 1.0
 /**
  * 表单控件操作API库
  * 提供统一的控件操作接口
@@ -10,8 +10,9 @@ QtObject {
     // 控件映射表的引用
     property var controlsMap: ({})
     
-    // 消息显示组件的引用
-    property var messageComponent: null
+    // 校验规则映射表 {controlKey: {rules: [...], message: "..."}}
+    property var validationRules: ({})
+
     
     /**
      * 获取指定控件的值（支持各种控件类型）
@@ -130,9 +131,7 @@ QtObject {
      * 显示消息
      */
     function showMessage(message, type) {
-        if (messageComponent) {
-            messageComponent.showMessage(message, type || "info")
-        }
+        MessageManager.showToast(message, type || "info")
     }
     
     /**
@@ -221,5 +220,37 @@ QtObject {
             controlsMap[controlKey].focus = true
             
         }
+    }
+    
+    /**
+     * 获取所有控件的值
+     * 返回一个对象，key为控件的key，value为控件的值
+     */
+    function getAllValues() {
+        var result = {}
+        for (var key in controlsMap) {
+            if (controlsMap.hasOwnProperty(key)) {
+                var control = controlsMap[key]
+                
+                // 处理不同类型的控件
+                if (control.hasOwnProperty("getValue")) {
+                    // 如果控件有自定义的getValue方法（如ComboBox、CheckBox组、Radio组）
+                    result[key] = control.getValue()
+                } else if (control.hasOwnProperty("text")) {
+                    // 文本输入框
+                    result[key] = control.text
+                } else if (control.hasOwnProperty("value")) {
+                    // 数字输入框
+                    result[key] = control.value
+                } else if (control.hasOwnProperty("currentText")) {
+                    // 下拉框
+                    result[key] = control.currentText
+                } else if (control.hasOwnProperty("checked")) {
+                    // 单个复选框
+                    result[key] = control.checked
+                }
+            }
+        }
+        return result
     }
 }

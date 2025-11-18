@@ -2,20 +2,25 @@ import QtQuick 6.5
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.4
 import mysqlhelper 1.0
-
+import Common 1.0
 Item {
     id: dynamicListRoot
     width: parent.width
     height: parent.height
     property var stackViewRef: ({})
-    property var configEditorLoaderRef: ({})
-    property var dynamicListLoadingLoader: ({})
+    property var loaderInstanceRef: ({})
+
     // 模型
     ListModel {
         id: dynamicListModel
     }
 
     Component.onCompleted: {
+        getData()
+        
+    }
+
+    function getData(){
         var data = MySqlHelper.select("dynamicForm", [], "");
         dynamicListModel.clear();
         for (var i = 0; i < data.length; i++) {
@@ -25,7 +30,6 @@ Item {
                 dynamicConfig: JSON.stringify(data[i].dynamicConfig)
             });
         }
-        
     }
 
     RowLayout {
@@ -41,10 +45,12 @@ Item {
             text: "新增表单"
             Layout.fillWidth: true
             onClicked: {
-                if (stackViewRef && configEditorLoaderRef) {
-                    dynamicListLoadingLoader.visible = false;
-                    configEditorLoaderRef.visible = true;
-                    stackViewRef.push(configEditorLoaderRef);
+                if (stackViewRef && loaderInstanceRef) {
+                    loaderInstanceRef.dynamicListLoadingLoader.visible = false;
+                    loaderInstanceRef.configEditorLoader.visible = true;
+                    loaderInstanceRef.configEditorLoader.item.initConfigEditor("");
+                    stackViewRef.push(loaderInstanceRef.configEditorLoader);
+                    
                 }
             }
         }
@@ -135,7 +141,7 @@ Item {
                         height: 40
                         Label {
                             anchors.centerIn: parent
-                            text: model.id
+                            text: index+1
                         }
                     }
                     Rectangle {
@@ -158,8 +164,14 @@ Item {
                         Layout.preferredWidth: 0.4 * dynamicListRoot.width
                         height: 40
                         Label {
-                            anchors.centerIn: parent
+                            anchors.fill: parent
+
                             text: model.dynamicConfig
+
+                            elide: Text.ElideRight         // 开启右侧省略号
+                            horizontalAlignment: Text.AlignLeft
+                            verticalAlignment: Text.AlignVCenter
+
                         }
                     }
                     RowLayout {
@@ -174,17 +186,42 @@ Item {
                         Button {
                             text: "新增记录"
                             Layout.fillWidth: true
-                            onClicked: console.log("查询记录 id:", model.id)
+                            onClicked: function(){
+                                if (stackViewRef && loaderInstanceRef) {
+                                    loaderInstanceRef.dynamicListLoadingLoader.visible = false;
+                                    loaderInstanceRef.formPreviewLoader.visible = true;
+                                    loaderInstanceRef.formPreviewLoader.item.initForm(model.id, model.dynamicName, model.dynamicConfig);
+                                    stackViewRef.push(loaderInstanceRef.formPreviewLoader);
+                                }
+                            }
                         }
                         Button {
                             text: "编辑表单"
                             Layout.fillWidth: true
-                            onClicked: console.log("编辑表单 id:", model.id)
+                            onClicked: function(){
+                                if (stackViewRef && loaderInstanceRef) {
+                                    loaderInstanceRef.dynamicListLoadingLoader.visible = false;
+                                    loaderInstanceRef.configEditorLoader.visible = true;
+                                    loaderInstanceRef.configEditorLoader.item.initConfigEditor(model.dynamicName,model.dynamicConfig);
+                                    stackViewRef.push(loaderInstanceRef.configEditorLoader);
+                                    
+                                }
+                            }
                         }
                         Button {
                             text: "删除表单"
                             Layout.fillWidth: true
-                            onClicked: console.log("删除表单 id:", model.id)
+                            onClicked: function(){
+                                var where = "id="+model.id;
+                                try{
+                                    MySqlHelper.remove("dynamicForm",where)
+                                    MessageManager.showDialog("删除成功","info",getData())
+
+                                    
+                                }catch(e){
+                                    console.log("删除失败，error",e)
+                                }
+                            }
                         }
                     }
                 }

@@ -19,7 +19,7 @@ Rectangle {
     onControlsChanged: {
         // 强制刷新Repeater以显示新的控件
         cellRepeater.model = 0;
-        cellRepeater.model = (gridConfig.rows || 8) * (gridConfig.columns || 2);
+        cellRepeater.model = (gridConfig.rows || 4) * (gridConfig.columns || 2);
     }
     
     signal controlClicked(int row, int col, var control)
@@ -46,8 +46,8 @@ Rectangle {
     // 计算所需的总高度
     function calculateRequiredHeight() {
         var totalHeight = 0;
-        var rows = gridConfig.rows || 8;
-        var rowHeights = gridConfig.rowHeights || [1,1,1,1,1,1,1,2]; // 使用默认的行高配置
+        var rows = gridConfig.rows || 4;
+        var rowHeights = gridConfig.rowHeights || [1,1,1,2]; // 使用默认的行高配置
         var rowSpacing = gridConfig.rowSpacing || 5;
         
         // 计算所有行的总高度
@@ -94,7 +94,7 @@ Rectangle {
         width: parent.width - 20
         visible: true
         
-        rows: gridConfig.rows || 8
+        rows: gridConfig.rows || 4
         columns: gridConfig.columns || 2
         rowSpacing: gridConfig.rowSpacing || 5
         columnSpacing: gridConfig.columnSpacing || 10
@@ -116,7 +116,7 @@ Rectangle {
 
         Repeater {
             id: cellRepeater
-            model: (gridConfig.rows || 8) * (gridConfig.columns || 2)
+            model: (gridConfig.rows || 4) * (gridConfig.columns || 2)
 
             Rectangle {
                 property int cellRow: Math.floor(index / (gridConfig.columns || 2))
@@ -225,7 +225,7 @@ Rectangle {
     
     function calculateEstimatedHeight() {
         var totalHeight = 0;
-        var rows = gridConfig.rows || 8;
+        var rows = gridConfig.rows || 4;
         var rowHeights = gridConfig.rowHeights || [];
         var rowSpacing = gridConfig.rowSpacing || 5;
         
@@ -298,12 +298,12 @@ Rectangle {
 
     
     function refresh() {
-        gridLayout.rows = gridConfig.rows || 8;
+        gridLayout.rows = gridConfig.rows || 4;
         gridLayout.columns = gridConfig.columns || 2;
         gridLayout.rowSpacing = gridConfig.rowSpacing || 5;
         gridLayout.columnSpacing = gridConfig.columnSpacing || 10;
         
-        var newModel = (gridConfig.rows || 8) * (gridConfig.columns || 2);
+        var newModel = (gridConfig.rows || 4) * (gridConfig.columns || 2);
         cellRepeater.model = 0;
         cellRepeater.model = newModel;
         

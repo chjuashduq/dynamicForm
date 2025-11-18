@@ -16,21 +16,17 @@ QtObject {                                          // 定义配置管理器对�
     // 当前表单配置数据，包含网格配置和控件列表
     property var currentConfig: ({                  // 主配置对象，存储所有表单配置信息
         "grid": {                                   // 网格布局配置
-            "rows": 8,                              // 网格行数，默认8行
+            "rows": 4,                              // 网格行数，默认4行
             "columns": 2,                           // 网格列数，默认2列
             "rowSpacing": 5,                        // 行间距，单位像素
             "columnSpacing": 10,                    // 列间距，单位像素
-            "rowHeights": [1, 1, 1, 1, 1, 1, 1, 2], // 各行高度比例，最后一行高度为其他行的2倍
+            "rowHeights": [ 1, 1, 1, 2], // 各行高度比例，最后一行高度为其他行的2倍
             "columnWidths": [1, 2]                  // 各列宽度比例，第二列宽度为第一列的2倍
         },
         "controls": []                              // 控件列表，存储所有表单控件的配置信息
     })
     
-    // 初始化状态标志，用于防止重复初始化
-    property bool initialized: false                // 标记配置管理器是否已完成初始化
-    
-    // 配置变化信号，用于通知外部组件配置已更新
-    signal configChanged(var newConfig)            // 外部配置变化信号，用于应用配置到表单预览
+
     signal internalConfigChanged(var newConfig)    // 内部配置变化信号，用于更新配置编辑器界面
     
     // 控件类型管理器加载器，用于创建和管理不同类型的控件
@@ -190,7 +186,7 @@ QtObject {                                          // 定义配置管理器对�
             return { row: 0, column: 0 };           // 返回网格左上角位置
         }
 
-        var gridRows = currentConfig.grid.rows || 8;    // 获取网格总行数，默认8行
+        var gridRows = currentConfig.grid.rows || 4;    // 获取网格总行数，默认4行
         var gridCols = currentConfig.grid.columns || 2; // 获取网格总列数，默认2列
 
         // 按行优先顺序查找第一个空位置
@@ -213,11 +209,11 @@ QtObject {                                          // 定义配置管理器对�
     function resetConfig() {                        // 重置配置的函数
         currentConfig = {                           // 重新设置为默认配置
             "grid": {                               // 默认网格配置
-                "rows": 8,                          // 8行网格
+                "rows": 4,                          // 4行网格
                 "columns": 2,                       // 2列网格
                 "rowSpacing": 5,                    // 行间距5像素
                 "columnSpacing": 10,                // 列间距10像素
-                "rowHeights": [1, 1, 1, 1, 1, 1, 1, 2], // 行高比例，最后一行为其他行的2倍
+                "rowHeights": [ 1, 1, 1, 2], // 行高比例，最后一行为其他行的2倍
                 "columnWidths": [1, 2]              // 列宽比例，第二列为第一列的2倍
             },
             "controls": []                          // 清空控件列表
@@ -232,23 +228,7 @@ QtObject {                                          // 定义配置管理器对�
     function exportConfig() {                      // 导出配置的函数
         return JSON.stringify(currentConfig, null, 2); // 将配置对象转换为格式化的JSON字符串
     }
-    
-    /**
-     * 从JSON字符串导入配置
-     * @param jsonString 包含表单配置的JSON字符串
-     * @return 返回true表示导入成功，false表示导入失败
-     */
-    function importConfig(jsonString) {            // 导入配置的函数
-        try {                                      // 尝试解析JSON字符串
-            var config = JSON.parse(jsonString);   // 将JSON字符串解析为配置对象
-            currentConfig = config;                 // 更新当前配置
-            initialized = true;                     // 标记为已初始化
-            configChanged(currentConfig);          // 触发外部配置变化信号
-            return true;                            // 返回成功标识
-        } catch (e) {                              // 捕获JSON解析错误
-            return false;                           // 返回失败标识
-        }
-    }
+
     
     /**
      * 从外部JSON配置对象初始化配置管理器
@@ -256,10 +236,10 @@ QtObject {                                          // 定义配置管理器对�
      * @param jsonConfig 外部传入的配置对象
      */
     function initializeFromJson(jsonConfig) {      // 从JSON对象初始化配置的函数
-        if (!initialized && jsonConfig) {          // 仅在未初始化且有配置数据时执行
-            currentConfig = jsonConfig;             // 设置当前配置为传入的配置
-            initialized = true;                     // 标记为已初始化
-            // 注意：这里不触发configChanged信号，避免覆盖表单预览的现有内容
+        if (!jsonConfig) {          // 仅在未初始化且有配置数据时执行
+            return;                             // 避免重复初始化
         }
+        currentConfig = JSON.parse(jsonConfig);             // 设置当前配置为传入的配置
+        internalConfigChanged(currentConfig);      // 触发内部配置变化信号
     }
 }
