@@ -330,12 +330,10 @@ QtObject {
         if (config.validationFunction && config.validationFunction.trim() !== "") {
             if (scriptEngine) {
                 try {
-                    console.log("Executing validation for:", controlKey, "value:", value);
                     var result = scriptEngine.executeFunction(config.validationFunction, {
                         value: value,
                         formAPI: formAPI
                     })
-                    console.log("Validation function returned:", result);
                     if (result === false) {
                         // 验证失败
                         isValid = false
@@ -380,20 +378,17 @@ QtObject {
      * @return {valid: boolean, errors: [{key, label, message}]}
      */
     function validateAll() {
-        console.log("validateAll called, controlConfigs:", JSON.stringify(Object.keys(controlConfigs)));
         var errors = []
         
         // 第一步：验证所有控件并标记失败的标签
         for (var key in controlConfigs) {
             if (controlConfigs.hasOwnProperty(key)) {
                 var config = controlConfigs[key];
-                console.log("Validating control:", key, "value:", getControlValue(key));
                 
                 // 验证控件（不显示消息，但标记标签）
                 var result = validateControl(key, false, true)
                 
                 if (!result.valid) {
-                    console.log("Validation failed for:", key, "message:", result.message);
                     errors.push({
                         key: key,
                         label: config.label || key,
@@ -474,7 +469,6 @@ QtObject {
         for (var i = 0; i < controlKeys.length; i++) {
             var key = controlKeys[i]
             if (!isControlValid(key)) {
-                console.log("Control not valid:", key);
                 return false
             }
         }

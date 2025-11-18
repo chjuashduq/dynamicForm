@@ -16,10 +16,16 @@
         <file>qml/config/dialog/EventConfigPanel.qml</file>
         <file>qml/config/dialog/ValidationPanel.qml</file>
         <file>qml/Common/MessageManager.qml</file>
+        <file>qml/Common/AppStyles.qml</file>
         <file>qml/Common/qmldir</file>
         <file>qml/core/FormAPI.qml</file>
         <file>qml/core/ScriptEngine.qml</file>
         <file>qml/dynamic/dynamicList.qml</file>
+        <file>qml/components/StyledTextField.qml</file>
+        <file>qml/components/StyledButton.qml</file>
+        <file>qml/components/StyledLabel.qml</file>
+        <file>qml/components/StyledComboBox.qml</file>
+        <file>qml/components/StyledSpinBox.qml</file>
         <file>form_config.json</file>
     </qresource>
 </RCC>

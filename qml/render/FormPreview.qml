@@ -1,9 +1,9 @@
 import QtQuick 6.5
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.4
-import "../core"
-import mysqlhelper 1.0
 import Common 1.0
+import "../core"
+import "../components"
 /*
  * 表单预览组件
  * 显示根据JSON配置生成的表单
@@ -26,38 +26,23 @@ Item {
     }
     
     // ===== 组件实例 =====
-    ScriptEngine {
-        id: scriptEngine
-        formId: formPreview.recordId
-    }
-    
-    // 标签映射表（用于验证失败时标红）
-    property var labelsMap: ({})
-    
     FormAPI {
         id: formAPI
         controlsMap: formPreview.controlsMap
-        labelsMap: formPreview.labelsMap
-        scriptEngine: scriptEngine
+
     }
     
-    Component.onCompleted: {
-        scriptEngine.formAPI = formAPI
-    }
-    
-    // 当recordId变化时更新scriptEngine的formId
-    onRecordIdChanged: {
-        scriptEngine.formId = recordId
+    ScriptEngine {
+        id: scriptEngine
+        formAPI: formAPI
     }
     
     ControlFactory {
         id: controlFactory
         parentGrid: grid
         controlsMap: formPreview.controlsMap
-        labelsMap: formPreview.labelsMap
         scriptEngine: scriptEngine
         formConfig: formPreview.formConfig
-        formAPI: formAPI
     }
     
     // 延迟加载定时器
@@ -70,28 +55,29 @@ Item {
     // 主容器
     Rectangle {
         anchors.fill: parent
-        color: "#f0f0f0"
+        color: AppStyles.backgroundColor
         
         Column {
             anchors.fill: parent
-            anchors.margins: 20
-            spacing: 20
+            anchors.margins: AppStyles.spacingXLarge
+            spacing: AppStyles.spacingLarge
             
             // 标题栏
             Rectangle {
                 width: parent.width
                 height: 60
-                color: "#667eea"
-                radius: 8
+                color: AppStyles.primaryColor
+                radius: AppStyles.radiusLarge
                 visible: recordId >= 0  // 只有在新增记录时显示
                 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 10
+                    anchors.margins: AppStyles.paddingMedium
+                    spacing: AppStyles.spacingMedium
                     
-                    Button {
+                    StyledButton {
                         text: "返回列表"
+                        buttonType: "secondary"
                         onClicked: {
                             if (loaderInstanceRef && loaderInstanceRef.formPreviewLoader) {
                                 loaderInstanceRef.formPreviewLoader.visible = false
@@ -115,41 +101,34 @@ Item {
             // 表单区域
             Rectangle {
                 width: parent.width
-                height: recordId >= 0 ? parent.height - 160 : parent.height
-                color: "#ffffff"
-                border.color: "#dee2e6"
-                border.width: recordId >= 0 ? 1 : 0
-                radius: recordId >= 0 ? 8 : 0
+                height: recordId >= 0 ? parent.height - 80 : parent.height
+                color: AppStyles.surfaceColor
+                border.color: AppStyles.borderColor
+                border.width: recordId >= 0 ? AppStyles.cardBorderWidth : 0
+                radius: recordId >= 0 ? AppStyles.cardRadius : 0
                 
                 // 主网格布局
                 GridLayout {
                     id: grid
                     anchors.fill: parent
-                    anchors.margins: recordId >= 0 ? 15 : 5
+                    anchors.margins: recordId >= 0 ? AppStyles.cardPadding : AppStyles.spacingSmall
                     rows: formConfig.grid ? formConfig.grid.rows : 1
                     columns: formConfig.grid ? formConfig.grid.columns : 1
-                    rowSpacing: formConfig.grid && formConfig.grid.rowSpacing ? formConfig.grid.rowSpacing : 10
-                    columnSpacing: formConfig.grid && formConfig.grid.columnSpacing ? formConfig.grid.columnSpacing : 10
+                    rowSpacing: formConfig.grid && formConfig.grid.rowSpacing ? formConfig.grid.rowSpacing : AppStyles.spacingMedium
+                    columnSpacing: formConfig.grid && formConfig.grid.columnSpacing ? formConfig.grid.columnSpacing : AppStyles.spacingMedium
 
                     Component.onCompleted: {
                         loadTimer.start()
                     }
 
-                    // 占位符组件
+                    // 占位符组件（不显示边框和坐标）
                     Component {
                         id: placeholderComponent
                         Rectangle {
                             property int rowIndex: 0
                             property int colIndex: 0
                             color: "transparent"
-                            border.color: "#cccccc"
-                            border.width: 1
-                            Text {
-                                anchors.centerIn: parent
-                                text: "(" + parent.rowIndex + "," + parent.colIndex + ")"
-                                color: "#999999"
-                                font.pixelSize: 10
-                            }
+                            border.width: 0
                         }
                     }
 
@@ -255,53 +234,7 @@ Item {
                 }
             }
             
-            // 操作按钮区域
-            Rectangle {
-                width: parent.width
-                height: 80
-                color: "#f8f9fa"
-                border.color: "#dee2e6"
-                border.width: 1
-                radius: 8
-                visible: recordId >= 0  // 只有在新增记录时显示
-                
-                Row {
-                    anchors.centerIn: parent
-                    spacing: 15
-                    
-                    Button {
-                        text: "提交"
-                        onClicked: {
-                            // 收集表单数据
-                            var formData = formAPI.getAllValues()
-                            console.log("表单数据:", JSON.stringify(formData))
-                            
-                            // TODO: 这里可以添加数据验证和保存逻辑
-                            MessageManager.showDialog("数据提交成功！", "success", function() {
-                                loaderInstanceRef.formPreviewLoader.visible = false
-                                loaderInstanceRef.dynamicListLoadingLoader.visible = true
-                                stackViewRef.pop()
-                            })
-                        }
-                    }
-                    
-                    Button {
-                        text: "重置"
-                        onClicked: {
-                            grid.loadForm()
-                        }
-                    }
-                    
-                    Button {
-                        text: "取消"
-                        onClicked: {
-                            loaderInstanceRef.formPreviewLoader.visible = false
-                            loaderInstanceRef.dynamicListLoadingLoader.visible = true
-                            stackViewRef.pop()
-                        }
-                    }
-                }
-            }
+            // 底部操作按钮已移除，使用配置的按钮来提交和重置
         }
     }
     

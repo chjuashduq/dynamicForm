@@ -29,6 +29,7 @@ QQmlEngine *engine = quickWidget->engine();
 
 // 加入 QRC 路径
 engine->addImportPath("qrc:/qml");
+
     // 读取 JSON
     QFile file(":/form_config.json");
     QString jsonStr;

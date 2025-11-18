@@ -265,7 +265,6 @@ GroupBox {
      * 当外部设置新的编辑配置时，自动刷新界面显示
      */
     onEditConfigChanged: {
-        console.log("BasicPropertiesPanel editConfig changed:", JSON.stringify(editConfig));
         refreshFields();
     }
 }

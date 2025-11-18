@@ -1,7 +1,9 @@
 import QtQuick 6.5                                    // 导入Qt Quick 6.5核心模块
 import QtQuick.Controls 6.5                            // 导入Qt Quick Controls 6.5控件模块
 import QtQuick.Layouts 1.4                             // 导入Qt Quick Layouts 1.4布局模块
+import Common 1.0                                       // 导入全局样式和消息管理器
 import "../core"                                        // 导入核心功能模块（FormAPI、ScriptEngine等）
+import "../components"                                  // 导入美化组件
 
 /**
  * 控件工厂
@@ -24,19 +26,21 @@ QtObject {                                              // 控件工厂对象
     // ===== 预编译组件定义 =====
     // 预编译组件可以提高运行时创建控件的性能，避免重复解析QML
     property Component rowLayoutComponent: Component {  // 行布局组件模板
-        RowLayout { spacing: 5 }                       // 水平布局，子元素间距5像素
+        RowLayout { 
+            spacing: AppStyles.spacingSmall            // 使用全局样式的间距
+        }
     }
     property Component labelComponent: Component {      // 标签组件模板
-        Label { elide: Text.ElideRight }               // 文本标签，超长时右侧省略
+        StyledLabel {}                                  // 使用美化的标签组件
     }
     property Component textFieldComponent: Component {  // 文本输入框组件模板
-        TextField {}                                    // 单行文本输入框
+        StyledTextField {}                              // 使用美化的文本输入框
     }
     property Component spinBoxComponent: Component {    // 数字输入框组件模板
-        SpinBox {}                                      // 带上下箭头的数字输入框
+        StyledSpinBox {}                                // 使用美化的数字输入框
     }
     property Component comboBoxComponent: Component {   // 下拉框组件模板
-        ComboBox {                                      // 下拉选择框
+        StyledComboBox {                                // 使用美化的下拉框
             property var optionValues: []               // 存储选项值的数组
             function getValue() {                       // 获取当前选中值的函数
                 return optionValues && currentIndex >= 0 && currentIndex < optionValues.length ? 
@@ -45,7 +49,9 @@ QtObject {                                              // 控件工厂对象
         } 
     }
     property Component buttonComponent: Component {     // 按钮组件模板
-        Button {}                                       // 标准按钮
+        StyledButton {                                  // 使用美化的按钮
+            buttonType: "primary"                       // 默认为主要按钮
+        }
     }
     
     // ===== 外部依赖属性 =====
@@ -436,15 +442,11 @@ QtObject {                                              // 控件工厂对象
             if (input.hasOwnProperty("focusChanged")) {
                 input.focusChanged.connect(function() {
                     if (!input.focus) {
-                        console.log("Focus lost for text:", controlKey);
-                        
                         var validationPassed = true;
                         
                         // 1. 先执行自动验证
                         if (formAPI && config.validationFunction) {
-                            console.log("Validating text on focus lost:", controlKey);
                             var result = formAPI.validateControl(controlKey, false);
-                            console.log("Text validation result:", result.valid, result.message);
                             validationPassed = result.valid;
                             
                             // 根据验证结果标红或恢复标签颜色
@@ -461,14 +463,9 @@ QtObject {                                              // 控件工厂对象
                         
                         // 2. 只有验证通过时才执行用户自定义的焦点丢失事件
                         if (validationPassed && config.events && config.events.onFocusLost) {
-                            console.log("Executing custom onFocusLost for:", controlKey);
                             scriptEngine.executeFunction(config.events.onFocusLost, {
                                 self: input
                             })
-                        } else if (!validationPassed) {
-                            console.log("Validation failed, skipping custom onFocusLost for:", controlKey);
-                        } else {
-                            console.log("No custom onFocusLost event for:", controlKey);
                         }
                     }
                 })
@@ -477,21 +474,15 @@ QtObject {                                              // 控件工厂对象
         
         // 对于 SpinBox (number 类型)
         if (config.type === "number") {
-            console.log("Binding validation for number type:", controlKey);
-            
             // 使用activeFocusChanged（更可靠）
             if (input.hasOwnProperty("activeFocusChanged")) {
                 input.activeFocusChanged.connect(function() {
                     if (!input.activeFocus) {
-                        console.log("Active focus lost for number:", controlKey);
-                        
                         var validationPassed = true;
                         
                         // 自动验证
                         if (formAPI && config.validationFunction) {
-                            console.log("Validating number on focus lost:", controlKey);
                             var result = formAPI.validateControl(controlKey, false);
-                            console.log("Number validation result:", result.valid, result.message);
                             validationPassed = result.valid;
                             
                             // 根据验证结果标红或恢复标签颜色
@@ -508,14 +499,9 @@ QtObject {                                              // 控件工厂对象
                         
                         // 只有验证通过时才执行用户自定义事件
                         if (validationPassed && config.events && config.events.onFocusLost) {
-                            console.log("Executing custom onFocusLost for number:", controlKey);
                             scriptEngine.executeFunction(config.events.onFocusLost, {
                                 self: input
                             })
-                        } else if (!validationPassed) {
-                            console.log("Validation failed, skipping custom onFocusLost for number:", controlKey);
-                        } else {
-                            console.log("No custom onFocusLost event for number:", controlKey);
                         }
                     }
                 })

@@ -388,7 +388,6 @@ Item {                                                  // 配置编辑器主容
                                         });
                                     } catch (e) {
                                         MessageManager.showToast("提交表单配置失败: " + e, "error", null);
-                                        console.log(e);
                                     }
                                 }
                             }

@@ -174,7 +174,6 @@ Dialog {
      */
     onAccepted: {
         var newConfig = buildControlConfig();
-        console.log("ControlEditDialog onAccepted - emitting controlSaved signal with index:", editIndex);
         controlSaved(editIndex, newConfig);  // 发出控件保存信号
     }
     
@@ -193,8 +192,6 @@ Dialog {
      * - 完整的控件配置对象
      */
     function buildControlConfig() {
-        console.log("Building control config...");
-        
         // 初始化配置对象，保留控件类型
         var newConfig = {
             "type": editConfig.type
@@ -205,18 +202,14 @@ Dialog {
         for (var key in basicConfig) {
             newConfig[key] = basicConfig[key];
         }
-        console.log("Basic config built:", JSON.stringify(newConfig));
 
         // ========== 收集类型特定属性配置 ==========
         if (typeSpecificLoader.item && typeSpecificLoader.item.getTypeSpecificConfig) {
             var typeConfig = typeSpecificLoader.item.getTypeSpecificConfig();
-            console.log("Type specific config:", JSON.stringify(typeConfig));
             // 合并类型特定配置
             for (var key in typeConfig) {
                 newConfig[key] = typeConfig[key];
             }
-        } else {
-            console.log("No type specific loader or getTypeSpecificConfig function");
         }
         
         // ========== 收集验证配置 ==========
@@ -232,7 +225,6 @@ Dialog {
             newConfig.events = editConfig.events;
         }
 
-        console.log("Final config built:", JSON.stringify(newConfig));
         return newConfig;
     }
     
@@ -249,8 +241,6 @@ Dialog {
      */
     function refreshFields() {
         if (!editConfig) return;  // 防止空配置导致错误
-        
-        console.log("Refreshing fields with config:", JSON.stringify(editConfig));
         
         // 刷新基本属性面板 - 通过属性绑定自动更新
         basicPropertiesPanel.editConfig = editConfig;
