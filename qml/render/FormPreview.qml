@@ -2,6 +2,7 @@ import QtQuick 6.5
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.4
 import "../core"
+import mysqlhelper 1.0
 import Common 1.0
 /*
  * 表单预览组件
@@ -25,23 +26,38 @@ Item {
     }
     
     // ===== 组件实例 =====
+    ScriptEngine {
+        id: scriptEngine
+        formId: formPreview.recordId
+    }
+    
+    // 标签映射表（用于验证失败时标红）
+    property var labelsMap: ({})
+    
     FormAPI {
         id: formAPI
         controlsMap: formPreview.controlsMap
-
+        labelsMap: formPreview.labelsMap
+        scriptEngine: scriptEngine
     }
     
-    ScriptEngine {
-        id: scriptEngine
-        formAPI: formAPI
+    Component.onCompleted: {
+        scriptEngine.formAPI = formAPI
+    }
+    
+    // 当recordId变化时更新scriptEngine的formId
+    onRecordIdChanged: {
+        scriptEngine.formId = recordId
     }
     
     ControlFactory {
         id: controlFactory
         parentGrid: grid
         controlsMap: formPreview.controlsMap
+        labelsMap: formPreview.labelsMap
         scriptEngine: scriptEngine
         formConfig: formPreview.formConfig
+        formAPI: formAPI
     }
     
     // 延迟加载定时器

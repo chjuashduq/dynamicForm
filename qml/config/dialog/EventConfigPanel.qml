@@ -50,7 +50,7 @@ GroupBox {
             Label { 
                 text: "焦点丢失事件:"
                 Layout.preferredWidth: 120
-                ToolTip.text: "控件失去焦点时触发，常用于验证输入内容"
+                ToolTip.text: "控件失去焦点时触发"
                 ToolTip.visible: hovered
                 
                 MouseArea {
@@ -65,26 +65,59 @@ GroupBox {
                 text: "编写函数"
                 ToolTip.text: "点击打开函数编写对话框"
                 onClicked: {
-                    // 获取当前已配置的焦点丢失事件代码
                     var currentCode = (editConfig.events && editConfig.events.onFocusLost) || "";
                     eventEditRequested("focusLost", currentCode);
                 }
             }
             
             Label {
-                // 根据是否已配置显示状态
                 text: (editConfig.events && editConfig.events.onFocusLost) ? "已配置" : "未配置"
-                // 已配置显示绿色，未配置显示灰色
                 color: (editConfig.events && editConfig.events.onFocusLost) ? "#28a745" : "#6c757d"
                 Layout.fillWidth: true
             }
         }
 
+        // ========== 按钮点击事件配置 ==========
+        RowLayout {
+            width: parent.width
+            visible: editConfig.type === "button"
+            spacing: 10
+
+            Label { 
+                text: "点击事件:"
+                Layout.preferredWidth: 120
+                ToolTip.text: "按钮被点击时触发"
+                ToolTip.visible: clickedHover.hovered
+                
+                MouseArea {
+                    id: clickedHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    property bool hovered: containsMouse
+                }
+            }
+            
+            Button {
+                text: "编写函数"
+                ToolTip.text: "点击打开函数编写对话框"
+                onClicked: {
+                    var currentCode = (editConfig.events && editConfig.events.onClicked) || "";
+                    eventEditRequested("clicked", currentCode);
+                }
+            }
+            
+            Label {
+                text: (editConfig.events && editConfig.events.onClicked) ? "已配置" : "未配置"
+                color: (editConfig.events && editConfig.events.onClicked) ? "#28a745" : "#6c757d"
+                Layout.fillWidth: true
+            }
+        }
+        
         // ========== 控件特定变化事件配置 ==========
         RowLayout {
             width: parent.width
-            // 只有当类型管理器存在且当前控件类型支持变化事件时才显示
-            visible: typeManager && typeManager.hasChangeEvent(editConfig.type)
+            // 只有当类型管理器存在且当前控件类型支持变化事件时才显示（排除按钮）
+            visible: typeManager && typeManager.hasChangeEvent(editConfig.type) && editConfig.type !== "button"
             spacing: 10
 
             Label { 
@@ -197,6 +230,15 @@ GroupBox {
                 editConfig.events.onFocusLost = code.trim();
             } else {
                 delete editConfig.events.onFocusLost;  // 删除空的事件配置
+            }
+            break;
+        
+        case "clicked":
+            // 按钮点击事件处理
+            if (code.trim() !== "") {
+                editConfig.events.onClicked = code.trim();
+            } else {
+                delete editConfig.events.onClicked;
             }
             break;
             

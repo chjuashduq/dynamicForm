@@ -58,10 +58,11 @@ Dialog {
                     Repeater {
                         model: [
                             {name: "self", desc: "当前控件对象", code: "self.value"},
-                            {name: "controlsMap", desc: "所有控件映射表", code: "controlsMap['控件key']"},
+                            {name: "formAPI", desc: "表单API对象", code: "formAPI.getAllValues()"},
+                            {name: "formId", desc: "表单ID", code: "formId"},
+                            {name: "formData", desc: "表单数据(JSON)", code: "formData"},
                             {name: "value", desc: "当前控件的值", code: "value"},
-                            {name: "key", desc: "控件的标识", code: "key"},
-                            {name: "label", desc: "控件的标签", code: "label"}
+                            {name: "controlsMap", desc: "所有控件映射表", code: "controlsMap['控件key']"}
                         ]
                         
                         Button {
@@ -94,8 +95,12 @@ Dialog {
                     Repeater {
                         model: [
                             {name: "showMessage", desc: "显示消息提示", code: "showMessage('提示信息', 'info'); // 类型: info, error, warning, success"},
-                            {name: "validateForm", desc: "验证整个表单", code: "if (validateForm()) {\n    showMessage('表单验证通过', 'success');\n}"},
-                            {name: "getControlValue", desc: "获取控件值", code: "var otherValue = getControlValue('控件key');\nconsole.log('获取到的值:', otherValue);"}
+                            {name: "validateAll", desc: "验证所有控件", code: "var result = validateAll();\nif (result.valid) {\n    showMessage('验证通过', 'success');\n}"},
+                            {name: "getAllValues", desc: "获取所有控件值", code: "var allData = getAllValues();\nconsole.log('表单数据:', JSON.stringify(allData));"},
+                            {name: "getControlValue", desc: "获取控件值", code: "var otherValue = getControlValue('控件key');\nconsole.log('获取到的值:', otherValue);"},
+                            {name: "isControlValid", desc: "检查单个控件是否验证通过", code: "if (formAPI.isControlValid('name')) {\n    console.log('姓名验证通过');\n}"},
+                            {name: "areControlsValid", desc: "检查多个控件是否都验证通过", code: "// 检查姓名、年龄、邮箱是否都验证通过\nif (formAPI.areControlsValid(['name', 'age', 'email'])) {\n    // 所有字段都验证通过，可以执行数据库查询\n    var result = MySqlHelper.select('users', ['*'], 'name=\"' + getControlValue('name') + '\"');\n    console.log('查询结果:', JSON.stringify(result));\n} else {\n    showMessage('请先完成所有必填项', 'warning');\n}"},
+                            {name: "resetForm", desc: "重置整个表单", code: "resetForm();\nshowMessage('表单已重置', 'info');"}
                         ]
                         
                         Button {
@@ -109,16 +114,17 @@ Dialog {
                         }
                     }
 
-                    // 验证函数
+                    // 验证函数（仅在验证函数编辑时显示）
                     Rectangle {
                         width: parent.width
                         height: 30
                         color: "#d4edda"
                         radius: 4
+                        visible: false  // 默认不显示，只在验证函数编辑时显示
                         
                         Text {
                             anchors.centerIn: parent
-                            text: "验证函数"
+                            text: "验证函数（用于自定义验证）"
                             font.bold: true
                             color: "#155724"
                         }
@@ -136,6 +142,7 @@ Dialog {
                             width: parent.width
                             height: 40
                             text: modelData.name + " - " + modelData.desc
+                            visible: false  // 默认不显示，只在验证函数编辑时显示
                             
                             onClicked: {
                                 insertFunction(modelData.code);
@@ -213,30 +220,64 @@ Dialog {
                         }
                     }
 
-                    // 高级验证函数
+
+
+                    // 数据库操作
                     Rectangle {
                         width: parent.width
                         height: 30
-                        color: "#ffeaa7"
+                        color: "#f8d7da"
                         radius: 4
                         
                         Text {
                             anchors.centerIn: parent
-                            text: "高级验证函数"
+                            text: "数据库操作"
                             font.bold: true
-                            color: "#6c5ce7"
+                            color: "#721c24"
                         }
                     }
 
                     Repeater {
                         model: [
-                            {name: "validateIdCard", desc: "验证身份证", code: "if (!validateIdCard(value)) {\n    return false; // 自动显示错误消息\n}"},
-                            {name: "validateChinese", desc: "验证中文", code: "if (!validateChinese(value)) {\n    return false; // 自动显示错误消息\n}"}
+                            {name: "提交到数据库", desc: "保存表单数据", code: "// 提交表单数据\nvar submitData = {\n    dynamicId: formId,\n    data: JSON.stringify(formData)\n};\ntry {\n    MySqlHelper.insert('dynamicData', submitData);\n    showMessage('提交成功！', 'success');\n    resetForm();\n} catch(e) {\n    showMessage('提交失败: ' + e, 'error');\n    console.error('Insert error:', e);\n}"},
+                            {name: "提交到指定表", desc: "保存到自定义表", code: "// 提交到指定数据库表\nvar data = {\n    username: getControlValue('username'),\n    email: getControlValue('email'),\n    dynamicId: formId\n};\ntry {\n    MySqlHelper.insert('users', data);\n    showMessage('保存成功！', 'success');\n    resetForm();\n} catch(e) {\n    showMessage('保存失败: ' + e, 'error');\n    console.error('Insert error:', e);\n}"},
+                            {name: "查询数据", desc: "从数据库查询", code: "// 查询数据\nvar result = MySqlHelper.select('tableName', ['column1', 'column2'], 'id=1');\nconsole.log('查询结果:', JSON.stringify(result));"}
                         ]
                         
                         Button {
                             width: parent.width
-                            height: 40
+                            height: 50
+                            text: modelData.name + " - " + modelData.desc
+                            
+                            onClicked: {
+                                insertFunction(modelData.code);
+                            }
+                        }
+                    }
+
+                    // 完整示例
+                    Rectangle {
+                        width: parent.width
+                        height: 30
+                        color: "#d1ecf1"
+                        radius: 4
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            text: "完整示例"
+                            font.bold: true
+                            color: "#0c5460"
+                        }
+                    }
+
+                    Repeater {
+                        model: [
+                            {name: "提交按钮完整示例", desc: "验证+提交", code: "// 提交按钮完整示例\n// 1. 验证所有字段\nvar validation = validateAll();\nif (!validation.valid) {\n    return; // 验证失败，已自动提示\n}\n\n// 2. 准备提交数据（保存到dynamicData表）\nvar submitData = {\n    dynamicId: formId,\n    data: JSON.stringify(formData)\n};\n\n// 3. 提交到数据库\ntry {\n    MySqlHelper.insert('dynamicData', submitData);\n    showMessage('提交成功！', 'success');\n    resetForm(); // 重置表单\n} catch(e) {\n    showMessage('提交失败: ' + e, 'error');\n    console.error('Insert error:', e);\n}"}
+                        ]
+                        
+                        Button {
+                            width: parent.width
+                            height: 60
                             text: modelData.name + " - " + modelData.desc
                             
                             onClicked: {
@@ -355,7 +396,7 @@ Dialog {
         case "valueChanged":
             return "数值变化事件在数字或选择控件的值发生变化时触发。";
         case "clicked":
-            return "按钮点击事件在按钮被点击时触发。用于执行特定的操作或功能。";
+            return "按钮点击事件在按钮被点击时触发。\n\n如果按钮设置为【提交】类型，点击时会自动执行所有验证，验证通过后才执行此函数。\n如果按钮设置为【重置】类型，点击时会自动清空所有表单控件的值。\n\n可用变量：formId（表单ID）、formData（表单数据JSON）、getAllValues()（获取所有值）";
         default:
             return "选择左侧的函数来查看详细说明和示例代码。";
         }
@@ -368,6 +409,13 @@ Dialog {
         open();
     }
 
+    function showClickedEventHelp(eventCode) {
+        title = "编写按钮点击事件函数";
+        currentEventType = "clicked";
+        currentEventCode = eventCode || "";
+        open();
+    }
+    
     function showChangeEventHelp(controlType, eventCode) {
         title = "编写变化事件函数";
         
@@ -379,9 +427,6 @@ Dialog {
         case "number":
         case "dropdown":
             currentEventType = "valueChanged";
-            break;
-        case "button":
-            currentEventType = "clicked";
             break;
         default:
             currentEventType = "valueChanged";

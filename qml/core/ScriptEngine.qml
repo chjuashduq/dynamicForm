@@ -1,4 +1,6 @@
 import QtQuick 6.5
+import mysqlhelper 1.0
+import Common 1.0
 
 /**
  * JavaScript函数执行引擎
@@ -9,6 +11,19 @@ QtObject {
     
     // API对象引用
     property var formAPI: null
+    
+    // 表单ID（用于提交时识别表单）
+    property int formId: -1
+    
+    // 获取全局MySqlHelper对象
+    function getMySqlHelper() {
+        return MySqlHelper;
+    }
+    
+    // 获取全局MessageManager对象
+    function getMessageManager() {
+        return MessageManager;
+    }
     
     /**
      * 执行用户自定义的JavaScript函数
@@ -24,6 +39,12 @@ QtObject {
             // 创建函数执行环境，提供丰富的API给用户函数使用
             var func = new Function(
                 'self',                    // 当前触发事件的控件对象
+                'formAPI',                // FormAPI对象
+                'formId',                 // 表单ID
+                'formData',               // 表单数据（JSON格式）
+                'value',                  // 当前控件的值（用于验证函数）
+                'MySqlHelper',            // 数据库操作对象
+                'MessageManager',         // 消息管理器
                 'controlsMap',            // 所有控件的映射表
                 'getControlValue',        // 获取指定控件的值
                 'setControlValue',        // 设置指定控件的值
@@ -36,9 +57,11 @@ QtObject {
                 'showMessage',            // 显示消息提示
                 'hideControl',            // 隐藏指定控件
                 'showControl',            // 显示指定控件
-                'validateForm',           // 验证整个表单
+                'validateAll',            // 验证所有控件
                 'resetControl',           // 重置指定控件
+                'resetForm',              // 重置整个表单
                 'focusControl',           // 让指定控件获得焦点
+                'getAllValues',           // 获取所有控件的值
                 'validateRegex',          // 正则验证
                 'validateEmail',          // 邮箱验证
                 'validatePhone',          // 手机号验证
@@ -48,9 +71,22 @@ QtObject {
                 funcCode                  // 用户编写的函数代码
             )
             
+            // 准备表单数据
+            var formData = formAPI.getAllValues()
+            
+            // 获取全局对象
+            var mySqlHelperObj = getMySqlHelper();
+            var messageManagerObj = getMessageManager();
+            
             // 执行函数，传入完整的API环境
-            func(
+            var result = func(
                 context.self,
+                formAPI,
+                formId,
+                formData,
+                context.value,
+                mySqlHelperObj,
+                messageManagerObj,
                 formAPI.controlsMap,
                 formAPI.getControlValue,
                 formAPI.setControlValue,
@@ -63,9 +99,11 @@ QtObject {
                 formAPI.showMessage,
                 formAPI.hideControl,
                 formAPI.showControl,
-                formAPI.validateForm,
+                formAPI.validateAll,
                 formAPI.resetControl,
+                formAPI.resetForm,
                 formAPI.focusControl,
+                formAPI.getAllValues,
                 formAPI.validateRegex,
                 formAPI.validateEmail,
                 formAPI.validatePhone,
@@ -73,8 +111,14 @@ QtObject {
                 formAPI.validateChinese,
                 formAPI.validateNumber
             )
+            
+            return result
         } catch (error) {
-            // 静默处理脚本执行错误
+            console.error("ScriptEngine execution error:", error);
+            console.error("Function code:", funcCode);
+            if (formAPI && formAPI.showMessage) {
+                formAPI.showMessage("脚本执行错误: " + error, "error");
+            }
         }
     }
 }

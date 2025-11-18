@@ -54,12 +54,16 @@ GroupBox {
                 onTextChanged: configChanged()  // 文本变化时通知配置更改
             }
 
-            Label { text: "标签:" }
+            Label { 
+                text: "标签:" 
+                visible: editConfig.type !== "button"  // 按钮不需要标签
+            }
             TextField {
                 id: editLabelField
                 text: editConfig.label || ""
                 Layout.preferredWidth: 150
                 placeholderText: "显示给用户的标签文本"
+                visible: editConfig.type !== "button"  // 按钮不需要标签
                 onTextChanged: configChanged()
             }
 
@@ -114,8 +118,12 @@ GroupBox {
             }
 
             // ========== 第四行：标签比例设置 ==========
-            Label { text: "标签比例:" }
+            Label { 
+                text: "标签比例:" 
+                visible: editConfig.type !== "button"  // 按钮不需要标签比例
+            }
             RowLayout {
+                visible: editConfig.type !== "button"  // 按钮不需要标签比例
                 SpinBox {
                     id: editLabelRatioSpinBox
                     from: 0              // 0%：不显示标签
@@ -230,15 +238,24 @@ GroupBox {
      * - 包含所有基本属性的配置对象
      */
     function getConfig() {
-        return {
+        var config = {
             "key": editKeyField.text,                           // 控件标识
-            "label": editLabelField.text,                       // 显示标签
             "row": editRowSpinBox.value,                        // 行位置
             "column": editColSpinBox.value,                     // 列位置
             "rowSpan": editRowSpanSpinBox.value,                // 行跨度
-            "colSpan": editColSpanSpinBox.value,                // 列跨度
-            "labelRatio": editLabelRatioSpinBox.value / 100.0   // 标签比例（转换为小数）
+            "colSpan": editColSpanSpinBox.value                 // 列跨度
         };
+        
+        // 按钮类型不需要标签和标签比例
+        if (editConfig.type === "button") {
+            config.label = "";                                  // 按钮标签为空
+            config.labelRatio = 0;                              // 按钮标签比例为0
+        } else {
+            config.label = editLabelField.text;                 // 显示标签
+            config.labelRatio = editLabelRatioSpinBox.value / 100.0;  // 标签比例（转换为小数）
+        }
+        
+        return config;
     }
 
     // ========== 事件处理 ==========

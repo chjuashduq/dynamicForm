@@ -10,8 +10,17 @@ QtObject {
     // 控件映射表的引用
     property var controlsMap: ({})
     
-    // 校验规则映射表 {controlKey: {rules: [...], message: "..."}}
-    property var validationRules: ({})
+    // 标签映射表的引用（用于验证失败时标红）
+    property var labelsMap: ({})
+    
+    // 控件配置映射表 {controlKey: config}
+    property var controlConfigs: ({})
+    
+    // 控件验证状态缓存 {controlKey: {valid: boolean, lastValidated: timestamp}}
+    property var validationStates: ({})
+    
+    // ScriptEngine引用，用于执行自定义验证函数
+    property var scriptEngine: null
 
     
     /**
@@ -200,15 +209,37 @@ QtObject {
     
     /**
      * 重置指定控件
+     * 排除按钮类型
      */
     function resetControl(controlKey) {
-        if (controlsMap[controlKey]) {
-            var control = controlsMap[controlKey]
-            if (control.hasOwnProperty("text")) {
-                control.text = ""
-            } else if (control.hasOwnProperty("value")) {
-                control.value = 0
-            }
+        if (!controlsMap[controlKey]) {
+            return
+        }
+        
+        // 跳过按钮类型
+        var config = controlConfigs[controlKey]
+        if (config && config.type === "button") {
+            return
+        }
+        
+        var control = controlsMap[controlKey]
+        
+        // 重置文本输入框
+        if (control.hasOwnProperty("text") && control.hasOwnProperty("placeholderText")) {
+            // 有placeholderText属性说明是文本输入框，不是按钮
+            control.text = ""
+        } 
+        // 重置数字输入框
+        else if (control.hasOwnProperty("value") && !control.hasOwnProperty("text")) {
+            control.value = 0
+        }
+        // 重置复选框
+        else if (control.hasOwnProperty("checked")) {
+            control.checked = false
+        }
+        // 重置下拉框
+        else if (control.hasOwnProperty("currentIndex")) {
+            control.currentIndex = 0
         }
     }
     
@@ -225,12 +256,19 @@ QtObject {
     /**
      * 获取所有控件的值
      * 返回一个对象，key为控件的key，value为控件的值
+     * 排除按钮类型的控件
      */
     function getAllValues() {
         var result = {}
         for (var key in controlsMap) {
             if (controlsMap.hasOwnProperty(key)) {
                 var control = controlsMap[key]
+                
+                // 跳过按钮类型
+                var config = controlConfigs[key]
+                if (config && config.type === "button") {
+                    continue
+                }
                 
                 // 处理不同类型的控件
                 if (control.hasOwnProperty("getValue")) {
@@ -252,5 +290,224 @@ QtObject {
             }
         }
         return result
+    }
+    
+    /**
+     * 注册控件配置（包含验证信息）
+     */
+    function registerControlConfig(controlKey, config) {
+        if (!controlConfigs) {
+            controlConfigs = {}
+        }
+        controlConfigs[controlKey] = config
+    }
+    
+    /**
+     * 验证单个控件
+     * @param controlKey 控件的key
+     * @param showError 是否显示错误消息（默认true）
+     * @param markLabel 是否标记标签（默认true）
+     * @return {valid: boolean, message: string}
+     */
+    function validateControl(controlKey, showError, markLabel) {
+        if (showError === undefined) {
+            showError = true
+        }
+        if (markLabel === undefined) {
+            markLabel = true
+        }
+        
+        var config = controlConfigs[controlKey]
+        if (!config) {
+            return {valid: true, message: ""}
+        }
+        
+        var value = getControlValue(controlKey)
+        var isValid = true
+        var errorMsg = ""
+        
+        // 执行自定义验证函数
+        if (config.validationFunction && config.validationFunction.trim() !== "") {
+            if (scriptEngine) {
+                try {
+                    console.log("Executing validation for:", controlKey, "value:", value);
+                    var result = scriptEngine.executeFunction(config.validationFunction, {
+                        value: value,
+                        formAPI: formAPI
+                    })
+                    console.log("Validation function returned:", result);
+                    if (result === false) {
+                        // 验证失败
+                        isValid = false
+                        errorMsg = config.label ? (config.label + " 验证失败") : "验证失败"
+                    }
+                } catch (e) {
+                    console.error("验证函数执行错误:", e)
+                    isValid = false
+                    errorMsg = "验证函数执行错误"
+                    if (showError) {
+                        showMessage("验证函数执行错误: " + e, "error")
+                    }
+                }
+            }
+        }
+        
+        // 标记标签颜色
+        if (markLabel && labelsMap[controlKey]) {
+            var label = labelsMap[controlKey]
+            if (!isValid) {
+                label.color = "#ff0000"  // 验证失败：标红
+            } else {
+                // 验证成功：恢复原始颜色
+                label.color = config.style && config.style.labelColor ? config.style.labelColor : "#000000"
+            }
+        }
+        
+        // 更新验证状态缓存
+        if (!validationStates) {
+            validationStates = {}
+        }
+        validationStates[controlKey] = {
+            valid: isValid,
+            lastValidated: Date.now()
+        }
+        
+        return {valid: isValid, message: errorMsg}
+    }
+    
+    /**
+     * 验证所有控件
+     * @return {valid: boolean, errors: [{key, label, message}]}
+     */
+    function validateAll() {
+        console.log("validateAll called, controlConfigs:", JSON.stringify(Object.keys(controlConfigs)));
+        var errors = []
+        
+        // 第一步：验证所有控件并标记失败的标签
+        for (var key in controlConfigs) {
+            if (controlConfigs.hasOwnProperty(key)) {
+                var config = controlConfigs[key];
+                console.log("Validating control:", key, "value:", getControlValue(key));
+                
+                // 验证控件（不显示消息，但标记标签）
+                var result = validateControl(key, false, true)
+                
+                if (!result.valid) {
+                    console.log("Validation failed for:", key, "message:", result.message);
+                    errors.push({
+                        key: key,
+                        label: config.label || key,
+                        message: result.message
+                    })
+                }
+            }
+        }
+        
+        // 第二步：如果有错误，显示汇总消息
+        if (errors.length > 0) {
+            var errorMsg = "表单验证失败，请检查以下字段：\n"
+            for (var i = 0; i < Math.min(errors.length, 3); i++) {
+                errorMsg += "• " + errors[i].label + "\n"
+            }
+            if (errors.length > 3) {
+                errorMsg += "...等 " + errors.length + " 个字段"
+            }
+            showMessage(errorMsg, "error")
+            
+            // 让第一个错误的控件获得焦点
+            focusControl(errors[0].key)
+        } else {
+            // 验证成功，恢复所有标签颜色
+            for (var k in labelsMap) {
+                if (labelsMap.hasOwnProperty(k)) {
+                    var cfg = controlConfigs[k]
+                    var lbl = labelsMap[k]
+                    if (lbl && cfg) {
+                        lbl.color = cfg.style && cfg.style.labelColor ? cfg.style.labelColor : "#000000"
+                    }
+                }
+            }
+        }
+        
+        return {
+            valid: errors.length === 0,
+            errors: errors
+        }
+    }
+    
+    /**
+     * 重置表单（清空所有控件的值）
+     */
+    function resetForm() {
+        for (var key in controlsMap) {
+            if (controlsMap.hasOwnProperty(key)) {
+                resetControl(key)
+            }
+        }
+    }
+    
+    /**
+     * 检查单个控件是否验证通过
+     * @param controlKey 控件的key
+     * @return boolean - true表示验证通过，false表示验证失败或未验证
+     */
+    function isControlValid(controlKey) {
+        // 如果没有验证状态缓存，返回false
+        if (!validationStates || !validationStates[controlKey]) {
+            return false
+        }
+        
+        return validationStates[controlKey].valid === true
+    }
+    
+    /**
+     * 检查多个控件是否都验证通过
+     * @param controlKeys 控件key的数组，例如：["name", "age", "email"]
+     * @return boolean - true表示所有控件都验证通过，false表示至少有一个验证失败
+     */
+    function areControlsValid(controlKeys) {
+        if (!controlKeys || !Array.isArray(controlKeys)) {
+            console.error("areControlsValid: controlKeys must be an array");
+            return false
+        }
+        
+        for (var i = 0; i < controlKeys.length; i++) {
+            var key = controlKeys[i]
+            if (!isControlValid(key)) {
+                console.log("Control not valid:", key);
+                return false
+            }
+        }
+        
+        return true
+    }
+    
+    /**
+     * 获取控件的验证状态信息
+     * @param controlKey 控件的key
+     * @return {valid: boolean, lastValidated: timestamp} 或 null
+     */
+    function getValidationState(controlKey) {
+        if (!validationStates || !validationStates[controlKey]) {
+            return null
+        }
+        
+        return validationStates[controlKey]
+    }
+    
+    /**
+     * 清除控件的验证状态
+     * @param controlKey 控件的key，如果不提供则清除所有
+     */
+    function clearValidationState(controlKey) {
+        if (!validationStates) {
+            return
+        }
+        
+        if (controlKey) {
+            delete validationStates[controlKey]
+        } else {
+            validationStates = {}
+        }
     }
 }

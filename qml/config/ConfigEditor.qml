@@ -416,6 +416,8 @@ Item {                                                  // 配置编辑器主容
     Loader {                                        // 动态加载器
         id: editDialogLoader                        // 编辑对话框加载器标识符
         source: "dialog/ControlEditDialog.qml"     // 控件编辑对话框组件文件路径
+        asynchronous: true                          // 异步加载
+        active: true                                // 立即加载
 
         onLoaded: {
             // 对话框加载完成时的回调函数

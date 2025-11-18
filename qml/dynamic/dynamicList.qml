@@ -187,11 +187,24 @@ Item {
                             text: "新增记录"
                             Layout.fillWidth: true
                             onClicked: function(){
-                                if (stackViewRef && loaderInstanceRef) {
+                                if (stackViewRef && loaderInstanceRef && loaderInstanceRef.formPreviewLoader) {
+                                    var loader = loaderInstanceRef.formPreviewLoader;
+                                    
+                                    // 如果Loader还没有加载完成，等待加载
+                                    if (!loader.item) {
+                                        var connection = loader.onLoaded.connect(function() {
+                                            if (loader.item) {
+                                                loader.item.initForm(model.id, model.dynamicName, model.dynamicConfig);
+                                            }
+                                            loader.onLoaded.disconnect(connection);
+                                        });
+                                    } else {
+                                        loader.item.initForm(model.id, model.dynamicName, model.dynamicConfig);
+                                    }
+                                    
                                     loaderInstanceRef.dynamicListLoadingLoader.visible = false;
-                                    loaderInstanceRef.formPreviewLoader.visible = true;
-                                    loaderInstanceRef.formPreviewLoader.item.initForm(model.id, model.dynamicName, model.dynamicConfig);
-                                    stackViewRef.push(loaderInstanceRef.formPreviewLoader);
+                                    loader.visible = true;
+                                    stackViewRef.push(loader);
                                 }
                             }
                         }

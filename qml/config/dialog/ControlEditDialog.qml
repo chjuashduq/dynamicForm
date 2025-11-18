@@ -121,6 +121,23 @@ Dialog {
                 }
             }
 
+            // ========== 校验配置面板 ==========
+            Loader {
+                id: validationPanelLoader
+                width: parent.width
+                source: "ValidationPanel.qml"
+                active: true  // 始终加载
+                visible: editConfig.type !== "button"  // 按钮不需要校验
+                
+                onLoaded: {
+                    if (item) {
+                        item.editConfig = editDialog.editConfig
+                    }
+                }
+            }
+            
+
+
             // ========== 事件配置面板 ==========
             EventConfigPanel {
                 id: eventConfigPanel
@@ -136,6 +153,9 @@ Dialog {
                     if (eventType === "focusLost") {
                         // 打开焦点丢失事件编辑对话框
                         functionHelpDialog.showFocusLostHelp(currentCode);
+                    } else if (eventType === "clicked") {
+                        // 打开按钮点击事件编辑对话框
+                        functionHelpDialog.showClickedEventHelp(currentCode);
                     } else if (eventType === "change") {
                         // 打开变化事件编辑对话框，传入控件类型以提供相应帮助
                         functionHelpDialog.showChangeEventHelp(editConfig.type, currentCode);
@@ -198,7 +218,13 @@ Dialog {
         } else {
             console.log("No type specific loader or getTypeSpecificConfig function");
         }
-
+        
+        // ========== 收集验证配置 ==========
+        if (validationPanelLoader.item && validationPanelLoader.visible) {
+            var validationConfig = validationPanelLoader.item.getConfig()
+            newConfig.validationFunction = validationConfig.validationFunction
+        }
+        
         // ========== 保持事件配置 ==========
         // 事件配置由EventConfigPanel直接修改editConfig.events
         // 这里直接复制现有的事件配置
@@ -228,6 +254,11 @@ Dialog {
         
         // 刷新基本属性面板 - 通过属性绑定自动更新
         basicPropertiesPanel.editConfig = editConfig;
+        
+        // 刷新验证配置面板 - 通过属性绑定自动更新
+        if (validationPanelLoader.item) {
+            validationPanelLoader.item.editConfig = editConfig;
+        }
         
         // 刷新事件配置面板 - 通过属性绑定自动更新
         eventConfigPanel.editConfig = editConfig;

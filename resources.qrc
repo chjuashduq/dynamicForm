@@ -14,6 +14,7 @@
         <file>qml/config/dialog/FunctionHelpDialog.qml</file>
         <file>qml/config/dialog/BasicPropertiesPanel.qml</file>
         <file>qml/config/dialog/EventConfigPanel.qml</file>
+        <file>qml/config/dialog/ValidationPanel.qml</file>
         <file>qml/Common/MessageManager.qml</file>
         <file>qml/Common/qmldir</file>
         <file>qml/core/FormAPI.qml</file>

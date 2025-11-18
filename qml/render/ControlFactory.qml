@@ -51,6 +51,7 @@ QtObject {                                              // 控件工厂对象
     // ===== 外部依赖属性 =====
     property var parentGrid: null                       // 父网格容器引用，控件将被添加到此容器中
     property var controlsMap: ({})                      // 控件映射表，用于通过key访问控件实例
+    property var labelsMap: ({})                        // 标签映射表，用于通过key访问标签实例（用于验证失败时标红）
     property var scriptEngine: null                     // 脚本引擎引用，用于执行用户自定义的JavaScript代码
     property var formConfig: null                       // 表单配置对象，包含网格布局等信息
     property var formAPI: null                          // FormAPI引用，用于访问表单操作API
@@ -97,9 +98,14 @@ QtObject {                                              // 控件工厂对象
             var controlKey = config.key || config.label // 使用key或label作为控件的唯一标识
             controlsMap[controlKey] = input             // 将控件注册到映射表中，供API访问
             
-            // ===== 第五步：注册校验规则 =====
-            if (config.validation && formAPI) {
-                formAPI.registerValidation(controlKey, config.validation)
+            // 注册标签（用于验证失败时标红）
+            if (label) {
+                labelsMap[controlKey] = label
+            }
+            
+            // ===== 第五步：注册控件配置（包含验证信息）=====
+            if (formAPI) {
+                formAPI.registerControlConfig(controlKey, config)
             }
             
             // ===== 第六步：应用配置 =====
@@ -153,12 +159,18 @@ QtObject {                                              // 控件工厂对象
      * 
      * 为控件创建描述性标签，显示控件的名称或说明文字
      * 支持标签宽度比例设置和样式自定义
+     * 注意：按钮类型不创建标签
      * 
      * @param container 标签的父容器
      * @param config 控件配置对象，包含标签文本和样式信息
-     * @return 返回创建的标签组件实例
+     * @return 返回创建的标签组件实例，按钮类型返回null
      */
     function _createLabel(container, config) {          // 创建标签的私有函数
+        // 按钮类型不创建标签
+        if (config.type === "button") {
+            return null
+        }
+        
         var label = labelComponent.createObject(container) // 从预编译组件创建标签实例
         label.text = config.label                       // 设置标签显示文本
         label.Layout.fillWidth = true                  // 标签水平填充可用空间
@@ -416,41 +428,103 @@ QtObject {                                              // 控件工厂对象
             return
         }
         
-        if (!config.events) {
-            return
-        }
+        var controlKey = config.key || config.label;
         
-        // 焦点丢失事件
-        if (config.events && config.events.onFocusLost) {
-            // 检查控件是否支持focusChanged信号
+        // ===== 焦点丢失事件 - 自动验证 + 用户自定义事件 =====
+        // 对于 TextField (text, password 类型)
+        if (config.type === "text" || config.type === "password") {
             if (input.hasOwnProperty("focusChanged")) {
                 input.focusChanged.connect(function() {
                     if (!input.focus) {
-                        scriptEngine.executeFunction(config.events.onFocusLost, {
-                            self: input
-                        })
-                    }
-                })
-            } else {
-                // 对于SpinBox，尝试使用其他事件
-                if (config.type === "number") {
-                    // 使用Keys.onTabPressed和其他键盘事件
-                    input.Keys.onTabPressed.connect(function() {
-                        scriptEngine.executeFunction(config.events.onFocusLost, {
-                            self: input
-                        })
-                    })
-                    
-                    // 使用鼠标点击其他地方的方式
-                    input.onActiveFocusChanged.connect(function() {
-                        if (!input.activeFocus) {
+                        console.log("Focus lost for text:", controlKey);
+                        
+                        var validationPassed = true;
+                        
+                        // 1. 先执行自动验证
+                        if (formAPI && config.validationFunction) {
+                            console.log("Validating text on focus lost:", controlKey);
+                            var result = formAPI.validateControl(controlKey, false);
+                            console.log("Text validation result:", result.valid, result.message);
+                            validationPassed = result.valid;
+                            
+                            // 根据验证结果标红或恢复标签颜色
+                            var label = labelsMap[controlKey];
+                            if (label) {
+                                if (!result.valid) {
+                                    label.color = "#ff0000";  // 验证失败：标红
+                                } else {
+                                    // 验证成功：恢复原始颜色
+                                    label.color = config.style && config.style.labelColor ? config.style.labelColor : "#000000";
+                                }
+                            }
+                        }
+                        
+                        // 2. 只有验证通过时才执行用户自定义的焦点丢失事件
+                        if (validationPassed && config.events && config.events.onFocusLost) {
+                            console.log("Executing custom onFocusLost for:", controlKey);
                             scriptEngine.executeFunction(config.events.onFocusLost, {
                                 self: input
                             })
+                        } else if (!validationPassed) {
+                            console.log("Validation failed, skipping custom onFocusLost for:", controlKey);
+                        } else {
+                            console.log("No custom onFocusLost event for:", controlKey);
                         }
-                    })
-                }
+                    }
+                })
             }
+        }
+        
+        // 对于 SpinBox (number 类型)
+        if (config.type === "number") {
+            console.log("Binding validation for number type:", controlKey);
+            
+            // 使用activeFocusChanged（更可靠）
+            if (input.hasOwnProperty("activeFocusChanged")) {
+                input.activeFocusChanged.connect(function() {
+                    if (!input.activeFocus) {
+                        console.log("Active focus lost for number:", controlKey);
+                        
+                        var validationPassed = true;
+                        
+                        // 自动验证
+                        if (formAPI && config.validationFunction) {
+                            console.log("Validating number on focus lost:", controlKey);
+                            var result = formAPI.validateControl(controlKey, false);
+                            console.log("Number validation result:", result.valid, result.message);
+                            validationPassed = result.valid;
+                            
+                            // 根据验证结果标红或恢复标签颜色
+                            var label = labelsMap[controlKey];
+                            if (label) {
+                                if (!result.valid) {
+                                    label.color = "#ff0000";  // 验证失败：标红
+                                } else {
+                                    // 验证成功：恢复原始颜色
+                                    label.color = config.style && config.style.labelColor ? config.style.labelColor : "#000000";
+                                }
+                            }
+                        }
+                        
+                        // 只有验证通过时才执行用户自定义事件
+                        if (validationPassed && config.events && config.events.onFocusLost) {
+                            console.log("Executing custom onFocusLost for number:", controlKey);
+                            scriptEngine.executeFunction(config.events.onFocusLost, {
+                                self: input
+                            })
+                        } else if (!validationPassed) {
+                            console.log("Validation failed, skipping custom onFocusLost for number:", controlKey);
+                        } else {
+                            console.log("No custom onFocusLost event for number:", controlKey);
+                        }
+                    }
+                })
+            }
+        }
+        
+        // ===== 其他事件（需要 config.events 存在）=====
+        if (!config.events) {
+            return
         }
         
         // 文本变化事件
@@ -490,17 +564,7 @@ QtObject {                                              // 控件工厂对象
             })
         }
         
-        // SpinBox特殊处理：编辑完成事件
-        if (config.type === "number" && config.events && config.events.onFocusLost) {
-            // 检查是否有editingFinished信号
-            if (input.hasOwnProperty("editingFinished")) {
-                input.editingFinished.connect(function() {
-                    scriptEngine.executeFunction(config.events.onFocusLost, {
-                        self: input
-                    })
-                })
-            }
-        }
+
     }
     
 
