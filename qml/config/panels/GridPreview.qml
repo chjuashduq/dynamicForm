@@ -36,10 +36,12 @@ Rectangle {
     property int gridPreviewHeight: 300  // 初始化为最小高度，等待配置加载后更新
     
     onHeightChanged: {
+        console.log("GridPreview Rectangle: height changed to", height);
         gridHeightChanged();
     }
     
     onGridPreviewHeightChanged: {
+        console.log("GridPreview: gridPreviewHeight changed to", gridPreviewHeight);
         gridHeightChanged();
     }
     
@@ -92,6 +94,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.topMargin: 10
         width: parent.width - 20
+        height: calculateEstimatedHeight()  // 明确设置高度
         visible: true
         
         rows: gridConfig.rows || 4
@@ -298,16 +301,21 @@ Rectangle {
 
     
     function refresh() {
+        console.log("GridPreview: refresh called, gridConfig =", JSON.stringify(gridConfig));
         gridLayout.rows = gridConfig.rows || 4;
         gridLayout.columns = gridConfig.columns || 2;
         gridLayout.rowSpacing = gridConfig.rowSpacing || 5;
         gridLayout.columnSpacing = gridConfig.columnSpacing || 10;
         
         var newModel = (gridConfig.rows || 4) * (gridConfig.columns || 2);
+        console.log("GridPreview: updating model from", cellRepeater.model, "to", newModel);
         cellRepeater.model = 0;
         cellRepeater.model = newModel;
         
-        gridPreviewHeight = calculateRequiredHeight();
+        var newHeight = calculateRequiredHeight();
+        console.log("GridPreview: calculated height =", newHeight, "current height =", gridPreviewHeight);
+        gridPreviewHeight = newHeight;
+        console.log("GridPreview: height updated to", gridPreviewHeight);
         heightUpdateTimer.restart();
     }
 }

@@ -181,24 +181,40 @@ Item {
                             return;
                         }
                         
-                        // 步骤1：创建所有控件
-                        createAllControls()
-                        
-                        // 步骤2：填充空白位置
-                        fillEmptyGridCells()
+                        // 延迟创建控件，确保清除完成
+                        Qt.callLater(function() {
+                            // 步骤1：创建所有控件
+                            createAllControls()
+                            
+                            // 步骤2：填充空白位置
+                            fillEmptyGridCells()
+                        })
                     }
                     
                     // 清除表单
                     function clearForm() {
                         // 清除控件映射
                         formPreview.controlsMap = {}
+                        formPreview.labelsMap = {}
                         
-                        // 销毁所有子元素
-                        for (var i = grid.children.length - 1; i >= 0; i--) {
+                        // 收集所有子元素
+                        var childrenToDestroy = []
+                        for (var i = 0; i < grid.children.length; i++) {
                             if (grid.children[i]) {
-                                grid.children[i].destroy()
+                                childrenToDestroy.push(grid.children[i])
                             }
                         }
+                        
+                        // 立即销毁所有子元素
+                        for (var j = 0; j < childrenToDestroy.length; j++) {
+                            childrenToDestroy[j].visible = false
+                            childrenToDestroy[j].destroy()
+                        }
+                        
+                        // 强制垃圾回收（等待下一帧）
+                        Qt.callLater(function() {
+                            // 确保所有元素都已清除
+                        })
                     }
                     
                     // 创建所有控件

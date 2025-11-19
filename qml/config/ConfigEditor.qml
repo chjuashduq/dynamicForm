@@ -41,16 +41,30 @@ Item {                                                  // 配置编辑器主容
         id: configManagerLoader                         // 配置管理器加载器的唯一标识符
         source: "managers/ConfigManager.qml"           // 配置管理器组件的文件路径
         onLoaded: {
+            console.log("ConfigEditor: ConfigManager loaded");
             // 当配置管理器加载完成时的回调函数
             // 监听内部配置变化（用于更新预览界面）
             item.internalConfigChanged.connect(function (newConfig) { // 连接内部配置变化信号
+                console.log("ConfigEditor: received internalConfigChanged", JSON.stringify(newConfig.grid));
                 if (gridPreviewLoader.item) {
                     // 如果网格预览组件已加载
+                    console.log("ConfigEditor: updating GridPreview");
                     gridPreviewLoader.item.controls = newConfig.controls;     // 更新预览组件的控件列表
                     gridPreviewLoader.item.gridConfig = newConfig.grid;       // 更新预览组件的网格配置
                     gridPreviewLoader.item.refresh();  // 刷新预览组件显示
+                } else {
+                    console.log("ConfigEditor: GridPreview not loaded yet");
                 }
             });
+            
+            // 连接 GridConfigPanel 的信号
+            if (gridConfigPanelLoader.item) {
+                console.log("ConfigEditor: Connecting GridConfigPanel signal (from ConfigManager.onLoaded)");
+                gridConfigPanelLoader.item.configChanged.connect(function(newGridConfig) {
+                    console.log("ConfigEditor: received configChanged signal", JSON.stringify(newGridConfig));
+                    configManager.updateGridConfig(newGridConfig);
+                });
+            }
         }
     }
 
@@ -61,6 +75,18 @@ Item {                                                  // 配置编辑器主容
         }else{
             configManager.resetConfig();
         }
+        
+        // 强制更新所有组件
+        Qt.callLater(function() {
+            if (gridConfigPanelLoader.item && configManager) {
+                gridConfigPanelLoader.item.gridConfig = configManager.currentConfig.grid;
+            }
+            if (gridPreviewLoader.item && configManager) {
+                gridPreviewLoader.item.controls = configManager.currentConfig.controls;
+                gridPreviewLoader.item.gridConfig = configManager.currentConfig.grid;
+                gridPreviewLoader.item.refresh();
+            }
+        });
     }
 
     property var configManager: configManagerLoader.item // 配置管理器实例的引用，方便其他组件访问
@@ -112,7 +138,8 @@ Item {                                                  // 配置编辑器主容
                         if (editDialog) {
                             // 如果编辑对话框已加载
                             editDialog.editIndex = index;              // 设置要编辑的控件索引
-                            editDialog.editConfig = control;           // 设置要编辑的控件配置
+                            // 深拷贝控件配置，避免引用问题导致事件被覆盖
+                            editDialog.editConfig = JSON.parse(JSON.stringify(control));
                             editDialog.gridConfig = configManager.currentConfig.grid; // 设置网格配置
                             editDialog.open();          // 打开编辑对话框
                         }
@@ -252,10 +279,21 @@ Item {                                                  // 配置编辑器主容
                     source: "panels/GridConfigPanel.qml" // 网格配置面板组件文件路径
                     onLoaded: {
                         // 面板加载完成时的回调函数
+                        console.log("ConfigEditor: GridConfigPanel loaded");
 
                         if (configManager) {
                             // 如果配置管理器已加载
+                            console.log("ConfigEditor: Connecting configChanged signal (from GridConfigPanel.onLoaded)");
                             item.gridConfig = configManager.currentConfig.grid; // 设置面板的初始网格配置
+                            
+                            // 连接网格配置变化信号
+                            item.configChanged.connect(function(newGridConfig) {
+                                console.log("ConfigEditor: received configChanged signal (from GridConfigPanel.onLoaded)", JSON.stringify(newGridConfig));
+                                configManager.updateGridConfig(newGridConfig);
+                            });
+                            console.log("ConfigEditor: Signal connected successfully");
+                        } else {
+                            console.log("ConfigEditor: configManager not available! Will connect later.");
                         }
                     }
                 }
@@ -289,6 +327,10 @@ Item {                                                  // 配置编辑器主容
                     border.color: "#dee2e6"             // 浅灰色边框
                     border.width: 1                     // 1像素边框宽度
                     radius: 8                           // 8像素圆角
+                    
+                    onHeightChanged: {
+                        console.log("ConfigEditor: previewContainer height changed to", height);
+                    }
 
                     // 预览区域内容布局
                     Column {

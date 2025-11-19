@@ -18,15 +18,19 @@ Rectangle {
         "columnWidths": [1, 2]
     })
     
+    property bool isUpdating: false  // 防止循环更新的标志
+    
     onGridConfigChanged: {
         // 更新UI控件的值
-        if (gridConfig) {
+        if (gridConfig && !isUpdating) {
+            isUpdating = true;
             rowsSpinBox.value = gridConfig.rows || 4;
             columnsSpinBox.value = gridConfig.columns || 2;
             rowSpacingSpinBox.value = gridConfig.rowSpacing || 5;
             columnSpacingSpinBox.value = gridConfig.columnSpacing || 10;
             rowHeightsField.text = formatArrayForEdit(gridConfig.rowHeights || []);
             columnWidthsField.text = formatArrayForEdit(gridConfig.columnWidths || []);
+            isUpdating = false;
         }
     }
     
@@ -170,22 +174,27 @@ Rectangle {
                 "columnWidths": columnWidths
             };
 
-            gridConfig = newConfig;
-            
             // 更新显示文本
+            isUpdating = true;
             if (rowHeightsField.text !== formatArrayForEdit(rowHeights)) {
                 rowHeightsField.text = formatArrayForEdit(rowHeights);
             }
             if (columnWidthsField.text !== formatArrayForEdit(columnWidths)) {
                 columnWidthsField.text = formatArrayForEdit(columnWidths);
             }
+            gridConfig = newConfig;
+            isUpdating = false;
             
+            // 发出配置变化信号
+            console.log("GridConfigPanel: configChanged signal emitted", JSON.stringify(newConfig));
             configChanged(newConfig);
         }
     }
     
     function updateConfig() {
-        updateTimer.restart();
+        if (!isUpdating) {
+            updateTimer.restart();
+        }
     }
     
     function formatArrayForEdit(array) {

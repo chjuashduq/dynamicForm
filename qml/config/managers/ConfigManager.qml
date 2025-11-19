@@ -40,7 +40,9 @@ QtObject {                                          // 定义配置管理器对�
      * @param gridConfig 新的网格配置对象，包含行数、列数、间距等信息
      */
     function updateGridConfig(gridConfig) {         // 更新网格布局配置的函数
+        console.log("ConfigManager: updateGridConfig called", JSON.stringify(gridConfig));
         currentConfig.grid = gridConfig;            // 将新的网格配置赋值给当前配置
+        console.log("ConfigManager: emitting internalConfigChanged");
         internalConfigChanged(currentConfig);       // 触发内部配置变化信号，通知界面更新
     }
     

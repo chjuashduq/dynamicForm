@@ -110,14 +110,17 @@ Item  {
                     root.editorLoaded(configEditorLoader);
                     item.stackViewRef = stackView;
                     item.loaderInstanceRef = root.loaderInstance;
-                    // 只有在用户主动应用配置时才更新表单预览
-                    item.configChanged.connect(function (newConfig) {
-                        root.formConfig = newConfig;
-                        if (formPreviewLoader.item) {
-                            formPreviewLoader.item.formConfig = newConfig;
-                            formPreviewLoader.item.reloadForm();
-                        }
-                    });
+                    // 连接配置管理器的信号
+                    if (item.configManager) {
+                        item.configManager.internalConfigChanged.connect(function (newConfig) {
+                            root.formConfig = newConfig;
+                            // 通过 loaderInstance 访问 formPreviewLoader
+                            if (root.loaderInstance.formPreviewLoader && root.loaderInstance.formPreviewLoader.item) {
+                                root.loaderInstance.formPreviewLoader.item.formConfig = newConfig;
+                                root.loaderInstance.formPreviewLoader.item.reloadForm();
+                            }
+                        });
+                    }
                 }
             }
         }
