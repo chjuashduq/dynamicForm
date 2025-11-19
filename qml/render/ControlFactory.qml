@@ -508,6 +508,42 @@ QtObject {                                              // 控件工厂对象
             }
         }
         
+        // 对于 ComboBox (dropdown 类型)
+        if (config.type === "dropdown") {
+            // 使用activeFocusChanged监听焦点变化
+            if (input.hasOwnProperty("activeFocusChanged")) {
+                input.activeFocusChanged.connect(function() {
+                    if (!input.activeFocus) {
+                        var validationPassed = true;
+                        
+                        // 自动验证
+                        if (formAPI && config.validationFunction) {
+                            var result = formAPI.validateControl(controlKey, false);
+                            validationPassed = result.valid;
+                            
+                            // 根据验证结果标红或恢复标签颜色
+                            var label = labelsMap[controlKey];
+                            if (label) {
+                                if (!result.valid) {
+                                    label.color = "#ff0000";  // 验证失败：标红
+                                } else {
+                                    // 验证成功：恢复原始颜色
+                                    label.color = config.style && config.style.labelColor ? config.style.labelColor : "#000000";
+                                }
+                            }
+                        }
+                        
+                        // 只有验证通过时才执行用户自定义事件
+                        if (validationPassed && config.events && config.events.onFocusLost) {
+                            scriptEngine.executeFunction(config.events.onFocusLost, {
+                                self: input
+                            })
+                        }
+                    }
+                })
+            }
+        }
+        
         // ===== 其他事件（需要 config.events 存在）=====
         if (!config.events) {
             return

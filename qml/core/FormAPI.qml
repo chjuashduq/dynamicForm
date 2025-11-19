@@ -29,7 +29,10 @@ QtObject {
     function getControlValue(controlKey) {
         if (controlsMap[controlKey]) {
             var control = controlsMap[controlKey]
-            if (control.hasOwnProperty("text")) {
+            // 优先使用自定义的getValue方法（如ComboBox、CheckBox组、Radio组）
+            if (control.hasOwnProperty("getValue")) {
+                return control.getValue()
+            } else if (control.hasOwnProperty("text")) {
                 return control.text
             } else if (control.hasOwnProperty("value")) {
                 return control.value
@@ -50,10 +53,22 @@ QtObject {
                 control.text = newValue
             } else if (control.hasOwnProperty("value")) {
                 control.value = newValue
-            } else if (control.hasOwnProperty("currentIndex") && control.hasOwnProperty("model")) {
-                var index = control.model.indexOf(newValue)
+            } else if (control.hasOwnProperty("currentIndex") && control.hasOwnProperty("optionValues")) {
+                // 对于有optionValues的下拉框，根据value查找索引
+                var index = control.optionValues.indexOf(newValue)
                 if (index >= 0) {
                     control.currentIndex = index
+                } else {
+                    // 如果在values中找不到，尝试在labels中查找
+                    index = control.model.indexOf(newValue)
+                    if (index >= 0) {
+                        control.currentIndex = index
+                    }
+                }
+            } else if (control.hasOwnProperty("currentIndex") && control.hasOwnProperty("model")) {
+                var idx = control.model.indexOf(newValue)
+                if (idx >= 0) {
+                    control.currentIndex = idx
                 }
             }
         }
