@@ -217,9 +217,12 @@ GroupBox {
      * - code: 事件处理代码
      */
     function updateEvent(eventType, code) {
-        // 确保editConfig.events对象存在
+        // 确保editConfig.events对象存在（深拷贝，避免引用共享）
         if (!editConfig.events) {
             editConfig.events = {};
+        } else {
+            // 如果events已存在，创建新对象避免引用共享
+            editConfig.events = JSON.parse(JSON.stringify(editConfig.events));
         }
         
         // 根据事件类型保存代码到相应属性
@@ -277,7 +280,7 @@ GroupBox {
             delete editConfig.events;
         }
         
-        // 触发配置变更通知（如果需要的话）
-        // editConfigChanged();  // 注释掉，因为直接修改了引用对象
+        // 强制刷新界面显示
+        editConfigChanged();
     }
 }

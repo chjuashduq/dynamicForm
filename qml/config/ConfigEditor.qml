@@ -139,7 +139,8 @@ Item {                                                  // 配置编辑器主容
                             // 如果编辑对话框已加载
                             editDialog.editIndex = index;              // 设置要编辑的控件索引
                             // 深拷贝控件配置，避免引用问题导致事件被覆盖
-                            editDialog.editConfig = JSON.parse(JSON.stringify(control));
+                            var deepCopy = JSON.parse(JSON.stringify(control));
+                            editDialog.editConfig = deepCopy;
                             editDialog.gridConfig = configManager.currentConfig.grid; // 设置网格配置
                             editDialog.open();          // 打开编辑对话框
                         }
