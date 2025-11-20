@@ -19,8 +19,21 @@ QtObject {
     // 控件验证状态缓存 {controlKey: {valid: boolean, lastValidated: timestamp}}
     property var validationStates: ({})
     
+    // 临时存储对象，用于同一表单各个事件间暂存数据
+    property var tempStorage: ({})
+    
     // ScriptEngine引用，用于执行自定义验证函数
     property var scriptEngine: null
+    
+    /**
+     * 初始化表单（清空验证状态和临时存储）
+     * 每次打开表单时应该调用此函数
+     */
+    function initializeForm() {
+        validationStates = {}
+        tempStorage = {}
+        console.log("FormAPI: 表单已初始化，验证状态和临时存储已清空")
+    }
 
     
     /**
@@ -517,6 +530,47 @@ QtObject {
             delete validationStates[controlKey]
         } else {
             validationStates = {}
+        }
+    }
+    
+    /**
+     * 设置临时存储的值
+     * @param key 存储的键
+     * @param value 存储的值
+     */
+    function setTempValue(key, value) {
+        if (!tempStorage) {
+            tempStorage = {}
+        }
+        tempStorage[key] = value
+        console.log("FormAPI: 临时存储设置", key, "=", value)
+    }
+    
+    /**
+     * 获取临时存储的值
+     * @param key 存储的键
+     * @return 存储的值，如果不存在则返回undefined
+     */
+    function getTempValue(key) {
+        if (!tempStorage) {
+            return undefined
+        }
+        return tempStorage[key]
+    }
+    
+    /**
+     * 清除临时存储
+     * @param key 要清除的键，如果不提供则清除所有
+     */
+    function clearTempStorage(key) {
+        if (!tempStorage) {
+            return
+        }
+        
+        if (key) {
+            delete tempStorage[key]
+        } else {
+            tempStorage = {}
         }
     }
 }

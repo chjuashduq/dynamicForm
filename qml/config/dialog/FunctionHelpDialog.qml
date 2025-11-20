@@ -249,7 +249,40 @@ Dialog {
                         }
                     }
 
-                    // ========== 7. 工具函数 ==========
+                    // ========== 7. 临时存储 ==========
+                    Rectangle {
+                        width: parent.width
+                        height: 30
+                        color: "#d1ecf1"
+                        radius: 4
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            text: "7. 临时存储"
+                            font.bold: true
+                            color: "#0c5460"
+                        }
+                    }
+
+                    Repeater {
+                        model: [
+                            {name: "setTempValue", desc: "设置临时存储值", code: "// 在一个事件中存储数据\nsetTempValue('selectedCountry', getControlValue('country'));\nsetTempValue('userChoice', 'option1');"},
+                            {name: "getTempValue", desc: "获取临时存储值", code: "// 在另一个事件中获取之前存储的数据\nvar country = getTempValue('selectedCountry');\nif (country === '00') {\n    showMessage('您选择了中国', 'info');\n}"},
+                            {name: "clearTempStorage", desc: "清除临时存储", code: "// 清除单个键\nclearTempStorage('selectedCountry');\n\n// 清除所有临时存储\nclearTempStorage();"}
+                        ]
+                        
+                        Button {
+                            width: parent.width
+                            height: 50
+                            text: modelData.name + " - " + modelData.desc
+                            
+                            onClicked: {
+                                insertFunction(modelData.code);
+                            }
+                        }
+                    }
+
+                    // ========== 8. 工具函数 ==========
                     Rectangle {
                         width: parent.width
                         height: 30
@@ -258,7 +291,7 @@ Dialog {
                         
                         Text {
                             anchors.centerIn: parent
-                            text: "7. 工具函数"
+                            text: "8. 工具函数"
                             font.bold: true
                             color: "#084298"
                         }
@@ -281,7 +314,7 @@ Dialog {
                     }
 
 
-                    // ========== 8. 数据库操作 ==========
+                    // ========== 9. 数据库操作 ==========
                     Rectangle {
                         width: parent.width
                         height: 30
@@ -290,7 +323,7 @@ Dialog {
                         
                         Text {
                             anchors.centerIn: parent
-                            text: "8. 数据库操作"
+                            text: "9. 数据库操作"
                             font.bold: true
                             color: "#856404"
                         }
@@ -315,7 +348,7 @@ Dialog {
                         }
                     }
 
-                    // ========== 9. 完整示例 ==========
+                    // ========== 10. 完整示例 ==========
                     Rectangle {
                         width: parent.width
                         height: 30
@@ -324,7 +357,7 @@ Dialog {
                         
                         Text {
                             anchors.centerIn: parent
-                            text: "9. 完整示例"
+                            text: "10. 完整示例"
                             font.bold: true
                             color: "#0c5460"
                         }

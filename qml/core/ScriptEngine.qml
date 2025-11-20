@@ -21,6 +21,17 @@ QtObject {
     // 是否为编辑模式
     property bool isEditMode: false
     
+    /**
+     * 初始化脚本引擎（清空临时存储）
+     * 每次打开表单时应该调用此函数
+     */
+    function initializeEngine() {
+        if (formAPI) {
+            formAPI.initializeForm()
+        }
+        console.log("ScriptEngine: 引擎已初始化")
+    }
+    
     // 获取全局MySqlHelper对象
     function getMySqlHelper() {
         return MySqlHelper;
@@ -97,6 +108,9 @@ QtObject {
                 'validateChinese',        // 中文验证
                 'validateNumber',         // 数字验证
                 'formatDateTime',         // 格式化日期时间
+                'setTempValue',           // 设置临时存储值
+                'getTempValue',           // 获取临时存储值
+                'clearTempStorage',       // 清除临时存储
                 funcCode                  // 用户编写的函数代码
             )
             
@@ -141,7 +155,10 @@ QtObject {
                 formAPI.validateIdCard,
                 formAPI.validateChinese,
                 formAPI.validateNumber,
-                formatDateTime
+                formatDateTime,
+                formAPI.setTempValue,
+                formAPI.getTempValue,
+                formAPI.clearTempStorage
             )
             
             return result

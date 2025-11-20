@@ -308,6 +308,9 @@ Item {
         initialData = {}
         fromDataRecordList = fromRecordList || false
         
+        // 清空验证状态和临时存储
+        scriptEngine.initializeEngine()
+        
         if (configJson && configJson !== "") {
             formConfig = JSON.parse(configJson)
         }
@@ -320,6 +323,9 @@ Item {
         isEditMode = true
         dataRecordId = recordDataId
         fromDataRecordList = true  // 编辑模式一定是从数据记录列表进入的
+        
+        // 清空验证状态和临时存储
+        scriptEngine.initializeEngine()
         
         // 解析初始数据
         if (dataJson && dataJson !== "") {

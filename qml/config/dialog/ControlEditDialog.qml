@@ -218,11 +218,11 @@ Dialog {
             newConfig.validationFunction = validationConfig.validationFunction
         }
         
-        // ========== 保持事件配置 ==========
+        // ========== 保持事件配置（深拷贝避免引用共享）==========
         // 事件配置由EventConfigPanel直接修改editConfig.events
-        // 这里直接复制现有的事件配置
+        // 这里需要深拷贝事件配置，避免多个控件共享同一个events对象引用
         if (editConfig.events) {
-            newConfig.events = editConfig.events;
+            newConfig.events = JSON.parse(JSON.stringify(editConfig.events));
         }
 
         return newConfig;

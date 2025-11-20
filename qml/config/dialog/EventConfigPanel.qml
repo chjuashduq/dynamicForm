@@ -213,16 +213,13 @@ GroupBox {
      * - 自动清理空的事件配置
      * 
      * 参数：
-     * - eventType: 事件类型 ("focusLost" 或 "change")
+     * - eventType: 事件类型 ("focusLost"、"clicked" 或 "change")
      * - code: 事件处理代码
      */
     function updateEvent(eventType, code) {
-        // 确保editConfig.events对象存在（深拷贝，避免引用共享）
+        // 确保editConfig.events对象存在
         if (!editConfig.events) {
             editConfig.events = {};
-        } else {
-            // 如果events已存在，创建新对象避免引用共享
-            editConfig.events = JSON.parse(JSON.stringify(editConfig.events));
         }
         
         // 根据事件类型保存代码到相应属性
