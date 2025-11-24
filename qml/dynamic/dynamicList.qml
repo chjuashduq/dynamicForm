@@ -60,6 +60,18 @@ Item {
         }
         
         StyledButton {
+            text: "代码生成器"
+            buttonType: "secondary"
+            onClicked: {
+                if (stackViewRef && loaderInstanceRef && loaderInstanceRef.generatorLoader) {
+                    loaderInstanceRef.dynamicListLoadingLoader.visible = false;
+                    loaderInstanceRef.generatorLoader.visible = true;
+                    stackViewRef.push(loaderInstanceRef.generatorLoader);
+                }
+            }
+        }
+
+        StyledButton {
             text: "新增表单"
             buttonType: "primary"
             onClicked: {

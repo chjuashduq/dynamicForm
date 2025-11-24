@@ -24,6 +24,7 @@ Item  {
     Component.onCompleted: {
         var a = configEditorTab.createObject(root);
         var b = formPreviewTab.createObject(root);
+        var c = generatorTab.createObject(root);
         MessageManager.registerRootItem(root);
     }
 
@@ -121,6 +122,26 @@ Item  {
                             }
                         });
                     }
+                }
+            }
+        }
+    }
+
+    // Tab 3: 代码生成器
+    Component {
+        id: generatorTab
+        Item {
+            Loader {
+                id: generatorLoader
+                width: parent.width
+                height: parent.height
+                source: "generator/FormGenerator.qml"
+                asynchronous: true
+                active: true
+                visible: false
+                onLoaded: {
+                    root.loaderInstance.generatorLoader = generatorLoader;
+                    // item.stackViewRef = stackView;
                 }
             }
         }

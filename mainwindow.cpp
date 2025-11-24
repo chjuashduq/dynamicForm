@@ -37,6 +37,15 @@ engine->addImportPath("qrc:/qml");
         jsonStr = QString(file.readAll());
         file.close();
     }
+    quickWidget->rootContext()->setContextProperty("formJson", jsonStr);
+    QFile file2 (":/qml/components/components.json");
+    QString jsonStr2;
+    if(file2.open(QIODevice::ReadOnly)){
+        jsonStr2 = QString(file2.readAll());
+        file2.close();
+    }
+    quickWidget->rootContext()->setContextProperty("componentJson", jsonStr2);
+
     qmlRegisterSingletonType<MySqlHelper>("mysqlhelper", 1, 0, "MySqlHelper", [](QQmlEngine *, QJSEngine *) -> QObject * {
         return new MySqlHelper;
     });
@@ -45,7 +54,7 @@ engine->addImportPath("qrc:/qml");
     });
     // 传入 QML
     
-    quickWidget->rootContext()->setContextProperty("formJson", jsonStr);
+
     quickWidget->setSource(QUrl("qrc:/qml/main.qml"));
 }
 
