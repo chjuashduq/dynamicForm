@@ -19,6 +19,7 @@
         <file>qml/generator/FormGenerator.qml</file>    
         <file>qml/generator/CanvasItem.qml</file>
         <file>qml/generator/DraggableComponent.qml</file>
+        <file>qml/generator/FormGeneratorLogic.js</file>
         <file>qml/Common/MessageManager.qml</file>
         <file>qml/Common/AppStyles.qml</file>
         <file>qml/Common/qmldir</file>

@@ -55,10 +55,11 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            contentWidth: -1 // Disable horizontal scrolling
             visible: !!targetItem
 
             ColumnLayout {
-                width: parent.width - 20 // reserve scrollbar space
+                width: parent.width
                 spacing: 15
 
                 // --- Layout Settings ---
