@@ -7,11 +7,26 @@ import "../components"
 import "properties"
 import "library"
 import "logic/FormGeneratorLogic.js" as Logic
+import "../core"
 
 Item {
     id: root
     objectName: "FormGeneratorRoot"
     anchors.fill: parent
+
+    // Core Components for Preview
+    FormAPI {
+        id: formAPI
+        scriptEngine: scriptEngine
+    }
+
+    ScriptEngine {
+        id: scriptEngine
+        formAPI: formAPI
+    }
+
+    property alias formAPI: formAPI
+    property alias scriptEngine: scriptEngine
 
     // Model to store the form structure
     property var formModel: []
@@ -218,7 +233,7 @@ Item {
                                     anchors.top: parent.top
                                     anchors.topMargin: 20
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    spacing: 10
+                                    spacing: 0
                                     flow: Flow.LeftToRight
 
                                     Repeater {

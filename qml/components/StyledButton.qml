@@ -23,11 +23,17 @@ StyledBase {
     // Expose clicked signal
     signal clicked
 
-    property var defaultProps: mergeProps({
+    property var defaultProps: {
         "text": "Styled Button",
         "width": 120,
-        "showLabel": false
-    })
+        "layoutType": "fill",
+        "flex": 1,
+        "widthPercent": 100,
+        "visible": true,
+        "enabled": true,
+        "key": "",
+        "valid": true
+    }
 
     function generateCode(props, childrenCode, indent, events, functions) {
         var layoutProps = generateLayoutCode(props, indent);
@@ -38,16 +44,23 @@ StyledBase {
         }
 
         if (events && events.onClicked) {
+            // Helper to wrap code
+            function wrapCode(c) {
+                return "scriptEngine.executeFunction(" + JSON.stringify(c) + ", {self: root})";
+            }
+
             if (props.key && props.key.trim() !== "" && functions) {
                 var funcName = props.key + "_Clicked";
                 code += indent + "    onClicked: " + funcName + "()\n";
 
-                var funcCode = "    function " + funcName + "() {\n" + "        " + events.onClicked.replace(/\n/g, "\n        ") + "\n" + "    }";
+                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onClicked) + "\n" + "    }";
                 functions.push(funcCode);
             } else {
-                code += indent + "    onClicked: {\n" + indent + "        " + events.onClicked.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
+                code += indent + "    onClicked: {\n" + indent + "        " + wrapCode(events.onClicked) + "\n" + indent + "    }\n";
             }
         }
+
+        code += generateCommonEventsCode(props, events, indent, functions);
 
         code += indent + "}";
         return code;

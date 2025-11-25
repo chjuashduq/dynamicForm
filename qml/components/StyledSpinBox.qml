@@ -31,16 +31,24 @@ StyledBase {
         }
 
         if (events && events.onValueModified) {
+            // Helper to wrap code
+            function wrapCode(c, args) {
+                var contextObj = "{self: root" + (args ? ", " + args : "") + "}";
+                return "scriptEngine.executeFunction(" + JSON.stringify(c) + ", " + contextObj + ")";
+            }
+
             if (props.key && props.key.trim() !== "" && functions) {
                 var funcName = props.key + "_ValueModified";
                 code += indent + "    onValueModified: " + funcName + "()\n";
 
-                var funcCode = "    function " + funcName + "() {\n" + "        " + events.onValueModified.replace(/\n/g, "\n        ") + "\n" + "    }";
+                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onValueModified) + "\n" + "    }";
                 functions.push(funcCode);
             } else {
-                code += indent + "    onValueModified: {\n" + indent + "        " + events.onValueModified.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
+                code += indent + "    onValueModified: {\n" + indent + "        " + wrapCode(events.onValueModified) + "\n" + indent + "    }\n";
             }
         }
+
+        code += generateCommonEventsCode(props, events, indent, functions);
 
         code += indent + "}";
         return code;

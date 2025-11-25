@@ -38,27 +38,42 @@ StyledBase {
         }
 
         if (events && events.onActivated) {
+            // Helper to wrap code
+            function wrapCode(c, args) {
+                var contextObj = "{self: root" + (args ? ", " + args : "") + "}";
+                return "scriptEngine.executeFunction(" + JSON.stringify(c) + ", " + contextObj + ")";
+            }
+
             if (props.key && props.key.trim() !== "" && functions) {
                 var funcName = props.key + "_Activated";
                 code += indent + "    onActivated: " + funcName + "(index)\n";
 
-                var funcCode = "    function " + funcName + "(index) {\n" + "        " + events.onActivated.replace(/\n/g, "\n        ") + "\n" + "    }";
+                var funcCode = "    function " + funcName + "(index) {\n" + "        " + wrapCode(events.onActivated, "index: index") + "\n" + "    }";
                 functions.push(funcCode);
             } else {
-                code += indent + "    onActivated: {\n" + indent + "        " + events.onActivated.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
+                code += indent + "    onActivated: {\n" + indent + "        " + wrapCode(events.onActivated, "index: index") + "\n" + indent + "    }\n";
             }
         }
+
         if (events && events.onCurrentIndexChanged) {
+            // Helper to wrap code
+            function wrapCode2(c, args) {
+                var contextObj = "{self: root" + (args ? ", " + args : "") + "}";
+                return "scriptEngine.executeFunction(" + JSON.stringify(c) + ", " + contextObj + ")";
+            }
+
             if (props.key && props.key.trim() !== "" && functions) {
                 var funcName = props.key + "_CurrentIndexChanged";
                 code += indent + "    onCurrentIndexChanged: " + funcName + "()\n";
 
-                var funcCode = "    function " + funcName + "() {\n" + "        " + events.onCurrentIndexChanged.replace(/\n/g, "\n        ") + "\n" + "    }";
+                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode2(events.onCurrentIndexChanged) + "\n" + "    }";
                 functions.push(funcCode);
             } else {
-                code += indent + "    onCurrentIndexChanged: {\n" + indent + "        " + events.onCurrentIndexChanged.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
+                code += indent + "    onCurrentIndexChanged: {\n" + indent + "        " + wrapCode2(events.onCurrentIndexChanged) + "\n" + indent + "    }\n";
             }
         }
+
+        code += generateCommonEventsCode(props, events, indent, functions);
 
         code += indent + "}";
         return code;

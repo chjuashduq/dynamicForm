@@ -32,30 +32,37 @@ StyledBase {
             code += indent + "    key: \"" + props.key + "\"\n";
         }
 
-        if (events) {
-            if (events.onEditingFinished) {
-                if (props.key && props.key.trim() !== "" && functions) {
-                    var funcName = props.key + "_EditingFinished";
-                    code += indent + "    onEditingFinished: " + funcName + "()\n";
+        // Helper to wrap code
+        function wrapCode(c, args) {
+            var contextObj = "{self: root" + (args ? ", " + args : "") + "}";
+            return "scriptEngine.executeFunction(" + JSON.stringify(c) + ", " + contextObj + ")";
+        }
 
-                    var funcCode = "    function " + funcName + "() {\n" + "        " + events.onEditingFinished.replace(/\n/g, "\n        ") + "\n" + "    }";
-                    functions.push(funcCode);
-                } else {
-                    code += indent + "    onEditingFinished: {\n" + indent + "        " + events.onEditingFinished.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
-                }
-            }
-            if (events.onTextEdited) {
-                if (props.key && props.key.trim() !== "" && functions) {
-                    var funcName = props.key + "_TextEdited";
-                    code += indent + "    onTextEdited: " + funcName + "()\n";
+        if (events && events.onEditingFinished) {
+            if (props.key && props.key.trim() !== "" && functions) {
+                var funcName = props.key + "_EditingFinished";
+                code += indent + "    onEditingFinished: " + funcName + "()\n";
 
-                    var funcCode = "    function " + funcName + "() {\n" + "        " + events.onTextEdited.replace(/\n/g, "\n        ") + "\n" + "    }";
-                    functions.push(funcCode);
-                } else {
-                    code += indent + "    onTextEdited: {\n" + indent + "        " + events.onTextEdited.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
-                }
+                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onEditingFinished) + "\n" + "    }";
+                functions.push(funcCode);
+            } else {
+                code += indent + "    onEditingFinished: {\n" + indent + "        " + wrapCode(events.onEditingFinished) + "\n" + indent + "    }\n";
             }
         }
+
+        if (events && events.onTextEdited) {
+            if (props.key && props.key.trim() !== "" && functions) {
+                var funcName = props.key + "_TextEdited";
+                code += indent + "    onTextEdited: " + funcName + "()\n";
+
+                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onTextEdited) + "\n" + "    }";
+                functions.push(funcCode);
+            } else {
+                code += indent + "    onTextEdited: {\n" + indent + "        " + wrapCode(events.onTextEdited) + "\n" + indent + "    }\n";
+            }
+        }
+
+        code += generateCommonEventsCode(props, events, indent, functions);
 
         code += indent + "}";
         return code;

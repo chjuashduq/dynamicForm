@@ -6,22 +6,18 @@ import Common 1.0
 Item {
     id: root
 
-    // Flow Properties
-    property int spacing: 10
-    property bool wrap: true  // 是否支持换行
-    property string flowDirection: "LeftToRight"  // Flow direction: LeftToRight, TopToBottom
-    property int padding: 0  // 内边距
+    // RowLayout Properties
+    property int spacing: 0
+    property int alignment: Qt.AlignLeft // Horizontal alignment of the row content
+    property int padding: 0
 
     // Size properties
-    implicitWidth: flowLayout.implicitWidth
-    implicitHeight: flowLayout.childrenRect.height + padding * 2
+    implicitWidth: rowLayout.implicitWidth + padding * 2
+    implicitHeight: rowLayout.implicitHeight + padding * 2
 
-    // StyledRow is a container, so we need to handle children code generation specially
     property var defaultProps: {
-        "spacing": 10,
-        "showLabel": false,
-        "wrap": true,
-        "flowDirection": "LeftToRight",
+        "spacing": 0,
+        "alignment": Qt.AlignLeft,
         "padding": 0,
         "layoutType": "percent",
         "widthPercent": 100
@@ -29,44 +25,36 @@ Item {
 
     function generateCode(props, childrenCode, indent) {
         var code = indent + "Flow {\n";
-        code += indent + "    spacing: " + (props.spacing || 10) + "\n";
+        code += indent + "    spacing: " + (props.spacing || 0) + "\n";
+        code += indent + "    flow: Flow.LeftToRight\n";
 
-        // 生成宽度代码
+        // Generate width/layout properties (for the Flow itself)
         if (props.layoutType === "fixed") {
-            code += indent + "    width: " + (props.width || 100) + "\n";
+            code += indent + "    width: " + (props.width || 350) + "\n";
         } else if (props.layoutType === "percent") {
             code += indent + "    width: parent.width * " + ((props.widthPercent || 100) / 100) + "\n";
         } else {
-            // Default to fill
+            // Default / Fill
             code += indent + "    width: parent.width\n";
         }
 
-        // Layout attached properties for when it's inside a Layout
-        if (props.layoutType === "fixed") {
-            code += indent + "    Layout.preferredWidth: " + (props.width || 100) + "\n";
-        } else if (props.layoutType === "percent") {
-            code += indent + "    Layout.preferredWidth: parent.width * " + ((props.widthPercent || 100) / 100) + "\n";
+        // Alignment via layoutDirection
+        var align = props.alignment;
+        if (align === Qt.AlignRight) {
+            code += indent + "    layoutDirection: Qt.RightToLeft\n";
         } else {
-            code += indent + "    Layout.fillWidth: true\n";
-        }
-
-        // Flow direction
-        var flowDir = props.flowDirection || "LeftToRight";
-        if (flowDir === "LeftToRight") {
-            code += indent + "    flow: Flow.LeftToRight\n";
-        } else if (flowDir === "TopToBottom") {
-            code += indent + "    flow: Flow.TopToBottom\n";
+            code += indent + "    layoutDirection: Qt.LeftToRight\n";
         }
 
         // Padding
-        if (props.padding && props.padding > 0) {
+        if (props.padding) {
             code += indent + "    topPadding: " + props.padding + "\n";
             code += indent + "    leftPadding: " + props.padding + "\n";
             code += indent + "    rightPadding: " + props.padding + "\n";
             code += indent + "    bottomPadding: " + props.padding + "\n";
         }
 
-        // 添加子元素代码（如果存在）
+        // Children
         if (childrenCode && childrenCode.trim().length > 0) {
             code += childrenCode;
         }
@@ -76,10 +64,20 @@ Item {
     }
 
     Flow {
-        id: flowLayout
-        anchors.fill: parent
-        anchors.margins: root.padding
+        id: rowLayout
+
+        width: parent.width
+        flow: Flow.LeftToRight
+
+        // Alignment
+        layoutDirection: (root.alignment === Qt.AlignRight) ? Qt.RightToLeft : Qt.LeftToRight
+
+        // Margins/Padding
+        topPadding: root.padding
+        leftPadding: root.padding
+        rightPadding: root.padding
+        bottomPadding: root.padding
+
         spacing: root.spacing
-        flow: root.flowDirection === "TopToBottom" ? Flow.TopToBottom : Flow.LeftToRight
     }
 }

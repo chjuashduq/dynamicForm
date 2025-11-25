@@ -62,8 +62,8 @@ RowLayout {
         } else if (props.layoutType === "flex") {
             // For flex, use Layout properties
             code += indent + "    Layout.fillWidth: true\n";
-            // Note: Layout.flex is not a standard property, commenting out
-            // code += indent + "    Layout.flex: " + (props.flex || 1) + "\n";
+            // Use preferredWidth to set flex ratio
+            code += indent + "    Layout.preferredWidth: " + (props.flex || 1) + "\n";
         } else if (props.layoutType === "percent") {
             // For percentage width, use parent.width * ratio
             // This works in both Flow and Layout
@@ -75,6 +75,45 @@ RowLayout {
 
         if (props.visible === false) {
             code += indent + "    visible: false\n";
+        }
+
+        return code;
+    }
+
+    // Helper to generate common events code
+    function generateCommonEventsCode(props, events, indent, functions) {
+        var code = "";
+
+        // Helper to wrap code in scriptEngine.executeFunction
+        function wrapCode(eventCode, args) {
+            var contextObj = "{self: root" + (args ? ", " + args : "") + "}";
+            // Escape the code string for QML
+            var codeStr = JSON.stringify(eventCode);
+            return "scriptEngine.executeFunction(" + codeStr + ", " + contextObj + ")";
+        }
+
+        if (events && events.onVisibleChanged) {
+            if (props.key && props.key.trim() !== "" && functions) {
+                var funcName = props.key + "_VisibleChanged";
+                code += indent + "    onVisibleChanged: " + funcName + "()\n";
+
+                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onVisibleChanged) + "\n" + "    }";
+                functions.push(funcCode);
+            } else {
+                code += indent + "    onVisibleChanged: {\n" + indent + "        " + wrapCode(events.onVisibleChanged) + "\n" + indent + "    }\n";
+            }
+        }
+
+        if (events && events.onEnabledChanged) {
+            if (props.key && props.key.trim() !== "" && functions) {
+                var funcName = props.key + "_EnabledChanged";
+                code += indent + "    onEnabledChanged: " + funcName + "()\n";
+
+                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onEnabledChanged) + "\n" + "    }";
+                functions.push(funcCode);
+            } else {
+                code += indent + "    onEnabledChanged: {\n" + indent + "        " + wrapCode(events.onEnabledChanged) + "\n" + indent + "    }\n";
+            }
         }
 
         return code;

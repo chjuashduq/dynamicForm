@@ -59,6 +59,12 @@ CollapsePanel {
             onActivated: {
                 var eng = typeMap[currentText] || "fill";
                 updateProp("layoutType", eng);
+                if (eng === "fixed") {
+                    var currentW = getProp("width");
+                    if (currentW === null || currentW === undefined || currentW === 100) {
+                        updateProp("width", 350);
+                    }
+                }
             }
         }
     }

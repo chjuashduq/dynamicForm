@@ -134,6 +134,11 @@ function createItem(type, root) {
         };
     }
 
+    // Initialize key if not present or empty
+    if (!props.key) {
+        props.key = type + "_" + new Date().getTime();
+    }
+
     return {
         type: type,
         id: id,

@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
         }
     #endif
     #endif
-    
     // 设置应用程序区域设置
     QLocale::setDefault(QLocale(QLocale::Chinese, QLocale::China));
     

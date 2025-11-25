@@ -43,6 +43,8 @@ Rectangle {
         return null;
     }
 
+    property bool isNested: false
+
     width: {
         if (!itemData || !itemData.props)
             return 800;
@@ -87,7 +89,7 @@ Rectangle {
     Loader {
         id: contentLoader
         z: 1 // Content always at z=1
-        width: Math.max(itemRoot.width - 20, 100)
+        width: isNested ? itemRoot.width : Math.max(itemRoot.width - 20, 100)
         anchors.centerIn: parent
         asynchronous: false
 
@@ -186,6 +188,13 @@ Rectangle {
             return;
 
         var item = contentLoader.item;
+
+        // Register to FormAPI if key exists (for getControlValue etc.)
+        if (itemData.props && itemData.props.key && generatorRoot && generatorRoot.formAPI) {
+            console.log("CanvasItem: Registering control", itemData.props.key, "to FormAPI");
+            generatorRoot.formAPI.controlsMap[itemData.props.key] = item;
+        }
+
         // Use local property eventHandlers instead of attaching to item
         if (!eventHandlers) {
             eventHandlers = {};
@@ -218,11 +227,32 @@ Rectangle {
                 var handler = (function (c, name) {
                         return function () {
                             console.log("Triggering event:", name);
-                            try {
-                                var func = new Function(c);
-                                func.call(this);
-                            } catch (err) {
-                                console.error("Error executing event code for", name, ":", err);
+                            if (generatorRoot && generatorRoot.scriptEngine) {
+                                // Use ScriptEngine
+                                try {
+                                    var val = undefined;
+                                    if (item.hasOwnProperty("value"))
+                                        val = item.value;
+                                    else if (item.hasOwnProperty("text"))
+                                        val = item.text;
+                                    else if (item.hasOwnProperty("checked"))
+                                        val = item.checked;
+
+                                    generatorRoot.scriptEngine.executeFunction(c, {
+                                        self: item,
+                                        value: val
+                                    });
+                                } catch (err) {
+                                    console.error("Error executing event code via ScriptEngine for", name, ":", err);
+                                }
+                            } else {
+                                // Fallback
+                                try {
+                                    var func = new Function(c);
+                                    func.call(this);
+                                } catch (err) {
+                                    console.error("Error executing event code for", name, ":", err);
+                                }
                             }
                         };
                     })(code, eventName);
@@ -245,11 +275,22 @@ Rectangle {
         Rectangle {
             id: rowContainer
             width: parent.width
-            implicitHeight: Math.max(100, rowLayout.childrenRect.height + 40)
+            implicitHeight: {
+                if (previewMode) {
+                    // In preview mode, height is determined by content
+                    // If no children, height is 0
+                    if (!itemData.children || itemData.children.length === 0)
+                        return 0;
+                    return rowLayout.childrenRect.height + ((itemData.props && itemData.props.padding) || 0) * 2;
+                } else {
+                    // In edit mode, ensure minimum height for drop area
+                    return Math.max(100, rowLayout.childrenRect.height + 40);
+                }
+            }
             height: implicitHeight
-            color: dropArea.containsDrag ? "#e6f7ff" : "#f5f5f5"
-            border.color: dropArea.containsDrag ? "#40a9ff" : "#1890ff"
-            border.width: 2
+            color: previewMode ? "transparent" : (dropArea.containsDrag ? "#e6f7ff" : "#f5f5f5")
+            border.color: previewMode ? "transparent" : (dropArea.containsDrag ? "#40a9ff" : "#1890ff")
+            border.width: previewMode ? 0 : 2
             radius: 4
 
             Behavior on color {
@@ -257,7 +298,6 @@ Rectangle {
                     duration: 200
                 }
             }
-
             Behavior on border.color {
                 ColorAnimation {
                     duration: 200
@@ -311,83 +351,30 @@ Rectangle {
 
             Flow {
                 id: rowLayout
+                width: parent.width
 
-                // Alignment logic
+                layoutDirection: (itemData.props.alignment === Qt.AlignRight) ? Qt.RightToLeft : Qt.LeftToRight
+
                 anchors.top: parent.top
-                anchors.topMargin: 10
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 10
+                anchors.topMargin: (itemData.props && itemData.props.padding) || 0
+                anchors.left: parent.left
+                anchors.leftMargin: (itemData.props && itemData.props.padding) || 0
+                anchors.right: parent.right
+                anchors.rightMargin: (itemData.props && itemData.props.padding) || 0
 
-                // Horizontal alignment
-                anchors.left: (itemData.props.alignment === Qt.AlignRight || itemData.props.alignment === Qt.AlignHCenter) ? undefined : parent.left
-                anchors.right: (itemData.props.alignment === Qt.AlignRight) ? parent.right : undefined
-                anchors.horizontalCenter: (itemData.props.alignment === Qt.AlignHCenter) ? parent.horizontalCenter : undefined
-
-                // Default left margin if aligned left
-                anchors.leftMargin: (itemData.props.alignment === Qt.AlignRight || itemData.props.alignment === Qt.AlignHCenter) ? 0 : 10
-                anchors.rightMargin: 10
-
-                spacing: itemData.props.spacing
-
-                // Use Flow to support wrapping
-                flow: Flow.LeftToRight
-
-                // Ensure the Flow takes up the correct width based on alignment
-                width: {
-                    if (itemData.props.alignment === Qt.AlignHCenter) {
-                        return Math.min(parent.width - 20, childrenRect.width);
-                    }
-                    return parent.width - 20;
-                }
+                spacing: (itemData.props && itemData.props.spacing) || 0
 
                 Repeater {
                     id: repeater
                     model: itemData.children
                     delegate: Loader {
                         width: {
-                            // Use rowContainer.width (parent of Flow) as reference for percentages
-                            var containerWidth = rowContainer.width - 20; // Subtract margins
+                            var containerWidth = rowLayout.width;
 
                             if (modelData.props.layoutType === "fixed")
-                                return modelData.props.width || 100;
+                                return modelData.props.width || 350;
                             if (modelData.props.layoutType === "percent")
                                 return containerWidth * ((modelData.props.widthPercent || 100) / 100);
-                            if (modelData.props.layoutType === "fill") {
-                                return containerWidth;
-                            }
-
-                            if (modelData.props.layoutType === "flex") {
-                                var totalFixed = 0;
-                                var totalFlex = 0;
-                                var flexCount = 0;
-
-                                for (var i = 0; i < itemData.children.length; i++) {
-                                    var child = itemData.children[i];
-                                    var type = child.props.layoutType;
-
-                                    if (type === "fixed") {
-                                        totalFixed += (child.props.width || 100);
-                                    } else if (type === "percent") {
-                                        totalFixed += containerWidth * ((child.props.widthPercent || 100) / 100);
-                                    } else if (type === "flex") {
-                                        totalFlex += (child.props.flex || 1);
-                                        flexCount++;
-                                    }
-                                    // Ignore 'fill' items as they usually take their own line
-                                }
-
-                                var spacingTotal = (itemData.children.length - 1) * (itemData.props.spacing || 0);
-                                // If we have mixed lines, this spacing calc is imperfect but acceptable for simple rows
-                                var available = Math.max(0, containerWidth - totalFixed - spacingTotal);
-
-                                if (totalFlex > 0) {
-                                    var myFlex = modelData.props.flex || 1;
-                                    return (available * myFlex) / totalFlex;
-                                }
-                                return 150; // Fallback
-                            }
-
-                            // Default width (if no layoutType set, assume fill/100% based on user feedback)
                             return containerWidth;
                         }
 
@@ -396,6 +383,7 @@ Rectangle {
                             item.itemData = modelData;
                             item.index = index;
                             item.parentModel = itemData.children;
+                            item.isNested = true;
                         }
                         Binding {
                             target: item
