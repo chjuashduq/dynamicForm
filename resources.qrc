@@ -26,6 +26,8 @@
         <file>qml/generator/properties/ContainerSection.qml</file>
         <file>qml/generator/properties/DataSection.qml</file>
         <file>qml/generator/properties/LayoutSection.qml</file>
+        <file>qml/generator/properties/EventSection.qml</file>
+        <file>qml/generator/properties/CollapsePanel.qml</file>
         <file>qml/generator/properties/PropertyEditor.qml</file>
         
         <file>qml/Common/MessageManager.qml</file>

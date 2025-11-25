@@ -20,6 +20,9 @@ RowLayout {
     property alias labelVerticalAlignment: labelText.verticalAlignment
     property alias labelElide: labelText.elide
 
+    property string key: ""
+    property bool valid: true
+
     // Common default properties for all components
     readonly property var baseDefaultProps: ({
             "label": "Label",
@@ -29,7 +32,9 @@ RowLayout {
             "flex": 1,
             "widthPercent": 100,
             "visible": true,
-            "enabled": true
+            "enabled": true,
+            "key": "",
+            "valid": true
         })
 
     // Helper to merge specific props with base props

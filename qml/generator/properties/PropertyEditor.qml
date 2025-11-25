@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Common 1.0
+import "."
 
 Rectangle {
     id: root
@@ -70,6 +71,17 @@ Rectangle {
                 DataSection {
                     targetItem: root.targetItem
                     onPropertyChanged: (name, value) => {
+                        if (root.onPropertyChanged)
+                            root.onPropertyChanged(name, value);
+                    }
+                }
+
+                EventSection {
+                    targetItem: root.targetItem
+                    onPropertyChanged: (name, value) => {
+                        // Here we assume 'value' is the events object and 'name' is "events"
+                        // We need to ensure the backend handles this correctly.
+                        // If we treat "events" as a property in 'props', it will be saved in JSON.
                         if (root.onPropertyChanged)
                             root.onPropertyChanged(name, value);
                     }

@@ -16,6 +16,7 @@ Item {
     // Model to store the form structure
     property var formModel: []
     property var selectedItem: null
+    property bool previewMode: false
 
     // Component Library Model
     property var componentGroups: undefined
@@ -30,6 +31,7 @@ Item {
         Rectangle {
             Layout.preferredWidth: 250
             Layout.fillHeight: true
+            visible: !root.previewMode // Hide library in preview mode
 
             gradient: Gradient {
                 GradientStop {
@@ -123,7 +125,18 @@ Item {
                 spacing: 10
 
                 Button {
+                    text: root.previewMode ? "退出预览" : "预览模式"
+                    onClicked: {
+                        root.previewMode = !root.previewMode;
+                        if (root.previewMode) {
+                            root.selectedItem = null; // Clear selection when entering preview
+                        }
+                    }
+                }
+
+                Button {
                     text: "清空"
+                    visible: !root.previewMode
                     onClicked: {
                         root.formModel = [];
                         root.selectedItem = null;
@@ -132,6 +145,7 @@ Item {
 
                 Button {
                     text: "生成代码"
+                    visible: !root.previewMode
                     onClicked: generateCode()
                 }
 
@@ -268,6 +282,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     targetItem: root.selectedItem
+                    visible: !root.previewMode
                     onPropertyChanged: (key, value) => {
                         Logic.updateItemProperty(root, key, value);
                     }

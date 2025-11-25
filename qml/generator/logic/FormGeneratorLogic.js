@@ -71,6 +71,7 @@ function deepCopyItem(item) {
         type: item.type,
         id: item.id,
         props: JSON.parse(JSON.stringify(item.props)),
+        events: item.events ? JSON.parse(JSON.stringify(item.events)) : {},
         children: []
     };
 
@@ -239,22 +240,30 @@ function moveItem(itemData, sourceParentList, targetParent, targetIndex, root) {
 
 function generateCode(root, codeDialog) {
     var code = "import QtQuick\nimport QtQuick.Controls\nimport QtQuick.Layouts\nimport Common 1.0\nimport \"../components\"\n\nItem {\n    width: 800\n    height: 600\n\n    ColumnLayout {\n        anchors.fill: parent\n        anchors.margins: 20\n        spacing: 10\n\n";
-    code += generateChildrenCode(root.formModel, 2, root);
-    code += "    }\n}";
+    var functions = [];
+    code += generateChildrenCode(root.formModel, 2, root, functions);
+    code += "    }\n\n";
+
+    if (functions.length > 0) {
+        code += "    // Event Handlers\n";
+        code += functions.join("\n\n") + "\n";
+    }
+
+    code += "}";
     codeDialog.code = code;
     codeDialog.open();
 }
 
-function generateChildrenCode(children, indentLevel, root) {
+function generateChildrenCode(children, indentLevel, root, functions) {
     var code = "";
     for (var i = 0; i < children.length; i++) {
         var item = children[i];
-        code += generateItemCode(item, indentLevel, root) + "\n";
+        code += generateItemCode(item, indentLevel, root, functions) + "\n";
     }
     return code;
 }
 
-function generateItemCode(item, indentLevel, root) {
+function generateItemCode(item, indentLevel, root, functions) {
     var indent = "    ".repeat(indentLevel);
     var code = "";
 
@@ -274,10 +283,10 @@ function generateItemCode(item, indentLevel, root) {
                 var childrenCode = "";
                 // Only generate children code if it's a container (like StyledRow)
                 if (item.children && item.children.length > 0) {
-                    childrenCode = generateChildrenCode(item.children, indentLevel + 1, root);
+                    childrenCode = generateChildrenCode(item.children, indentLevel + 1, root, functions);
                 }
 
-                code = tempObject.generateCode(item.props, childrenCode, indent);
+                code = tempObject.generateCode(item.props, childrenCode, indent, item.events, functions);
             } else {
                 code = indent + "// Error: generateCode not implemented for " + item.type;
             }
@@ -295,7 +304,11 @@ function updateItemProperty(root, key, value) {
         // Find the real object in formModel
         var realItem = findItemInModel(root.formModel, root.selectedItem.id);
         if (realItem) {
-            realItem.props[key] = value;
+            if (key === "events") {
+                realItem.events = value;
+            } else {
+                realItem.props[key] = value;
+            }
 
             // Force UI update by deep copying the formModel
             root.formModel = deepCopyFormModel(root.formModel);

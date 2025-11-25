@@ -63,11 +63,15 @@ Rectangle {
     border.color: isSelected ? "#1890ff" : "transparent"
     border.width: 2
 
+    property bool previewMode: generatorRoot ? generatorRoot.previewMode : false
+
     MouseArea {
         id: selectionArea
         anchors.fill: parent
         // If container, put below content (z=0) so content can be clicked.
         // If atomic, put above content (z=2) to intercept clicks.
+        // In preview mode, disable this area to allow interaction with content
+        enabled: !previewMode
         z: itemRoot.isContainer ? 0 : 2
         propagateComposedEvents: true
         onClicked: mouse => {
@@ -90,7 +94,7 @@ Rectangle {
         onStatusChanged: {
             console.log("CanvasItem Loader status:", status, "for type:", itemData ? itemData.type : "null");
             if (status === Loader.Error) {
-                console.error("CanvasItem: Error loading component:", errorString());
+                console.error("CanvasItem: Error loading component");
             }
         }
 
@@ -103,8 +107,11 @@ Rectangle {
         }
     }
 
+    property var eventHandlers: ({})
+
     onItemDataChanged: {
         console.log("CanvasItem: itemData changed to:", itemData ? itemData.type : "null");
+        eventHandlers = {}; // Reset handlers
         if (!itemData) {
             contentLoader.source = "";
             return;
@@ -129,11 +136,26 @@ Rectangle {
 
     // Monitor deep property changes by stringifying props
     property string propsSnapshot: itemData && itemData.props ? JSON.stringify(itemData.props) : ""
+    property string eventsSnapshot: itemData && itemData.events ? JSON.stringify(itemData.events) : ""
 
     onPropsSnapshotChanged: {
         console.log("CanvasItem: Props changed, re-applying to component");
         if (contentLoader.status === Loader.Ready && contentLoader.item) {
             applyPropertiesToItem();
+        }
+    }
+
+    onEventsSnapshotChanged: {
+        console.log("CanvasItem: Events changed, re-applying to component");
+        if (contentLoader.status === Loader.Ready && contentLoader.item) {
+            applyEventsToItem();
+        }
+    }
+
+    onPreviewModeChanged: {
+        if (previewMode) {
+            console.log("CanvasItem: Entering preview mode, applying events");
+            applyEventsToItem();
         }
     }
 
@@ -151,6 +173,69 @@ Rectangle {
                 } catch (e) {
                     console.warn("Could not set property", key, "on", contentLoader.item);
                 }
+            }
+        }
+    }
+
+    function applyEventsToItem() {
+        if (!contentLoader.item || !itemData || !itemData.events) {
+            return;
+        }
+
+        if (!previewMode)
+            return;
+
+        var item = contentLoader.item;
+        // Use local property eventHandlers instead of attaching to item
+        if (!eventHandlers) {
+            eventHandlers = {};
+        }
+
+        for (var eventName in itemData.events) {
+            var code = itemData.events[eventName];
+            if (!code)
+                continue;
+
+            var signalName = eventName;
+            if (signalName.startsWith("on")) {
+                signalName = signalName.substring(2);
+                signalName = signalName.charAt(0).toLowerCase() + signalName.slice(1);
+            }
+
+            // Check if signal exists
+            var signal = item[signalName];
+            if (signal && typeof signal.connect === "function") {
+                // Disconnect old handler if exists
+                if (eventHandlers[eventName]) {
+                    try {
+                        signal.disconnect(eventHandlers[eventName]);
+                    } catch (e) {
+                        console.log("Error disconnecting", eventName, e);
+                    }
+                }
+
+                // Create new handler
+                var handler = (function (c, name) {
+                        return function () {
+                            console.log("Triggering event:", name);
+                            try {
+                                var func = new Function(c);
+                                func.call(this);
+                            } catch (err) {
+                                console.error("Error executing event code for", name, ":", err);
+                            }
+                        };
+                    })(code, eventName);
+
+                eventHandlers[eventName] = handler;
+                try {
+                    signal.connect(handler);
+                    console.log("Connected", eventName, "to signal", signalName, "on", item);
+                } catch (e) {
+                    console.warn("Could not connect signal", signalName, e);
+                }
+            } else {
+                console.warn("Signal not found or not connectable:", signalName, "on", item);
             }
         }
     }
@@ -182,6 +267,7 @@ Rectangle {
             DropArea {
                 id: dropArea
                 anchors.fill: parent
+                enabled: !previewMode // Disable dropping in preview mode
 
                 onDropped: drop => {
                     console.log("容器内部 DropArea 触发");
@@ -267,13 +353,42 @@ Rectangle {
                             if (modelData.props.layoutType === "percent")
                                 return containerWidth * ((modelData.props.widthPercent || 100) / 100);
                             if (modelData.props.layoutType === "fill") {
-                                // For fill in Flow, we try to fill remaining space in the "row"
-                                // But Flow doesn't really have "remaining space" concept like RowLayout
-                                // So we default to a reasonable size or treat as flex
-                                return Math.max(100, containerWidth / (itemData.children.length || 1));
+                                return containerWidth;
                             }
-                            // Default width for flex
-                            return 150;
+
+                            if (modelData.props.layoutType === "flex") {
+                                var totalFixed = 0;
+                                var totalFlex = 0;
+                                var flexCount = 0;
+
+                                for (var i = 0; i < itemData.children.length; i++) {
+                                    var child = itemData.children[i];
+                                    var type = child.props.layoutType;
+
+                                    if (type === "fixed") {
+                                        totalFixed += (child.props.width || 100);
+                                    } else if (type === "percent") {
+                                        totalFixed += containerWidth * ((child.props.widthPercent || 100) / 100);
+                                    } else if (type === "flex") {
+                                        totalFlex += (child.props.flex || 1);
+                                        flexCount++;
+                                    }
+                                    // Ignore 'fill' items as they usually take their own line
+                                }
+
+                                var spacingTotal = (itemData.children.length - 1) * (itemData.props.spacing || 0);
+                                // If we have mixed lines, this spacing calc is imperfect but acceptable for simple rows
+                                var available = Math.max(0, containerWidth - totalFixed - spacingTotal);
+
+                                if (totalFlex > 0) {
+                                    var myFlex = modelData.props.flex || 1;
+                                    return (available * myFlex) / totalFlex;
+                                }
+                                return 150; // Fallback
+                            }
+
+                            // Default width (if no layoutType set, assume fill/100% based on user feedback)
+                            return containerWidth;
                         }
 
                         source: "CanvasItem.qml"
@@ -297,7 +412,7 @@ Rectangle {
                 text: "拖拽组件到此处 (横向布局)"
                 color: "#999"
                 font.pixelSize: 14
-                visible: !itemData.children || itemData.children.length === 0
+                visible: (!itemData.children || itemData.children.length === 0) && !previewMode
             }
         }
     }
@@ -310,7 +425,7 @@ Rectangle {
         width: 20
         height: 20
         text: "×"
-        visible: isSelected
+        visible: isSelected && !previewMode
 
         background: Rectangle {
             color: "red"
@@ -342,7 +457,7 @@ Rectangle {
         anchors.top: parent.top
         color: "#1890ff"
         radius: 4
-        visible: isSelected
+        visible: isSelected && !previewMode
 
         Text {
             anchors.centerIn: parent

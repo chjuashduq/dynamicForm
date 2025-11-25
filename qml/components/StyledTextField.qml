@@ -24,9 +24,41 @@ StyledBase {
         "readOnly": false
     })
 
-    function generateCode(props, childrenCode, indent) {
+    function generateCode(props, childrenCode, indent, events, functions) {
         var layoutProps = generateLayoutCode(props, indent);
-        return "StyledTextField {\n" + indent + "    label: \"" + props.label + "\"\n" + indent + "    labelWidth: " + props.labelWidth + "\n" + indent + "    showLabel: " + props.showLabel + "\n" + indent + "    placeholderText: \"" + props.placeholder + "\"\n" + indent + "    text: \"" + props.text + "\"\n" + indent + "    readOnly: " + props.readOnly + "\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps + indent + "}";
+        var code = "StyledTextField {\n" + indent + "    text: \"" + props.text + "\"\n" + indent + "    placeholderText: \"" + props.placeholder + "\"\n" + indent + "    readOnly: " + props.readOnly + "\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps;
+
+        if (props.key && props.key.trim() !== "") {
+            code += indent + "    key: \"" + props.key + "\"\n";
+        }
+
+        if (events) {
+            if (events.onEditingFinished) {
+                if (props.key && props.key.trim() !== "" && functions) {
+                    var funcName = props.key + "_EditingFinished";
+                    code += indent + "    onEditingFinished: " + funcName + "()\n";
+
+                    var funcCode = "    function " + funcName + "() {\n" + "        " + events.onEditingFinished.replace(/\n/g, "\n        ") + "\n" + "    }";
+                    functions.push(funcCode);
+                } else {
+                    code += indent + "    onEditingFinished: {\n" + indent + "        " + events.onEditingFinished.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
+                }
+            }
+            if (events.onTextEdited) {
+                if (props.key && props.key.trim() !== "" && functions) {
+                    var funcName = props.key + "_TextEdited";
+                    code += indent + "    onTextEdited: " + funcName + "()\n";
+
+                    var funcCode = "    function " + funcName + "() {\n" + "        " + events.onTextEdited.replace(/\n/g, "\n        ") + "\n" + "    }";
+                    functions.push(funcCode);
+                } else {
+                    code += indent + "    onTextEdited: {\n" + indent + "        " + events.onTextEdited.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
+                }
+            }
+        }
+
+        code += indent + "}";
+        return code;
     }
 
     TextField {
@@ -44,6 +76,9 @@ StyledBase {
 
         leftPadding: AppStyles.inputPadding
         rightPadding: AppStyles.inputPadding
+
+        onEditingFinished: root.editingFinished()
+        onTextEdited: root.textEdited()
 
         background: Rectangle {
             color: control.enabled ? AppStyles.inputBackground : AppStyles.backgroundColor
@@ -70,4 +105,7 @@ StyledBase {
             }
         }
     }
+
+    signal editingFinished
+    signal textEdited
 }

@@ -22,14 +22,36 @@ StyledBase {
         "value": 0
     })
 
-    function generateCode(props, childrenCode, indent) {
+    function generateCode(props, childrenCode, indent, events, functions) {
         var layoutProps = generateLayoutCode(props, indent);
-        return "StyledSpinBox {\n" + indent + "    label: \"" + props.label + "\"\n" + indent + "    labelWidth: " + props.labelWidth + "\n" + indent + "    showLabel: " + props.showLabel + "\n" + indent + "    from: " + props.from + "\n" + indent + "    to: " + props.to + "\n" + indent + "    value: " + props.value + "\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps + indent + "}";
+        var code = "StyledSpinBox {\n" + indent + "    label: \"" + props.label + "\"\n" + indent + "    labelWidth: " + props.labelWidth + "\n" + indent + "    showLabel: " + props.showLabel + "\n" + indent + "    from: " + props.from + "\n" + indent + "    to: " + props.to + "\n" + indent + "    value: " + props.value + "\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps;
+
+        if (props.key && props.key.trim() !== "") {
+            code += indent + "    key: \"" + props.key + "\"\n";
+        }
+
+        if (events && events.onValueModified) {
+            if (props.key && props.key.trim() !== "" && functions) {
+                var funcName = props.key + "_ValueModified";
+                code += indent + "    onValueModified: " + funcName + "()\n";
+
+                var funcCode = "    function " + funcName + "() {\n" + "        " + events.onValueModified.replace(/\n/g, "\n        ") + "\n" + "    }";
+                functions.push(funcCode);
+            } else {
+                code += indent + "    onValueModified: {\n" + indent + "        " + events.onValueModified.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
+            }
+        }
+
+        code += indent + "}";
+        return code;
     }
 
     SpinBox {
         id: control
         Layout.fillWidth: true
         editable: true
+        onValueModified: root.valueModified()
     }
+
+    signal valueModified
 }

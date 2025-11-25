@@ -29,9 +29,28 @@ StyledBase {
         "showLabel": false
     })
 
-    function generateCode(props, childrenCode, indent) {
+    function generateCode(props, childrenCode, indent, events, functions) {
         var layoutProps = generateLayoutCode(props, indent);
-        return "StyledButton {\n" + indent + "    text: \"" + props.text + "\"\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps + indent + "}";
+        var code = "StyledButton {\n" + indent + "    text: \"" + props.text + "\"\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps;
+
+        if (props.key && props.key.trim() !== "") {
+            code += indent + "    key: \"" + props.key + "\"\n";
+        }
+
+        if (events && events.onClicked) {
+            if (props.key && props.key.trim() !== "" && functions) {
+                var funcName = props.key + "_Clicked";
+                code += indent + "    onClicked: " + funcName + "()\n";
+
+                var funcCode = "    function " + funcName + "() {\n" + "        " + events.onClicked.replace(/\n/g, "\n        ") + "\n" + "    }";
+                functions.push(funcCode);
+            } else {
+                code += indent + "    onClicked: {\n" + indent + "        " + events.onClicked.replace(/\n/g, "\n" + indent + "        ") + "\n" + indent + "    }\n";
+            }
+        }
+
+        code += indent + "}";
+        return code;
     }
 
     Button {

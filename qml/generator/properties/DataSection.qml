@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Common 1.0
 
-GroupBox {
+CollapsePanel {
     title: "数据控制"
     Layout.fillWidth: true
 
@@ -22,95 +22,95 @@ GroupBox {
         propertyChanged(name, value);
     }
 
-    visible: hasProp("from") || hasProp("to") || hasProp("value") || hasProp("readOnly") || hasProp("enabled")
-    background: Rectangle {
-        color: "transparent"
-        border.color: AppStyles.borderColor
-        radius: 4
-    }
-    label: Text {
-        text: parent.title
-        color: AppStyles.textSecondary
-        font.bold: true
+    visible: hasProp("key") || hasProp("from") || hasProp("to") || hasProp("value") || hasProp("readOnly") || hasProp("enabled")
+
+    // Key
+    RowLayout {
+        visible: hasProp("key")
+        Text {
+            text: "Key (标识)"
+            color: AppStyles.textPrimary
+            Layout.preferredWidth: 70
+        }
+        TextField {
+            Layout.fillWidth: true
+            text: getProp("key") || ""
+            onEditingFinished: updateProp("key", text)
+        }
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 10
-
-        // From
-        RowLayout {
-            visible: hasProp("from")
-            Text {
-                text: "最小值"
-                color: AppStyles.textPrimary
-                Layout.preferredWidth: 70
-            }
-            SpinBox {
-                Layout.fillWidth: true
-                from: -9999
-                to: 9999
-                value: (getProp("from") != null) ? getProp("from") : 0
-                onValueModified: updateProp("from", value)
-            }
+    // From
+    RowLayout {
+        visible: hasProp("from")
+        Text {
+            text: "最小值"
+            color: AppStyles.textPrimary
+            Layout.preferredWidth: 70
         }
-        // To
-        RowLayout {
-            visible: hasProp("to")
-            Text {
-                text: "最大值"
-                color: AppStyles.textPrimary
-                Layout.preferredWidth: 70
-            }
-            SpinBox {
-                Layout.fillWidth: true
-                from: -9999
-                to: 9999
-                value: (getProp("to") != null) ? getProp("to") : 100
-                onValueModified: updateProp("to", value)
-            }
+        SpinBox {
+            Layout.fillWidth: true
+            from: -9999
+            to: 9999
+            value: (getProp("from") != null) ? getProp("from") : 0
+            onValueModified: updateProp("from", value)
         }
-        // Value
-        RowLayout {
-            visible: hasProp("value")
-            Text {
-                text: "当前值"
-                color: AppStyles.textPrimary
-                Layout.preferredWidth: 70
-            }
-            SpinBox {
-                Layout.fillWidth: true
-                from: -9999
-                to: 9999
-                value: (getProp("value") != null) ? getProp("value") : 0
-                onValueModified: updateProp("value", value)
-            }
+    }
+    // To
+    RowLayout {
+        visible: hasProp("to")
+        Text {
+            text: "最大值"
+            color: AppStyles.textPrimary
+            Layout.preferredWidth: 70
         }
-        // ReadOnly
-        RowLayout {
-            visible: hasProp("readOnly")
-            Text {
-                text: "只读模式"
-                color: AppStyles.textPrimary
-                Layout.preferredWidth: 70
-            }
-            CheckBox {
-                checked: getProp("readOnly") === true
-                onToggled: updateProp("readOnly", checked)
-            }
+        SpinBox {
+            Layout.fillWidth: true
+            from: -9999
+            to: 9999
+            value: (getProp("to") != null) ? getProp("to") : 100
+            onValueModified: updateProp("to", value)
         }
-        // Enabled
-        RowLayout {
-            visible: hasProp("enabled")
-            Text {
-                text: "启用状态"
-                color: AppStyles.textPrimary
-                Layout.preferredWidth: 70
-            }
-            CheckBox {
-                checked: getProp("enabled") !== false
-                onToggled: updateProp("enabled", checked)
-            }
+    }
+    // Value
+    RowLayout {
+        visible: hasProp("value")
+        Text {
+            text: "当前值"
+            color: AppStyles.textPrimary
+            Layout.preferredWidth: 70
+        }
+        SpinBox {
+            Layout.fillWidth: true
+            from: -9999
+            to: 9999
+            value: (getProp("value") != null) ? getProp("value") : 0
+            onValueModified: updateProp("value", value)
+        }
+    }
+    // ReadOnly
+    RowLayout {
+        visible: hasProp("readOnly")
+        Text {
+            text: "只读模式"
+            color: AppStyles.textPrimary
+            Layout.preferredWidth: 70
+        }
+        CheckBox {
+            checked: getProp("readOnly") === true
+            onToggled: updateProp("readOnly", checked)
+        }
+    }
+    // Enabled
+    RowLayout {
+        visible: hasProp("enabled")
+        Text {
+            text: "启用状态"
+            color: AppStyles.textPrimary
+            Layout.preferredWidth: 70
+        }
+        CheckBox {
+            checked: getProp("enabled") !== false
+            onToggled: updateProp("enabled", checked)
         }
     }
 }
