@@ -1,6 +1,8 @@
 <RCC>
     <qresource prefix="/">
         <file>qml/main.qml</file>
+        <file>qml/Home.qml</file>
+
         <file>qml/render/FormPreview.qml</file>
         <file>qml/render/ControlFactory.qml</file>
         <file>qml/config/ConfigEditor.qml</file>
@@ -15,11 +17,17 @@
         <file>qml/config/dialog/BasicPropertiesPanel.qml</file>
         <file>qml/config/dialog/EventConfigPanel.qml</file>
         <file>qml/config/dialog/ValidationPanel.qml</file>
-        <file>qml/generator/PropertyEditor.qml</file>
+        
         <file>qml/generator/FormGenerator.qml</file>    
-        <file>qml/generator/CanvasItem.qml</file>
-        <file>qml/generator/DraggableComponent.qml</file>
-        <file>qml/generator/FormGeneratorLogic.js</file>
+        <file>qml/generator/canvas/CanvasItem.qml</file>
+        <file>qml/generator/library/DraggableComponent.qml</file>
+        <file>qml/generator/logic/FormGeneratorLogic.js</file>
+        <file>qml/generator/properties/ComponentSection.qml</file>
+        <file>qml/generator/properties/ContainerSection.qml</file>
+        <file>qml/generator/properties/DataSection.qml</file>
+        <file>qml/generator/properties/LayoutSection.qml</file>
+        <file>qml/generator/properties/PropertyEditor.qml</file>
+        
         <file>qml/Common/MessageManager.qml</file>
         <file>qml/Common/AppStyles.qml</file>
         <file>qml/Common/qmldir</file>

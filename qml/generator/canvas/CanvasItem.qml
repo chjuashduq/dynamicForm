@@ -1,22 +1,15 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import "../components"
+import "../../components"
 
 Rectangle {
     id: itemRoot
 
     property var itemData
-    property int index
+    property int index: -1
     property var parentModel
     property var parentItemData
-    property var generatorRoot: findGeneratorRoot(this)
-
-    width: parent ? parent.width : 800
-    height: contentLoader.height + 20
-    color: isSelected ? "#e6f7ff" : "transparent"
-    border.color: isSelected ? "#1890ff" : "transparent"
-    border.width: 2
     radius: 4
 
     property bool isSelected: {
@@ -26,7 +19,21 @@ Rectangle {
     onIsSelectedChanged: console.log("CanvasItem", itemData ? itemData.id : "null", "isSelected:", isSelected)
     property bool isContainer: itemData && itemData.type === "StyledRow"
 
+    property var generatorRoot: null
+    onParentChanged: {
+        if (parent) {
+            generatorRoot = findGeneratorRoot(itemRoot);
+        }
+    }
+    Component.onCompleted: {
+        if (parent) {
+            generatorRoot = findGeneratorRoot(itemRoot);
+        }
+    }
+
     function findGeneratorRoot(item) {
+        if (!item)
+            return null;
         var p = item.parent;
         while (p) {
             if (p.objectName === "FormGeneratorRoot")
@@ -36,17 +43,37 @@ Rectangle {
         return null;
     }
 
+    width: {
+        if (!itemData || !itemData.props)
+            return 800;
+        var w = 800;
+        var pWidth = parent ? parent.width : 800;
+
+        if (itemData.props.layoutType === "percent") {
+            w = pWidth * ((itemData.props.widthPercent || 100) / 100);
+        } else if (itemData.props.layoutType === "fixed") {
+            w = itemData.props.width || 100;
+        } else {
+            w = pWidth;
+        }
+        return w;
+    }
+    height: contentLoader.height + 20
+    color: isSelected ? "#e6f7ff" : "transparent"
+    border.color: isSelected ? "#1890ff" : "transparent"
+    border.width: 2
+
     MouseArea {
         id: selectionArea
         anchors.fill: parent
         // If container, put below content (z=0) so content can be clicked.
         // If atomic, put above content (z=2) to intercept clicks.
-        z: isContainer ? 0 : 2
+        z: itemRoot.isContainer ? 0 : 2
         propagateComposedEvents: true
         onClicked: mouse => {
-            console.log("CanvasItem MouseArea 点击，ID:", itemData ? itemData.id : "null");
-            if (generatorRoot) {
-                generatorRoot.selectedItem = itemData;
+            console.log("CanvasItem MouseArea 点击，ID:", itemRoot.itemData ? itemRoot.itemData.id : "null");
+            if (itemRoot.generatorRoot) {
+                itemRoot.generatorRoot.selectedItem = itemRoot.itemData;
             }
             // Accept the event to prevent it from propagating to parent CanvasItem
             mouse.accepted = true;
@@ -94,9 +121,19 @@ Rectangle {
             console.log("CanvasItem: Using sourceComponent for StyledRow");
             contentLoader.sourceComponent = rowComp;
         } else {
-            var path = "../components/" + name + ".qml";
+            var path = "../../components/" + name + ".qml";
             console.log("CanvasItem: Component path:", path);
             contentLoader.source = path;
+        }
+    }
+
+    // Monitor deep property changes by stringifying props
+    property string propsSnapshot: itemData && itemData.props ? JSON.stringify(itemData.props) : ""
+
+    onPropsSnapshotChanged: {
+        console.log("CanvasItem: Props changed, re-applying to component");
+        if (contentLoader.status === Loader.Ready && contentLoader.item) {
+            applyPropertiesToItem();
         }
     }
 
@@ -105,10 +142,12 @@ Rectangle {
             return;
         }
 
+        console.log("CanvasItem: Applying properties to", itemData.type);
         for (var key in itemData.props) {
             if (contentLoader.item.hasOwnProperty(key)) {
                 try {
                     contentLoader.item[key] = itemData.props[key];
+                    console.log("  - Set", key, "=", itemData.props[key]);
                 } catch (e) {
                     console.warn("Could not set property", key, "on", contentLoader.item);
                 }
@@ -169,8 +208,8 @@ Rectangle {
                         visualIndex++;
                     }
 
-                    if (generatorRoot) {
-                        generatorRoot.handleDrop(drop, itemData, targetIndex);
+                    if (itemRoot.generatorRoot) {
+                        itemRoot.generatorRoot.handleDrop(drop, itemRoot.itemData, targetIndex);
                     }
                     drop.accept(Qt.CopyAction);
                 }
@@ -186,25 +225,53 @@ Rectangle {
 
             Flow {
                 id: rowLayout
-                anchors.left: parent.left
-                anchors.right: parent.right
+
+                // Alignment logic
                 anchors.top: parent.top
-                anchors.margins: 10
+                anchors.topMargin: 10
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10
+
+                // Horizontal alignment
+                anchors.left: (itemData.props.alignment === Qt.AlignRight || itemData.props.alignment === Qt.AlignHCenter) ? undefined : parent.left
+                anchors.right: (itemData.props.alignment === Qt.AlignRight) ? parent.right : undefined
+                anchors.horizontalCenter: (itemData.props.alignment === Qt.AlignHCenter) ? parent.horizontalCenter : undefined
+
+                // Default left margin if aligned left
+                anchors.leftMargin: (itemData.props.alignment === Qt.AlignRight || itemData.props.alignment === Qt.AlignHCenter) ? 0 : 10
+                anchors.rightMargin: 10
 
                 spacing: itemData.props.spacing
-                flow: (itemData.props.flowDirection === "TopToBottom") ? Flow.TopToBottom : Flow.LeftToRight
+
+                // Use Flow to support wrapping
+                flow: Flow.LeftToRight
+
+                // Ensure the Flow takes up the correct width based on alignment
+                width: {
+                    if (itemData.props.alignment === Qt.AlignHCenter) {
+                        return Math.min(parent.width - 20, childrenRect.width);
+                    }
+                    return parent.width - 20;
+                }
 
                 Repeater {
                     id: repeater
                     model: itemData.children
                     delegate: Loader {
                         width: {
+                            // Use rowContainer.width (parent of Flow) as reference for percentages
+                            var containerWidth = rowContainer.width - 20; // Subtract margins
+
                             if (modelData.props.layoutType === "fixed")
                                 return modelData.props.width || 100;
                             if (modelData.props.layoutType === "percent")
-                                return rowLayout.width * ((modelData.props.widthPercent || 100) / 100);
-                            if (modelData.props.layoutType === "fill")
-                                return rowLayout.width - rowLayout.spacing * (itemData.children.length - 1);
+                                return containerWidth * ((modelData.props.widthPercent || 100) / 100);
+                            if (modelData.props.layoutType === "fill") {
+                                // For fill in Flow, we try to fill remaining space in the "row"
+                                // But Flow doesn't really have "remaining space" concept like RowLayout
+                                // So we default to a reasonable size or treat as flex
+                                return Math.max(100, containerWidth / (itemData.children.length || 1));
+                            }
                             // Default width for flex
                             return 150;
                         }
@@ -214,6 +281,12 @@ Rectangle {
                             item.itemData = modelData;
                             item.index = index;
                             item.parentModel = itemData.children;
+                        }
+                        Binding {
+                            target: item
+                            property: "itemData"
+                            value: modelData
+                            when: item !== null
                         }
                     }
                 }
@@ -254,8 +327,8 @@ Rectangle {
         }
 
         onClicked: {
-            if (generatorRoot) {
-                generatorRoot.deleteItem(itemData, parentModel);
+            if (itemRoot.generatorRoot) {
+                itemRoot.generatorRoot.deleteItem(itemRoot.itemData, itemRoot.parentModel);
             }
         }
     }
@@ -309,7 +382,7 @@ Rectangle {
             when: dragMouseArea.drag.active
             ParentChange {
                 target: dragHandle
-                parent: generatorRoot
+                parent: itemRoot.generatorRoot
             }
             AnchorChanges {
                 target: dragHandle

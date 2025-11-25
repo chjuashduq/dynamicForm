@@ -113,7 +113,7 @@ function createItem(type, root) {
         componentName = type.charAt(0).toUpperCase() + type.slice(1);
     }
 
-    var componentUrl = "../components/" + componentName + ".qml";
+    var componentUrl = "../../components/" + componentName + ".qml";
     var component = Qt.createComponent(componentUrl);
 
     if (component.status === Component.Ready) {
@@ -264,7 +264,7 @@ function generateItemCode(item, indentLevel, root) {
         componentName = item.type.charAt(0).toUpperCase() + item.type.slice(1);
     }
 
-    var componentUrl = "../components/" + componentName + ".qml";
+    var componentUrl = "../../components/" + componentName + ".qml";
     var component = Qt.createComponent(componentUrl);
 
     if (component.status === Component.Ready) {

@@ -4,7 +4,9 @@ import QtQuick.Layouts
 import Qt.labs.folderlistmodel
 import Common 1.0
 import "../components"
-import "FormGeneratorLogic.js" as Logic
+import "properties"
+import "library"
+import "logic/FormGeneratorLogic.js" as Logic
 
 Item {
     id: root
@@ -82,20 +84,18 @@ Item {
                                 Text {
                                     text: modelData.group
                                     font.bold: true
-                                    color: "#666"
-                                    topPadding: 10
                                 }
 
                                 Flow {
                                     width: parent.width
                                     spacing: 10
+
                                     Repeater {
                                         model: modelData.items
                                         delegate: DraggableComponent {
                                             componentType: modelData.type
                                             label: modelData.label
                                             icon: modelData.icon
-                                            dragParent: root
                                         }
                                     }
                                 }
@@ -198,24 +198,44 @@ Item {
                                 color: "#f5f7fa"
                                 border.color: "#e4e7ed"
 
-                                ColumnLayout {
+                                Flow {
                                     id: canvasContent
                                     width: parent.width - 40
                                     anchors.top: parent.top
                                     anchors.topMargin: 20
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     spacing: 10
+                                    flow: Flow.LeftToRight
 
                                     Repeater {
                                         model: root.formModel
                                         delegate: Loader {
-                                            Layout.fillWidth: true
-                                            source: "CanvasItem.qml"
+                                            width: {
+                                                if (!modelData.props)
+                                                    return canvasContent.width;
+                                                var type = modelData.props.layoutType;
+
+                                                if (type === "fixed")
+                                                    return modelData.props.width || 100;
+                                                if (type === "percent")
+                                                    return (canvasContent.width - 10) * ((modelData.props.widthPercent || 100) / 100); // Subtract spacing safety
+
+                                                // Default or fill
+                                                return canvasContent.width;
+                                            }
+
+                                            source: "canvas/CanvasItem.qml"
                                             onLoaded: {
                                                 item.itemData = modelData;
                                                 item.index = index;
                                                 item.parentModel = root.formModel;
-                                                item.parentItemData = null; // Root has no parent item object
+                                                item.parentItemData = null;
+                                            }
+                                            Binding {
+                                                target: item
+                                                property: "itemData"
+                                                value: modelData
+                                                when: item !== null
                                             }
                                         }
                                     }
