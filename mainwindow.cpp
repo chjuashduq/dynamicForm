@@ -8,6 +8,7 @@
  */
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "utils/FileHelper.h"
 
 using namespace std;
 
@@ -51,6 +52,9 @@ engine->addImportPath("qrc:/qml");
     });
     qmlRegisterSingletonType<MySqlConnectionManager>("mysqlconnectionmanager", 1, 0, "MySqlConnectionManager", [](QQmlEngine *, QJSEngine *) -> QObject * {
         return MySqlConnectionManager::getInstance();
+    });
+    qmlRegisterSingletonType<FileHelper>("utils", 1, 0, "FileHelper", [](QQmlEngine *, QJSEngine *) -> QObject * {
+        return new FileHelper;
     });
     // 传入 QML
     

@@ -31,11 +31,9 @@ Item {
     }
 
     StackView {
-
         id: stackView
         anchors.fill: parent
         initialItem: homeComponent
-
         pushEnter: Transition {
             PropertyAnimation {
                 property: "opacity"

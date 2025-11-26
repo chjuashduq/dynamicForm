@@ -2,11 +2,14 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.folderlistmodel
+import Qt.labs.platform as Platform
+import utils 1.0
 import Common 1.0
 import "../components"
 import "properties"
 import "library"
 import "logic/FormGeneratorLogic.js" as Logic
+import "json/FormSerializer.js" as Serializer
 import "../core"
 
 Item {
@@ -164,12 +167,27 @@ Item {
                     onClicked: generateCode()
                 }
 
+                Button {
+                    text: "导出JSON"
+                    visible: !root.previewMode
+                    onClicked: {
+                        exportDialog.open();
+                    }
+                }
+
+                Button {
+                    text: "导入JSON"
+                    visible: !root.previewMode
+                    onClicked: {
+                        importDialog.open();
+                    }
+                }
+
                 Item {
                     Layout.fillWidth: true
                 }
             }
 
-            // Canvas Area
             ScrollView {
                 anchors.top: toolbar.bottom
                 anchors.bottom: parent.bottom
@@ -318,6 +336,7 @@ Item {
         Logic.generateCode(root, codeDialog);
     }
 
+    // Use QtQuick.Controls Dialog (default)
     Dialog {
         id: codeDialog
         title: "生成的QML代码"
@@ -325,6 +344,7 @@ Item {
         height: 500
         anchors.centerIn: parent
         property string code: ""
+        standardButtons: Dialog.Ok
 
         ScrollView {
             anchors.fill: parent
@@ -335,6 +355,48 @@ Item {
                 readOnly: true
                 selectByMouse: true
                 wrapMode: TextArea.NoWrap
+            }
+        }
+    }
+
+    Platform.FileDialog {
+        id: exportDialog
+        title: "导出表单JSON"
+        fileMode: Platform.FileDialog.SaveFile
+        nameFilters: ["JSON files (*.json)", "All files (*)"]
+        defaultSuffix: "json"
+        onAccepted: {
+            var path = FileHelper.getLocalPath(file.toString());
+            var json = Serializer.serialize(root.formModel, {
+                "name": "DynamicForm"
+            });
+            if (FileHelper.write(path, json)) {
+                formAPI.showMessage("导出成功: " + path, "success");
+            } else {
+                formAPI.showMessage("导出失败", "error");
+            }
+        }
+    }
+
+    Platform.FileDialog {
+        id: importDialog
+        title: "导入表单JSON"
+        fileMode: Platform.FileDialog.OpenFile
+        nameFilters: ["JSON files (*.json)", "All files (*)"]
+        onAccepted: {
+            var path = FileHelper.getLocalPath(file.toString());
+            var content = FileHelper.read(path);
+            if (content) {
+                var model = Serializer.deserialize(content);
+                if (model && model.length > 0) {
+                    root.formModel = model;
+                    root.selectedItem = null;
+                    formAPI.showMessage("导入成功", "success");
+                } else {
+                    formAPI.showMessage("导入失败: JSON格式错误或为空", "error");
+                }
+            } else {
+                formAPI.showMessage("读取文件失败", "error");
             }
         }
     }
