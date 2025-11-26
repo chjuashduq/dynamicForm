@@ -45,5 +45,6 @@
     <file>qml/components/components.json</file>
     <file>form_config.json</file>
     <file>qml/generator/json/FormSerializer.js</file>
+    <file>qml/database/DbTableList.qml</file>
   </qresource>
 </RCC>

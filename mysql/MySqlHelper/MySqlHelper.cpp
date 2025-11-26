@@ -1,3 +1,4 @@
+
 /*
  * @Author: 刘勇 yongliu_s@163.com
  * @Date: 2025-11-11 16:33:08
@@ -122,6 +123,67 @@ bool MySqlHelper::remove(const QString& tableName, const QString& where){
     }
     return true;
 }
+
+QJsonArray MySqlHelper::getDbTables()
+{
+    QJsonArray tables;
+    QSqlDatabase& db = MySqlConnectionManager::getInstance()->getDatabase();
+    QSqlQuery query(db);
+    QString sql = "SELECT table_name, table_comment, create_time, update_time FROM information_schema.tables WHERE table_schema = (SELECT DATABASE())";
+    
+    if (!query.exec(sql)) {
+        qCritical() << "Select tables failed:" << query.lastError().text();
+        
+        // Mock data for testing when DB is not available
+        QJsonObject mockTable1;
+        mockTable1["tableName"] = "sys_user";
+        mockTable1["tableComment"] = "System User (Mock)";
+        mockTable1["entityName"] = "SysUser";
+        mockTable1["createTime"] = "2023-01-01 10:00:00";
+        mockTable1["updateTime"] = "2023-01-02 11:00:00";
+        tables.append(mockTable1);
+
+        QJsonObject mockTable2;
+        mockTable2["tableName"] = "sys_role";
+        mockTable2["tableComment"] = "System Role (Mock)";
+        mockTable2["entityName"] = "SysRole";
+        mockTable2["createTime"] = "2023-01-01 10:00:00";
+        mockTable2["updateTime"] = "2023-01-02 11:00:00";
+        tables.append(mockTable2);
+        
+        return tables;
+    }
+
+    while (query.next()) {
+        QJsonObject table;
+        QString tableName = query.value("table_name").toString();
+        table["tableName"] = tableName;
+        table["tableComment"] = query.value("table_comment").toString();
+        table["createTime"] = query.value("create_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        table["updateTime"] = query.value("update_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        
+        // Convert table name to entity name (e.g., sys_user -> SysUser)
+        QString entityName;
+        bool nextUpper = true;
+        for(QChar c : tableName) {
+            if (c == '_') {
+                nextUpper = true;
+            } else {
+                if (nextUpper) {
+                    entityName.append(c.toUpper());
+                    nextUpper = false;
+                } else {
+                    entityName.append(c);
+                }
+            }
+        }
+        table["entityName"] = entityName;
+        
+        tables.append(table);
+    }
+    return tables;
+}
+
 MySqlHelper::MySqlHelper()
 {
     

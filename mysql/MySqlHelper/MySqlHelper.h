@@ -12,6 +12,8 @@
 #include <QSqlQuery>
 #include <QString>
 #include <QSqlRecord>
+#include <QJsonArray>
+#include <QJsonObject>
 class MySqlHelper : public QObject
 {
     Q_OBJECT
@@ -22,6 +24,7 @@ public:
     Q_INVOKABLE static bool update(const QString &tableName, const QMap<QString, QVariant> &data, const QString &where);
     Q_INVOKABLE static QVector<QVariantMap> select(const QString &tableName, const QStringList &columns, const QString &where);
     Q_INVOKABLE static bool remove(const QString &tableName, const QString &where);
+    Q_INVOKABLE QJsonArray getDbTables();
     MySqlHelper(/* args */);
     ~MySqlHelper();
 };

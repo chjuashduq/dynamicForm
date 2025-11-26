@@ -55,6 +55,15 @@ Item {
                     accentColor: "#faad14"
                     onClicked: homeRoot.navigate("list")
                 }
+
+                // Card 4: Database Tables
+                HomeCard {
+                    title: "数据库表"
+                    description: "代码生成与表结构管理"
+                    iconText: "🗄️"
+                    accentColor: "#722ed1"
+                    onClicked: homeRoot.navigate("db_tables")
+                }
             }
         }
     }

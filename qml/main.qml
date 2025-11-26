@@ -27,6 +27,7 @@ Item {
         var a = configEditorTab.createObject(root);
         var b = formPreviewTab.createObject(root);
         var c = generatorTab.createObject(root);
+        var d = dbTableListTab.createObject(root);
         MessageManager.registerRootItem(root);
     }
 
@@ -133,6 +134,14 @@ Item {
                     }
                 } else if (target === "list") {
                     stackView.push(dynamicListLoadingTab);
+                } else if (target === "db_tables") {
+                    console.log("Attempting to navigate to db_tables. Loader instance:", root.loaderInstance.dbTableListLoader);
+                    if (root.loaderInstance.dbTableListLoader) {
+                        root.loaderInstance.dbTableListLoader.visible = true;
+                        stackView.push(root.loaderInstance.dbTableListLoader.parent);
+                    } else {
+                        console.error("dbTableListLoader is not ready!");
+                    }
                 }
             }
         }
@@ -255,6 +264,38 @@ Item {
                 onLoaded: {
                     root.loaderInstance.generatorLoader = generatorLoader;
                     // item.stackViewRef = stackView;
+                }
+            }
+        }
+    }
+
+    // Tab 4: 数据库表列表
+    Component {
+        id: dbTableListTab
+        Item {
+            // StackView manages the size of this Item, so no anchors here.
+            Loader {
+                id: dbTableListLoader
+                anchors.fill: parent // Loader fills the Item
+                source: "database/DbTableList.qml"
+                asynchronous: false // Disable async to debug
+                active: true
+                visible: false // Managed by navigation
+
+                Component.onCompleted: {
+                    console.log("dbTableListLoader created. Registering instance. Status:", status);
+                    root.loaderInstance.dbTableListLoader = dbTableListLoader;
+                }
+
+                onLoaded: {
+                    console.log("dbTableListLoader content loaded successfully");
+                }
+                onStatusChanged: {
+                    console.log("dbTableListLoader status changed to:", status);
+                    if (status === Loader.Error) {
+                        console.error("Error loading DbTableList.qml. Status:", status);
+                        console.error("Source:", source);
+                    }
                 }
             }
         }
