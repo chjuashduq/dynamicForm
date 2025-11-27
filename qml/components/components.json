@@ -2,17 +2,44 @@
     {
         "group": "布局组件",
         "items": [
-            { "type": "StyledRow", "label": "横向布局", "icon": "▤" }
+            {
+                "type": "StyledRow",
+                "label": "横向布局",
+                "icon": "▤"
+            }
         ]
     },
     {
         "group": "基础组件",
         "items": [
-            { "type": "StyledTextField", "label": "文本输入", "icon": "✎" },
-            { "type": "StyledSpinBox", "label": "数字输入", "icon": "123" },
-            { "type": "StyledComboBox", "label": "下拉选择", "icon": "▼" },
-            { "type": "StyledButton", "label": "按钮", "icon": "ok" },
-            { "type": "StyledLabel", "label": "文本标签", "icon": "T" }
+            {
+                "type": "StyledTextField",
+                "label": "文本输入",
+                "icon": "✎",
+                "supportFormConfig": true
+            },
+            {
+                "type": "StyledSpinBox",
+                "label": "数字输入",
+                "icon": "123",
+                "supportFormConfig": true
+            },
+            {
+                "type": "StyledComboBox",
+                "label": "下拉选择",
+                "icon": "▼",
+                "supportFormConfig": true
+            },
+            {
+                "type": "StyledButton",
+                "label": "按钮",
+                "icon": "ok"
+            },
+            {
+                "type": "StyledLabel",
+                "label": "文本标签",
+                "icon": "T"
+            }
         ]
     }
 ]

@@ -46,5 +46,12 @@
     <file>form_config.json</file>
     <file>qml/generator/json/FormSerializer.js</file>
     <file>qml/database/DbTableList.qml</file>
+    <file>qml/database/GenEdit.qml</file>
+    <file>templates/Entity.h.tpl</file>
+    <file>templates/Entity.cpp.tpl</file>
+    <file>templates/Controller.h.tpl</file>
+    <file>templates/Controller.cpp.tpl</file>
+    <file>templates/List.qml.tpl</file>
+    <file>templates/Edit.qml.tpl</file>
   </qresource>
 </RCC>

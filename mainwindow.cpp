@@ -9,6 +9,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "utils/FileHelper.h"
+#include "generator/CodeGenerator.h"
 
 using namespace std;
 
@@ -26,10 +27,10 @@ MainWindow::MainWindow(QWidget *parent)
     quickWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     setCentralWidget(quickWidget);
     // 获取 QQuickWidget 的 QQmlEngine
-QQmlEngine *engine = quickWidget->engine();
+    QQmlEngine *engine = quickWidget->engine();
 
-// 加入 QRC 路径
-engine->addImportPath("qrc:/qml");
+    // 加入 QRC 路径
+    engine->addImportPath("qrc:/qml");
 
     // 读取 JSON
     QFile file(":/form_config.json");
@@ -56,8 +57,9 @@ engine->addImportPath("qrc:/qml");
     qmlRegisterSingletonType<FileHelper>("utils", 1, 0, "FileHelper", [](QQmlEngine *, QJSEngine *) -> QObject * {
         return new FileHelper;
     });
-    // 传入 QML
-    
+    qmlRegisterSingletonType<CodeGenerator>("generator", 1, 0, "CodeGenerator", [](QQmlEngine *, QJSEngine *) -> QObject * {
+        return new CodeGenerator;
+    });
 
     quickWidget->setSource(QUrl("qrc:/qml/main.qml"));
 }

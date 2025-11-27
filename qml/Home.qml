@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQml
 import "components"
 
 Item {
@@ -29,40 +30,53 @@ Item {
                 columnSpacing: 30
                 rowSpacing: 30
 
-                // Card 1: New Form (Form Generator)
-                HomeCard {
-                    title: "新建表单"
-                    description: "可视化拖拽设计表单"
-                    iconText: "✎"
-                    accentColor: "#1890ff"
-                    onClicked: homeRoot.navigate("generator")
-                }
+                Repeater {
+                    model: ListModel {
+                        ListElement {
+                            target: "generator"
+                            title: "新建表单"
+                            description: "可视化拖拽设计表单"
+                            iconText: "✎"
+                            accentColor: "#1890ff"
+                        }
+                        ListElement {
+                            target: "config"
+                            title: "代码生成"
+                            description: "查看和编辑表单JSON配置"
+                            iconText: "{}"
+                            accentColor: "#52c41a"
+                        }
+                        ListElement {
+                            target: "list"
+                            title: "表单列表"
+                            description: "管理已生成的表单数据"
+                            iconText: "☰"
+                            accentColor: "#faad14"
+                        }
+                        ListElement {
+                            target: "db_tables"
+                            title: "数据库表"
+                            description: "代码生成与表结构管理"
+                            iconText: "🗄️"
+                            accentColor: "#722ed1"
+                        }
+                        // Example for generated page
+                        // ListElement {
+                        //     target: "sys_user"
+                        //     title: "用户管理"
+                        //     description: "系统用户管理"
+                        //     iconText: "👤"
+                        //     accentColor: "#eb2f96"
+                        // }
+                    }
 
-                // Card 2: Code Generator (Config Editor)
-                HomeCard {
-                    title: "代码生成"
-                    description: "查看和编辑表单JSON配置"
-                    iconText: "{}"
-                    accentColor: "#52c41a"
-                    onClicked: homeRoot.navigate("config")
-                }
-
-                // Card 3: Dynamic List
-                HomeCard {
-                    title: "表单列表"
-                    description: "管理已生成的表单数据"
-                    iconText: "☰"
-                    accentColor: "#faad14"
-                    onClicked: homeRoot.navigate("list")
-                }
-
-                // Card 4: Database Tables
-                HomeCard {
-                    title: "数据库表"
-                    description: "代码生成与表结构管理"
-                    iconText: "🗄️"
-                    accentColor: "#722ed1"
-                    onClicked: homeRoot.navigate("db_tables")
+                    delegate: HomeCard {
+                        title: model.title
+                        description: model.description
+                        iconText: model.iconText
+                        accentColor: model.accentColor
+                        onClicked: homeRoot.navigate(model.target)
+                    }
                 }
             }
         }

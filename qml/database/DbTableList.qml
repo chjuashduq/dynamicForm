@@ -10,6 +10,8 @@ Item {
     property var tableModel: []
     property var originalTableModel: []
 
+    signal editTable(string tableName)
+
     Component.onCompleted: {
         console.log("DbTableList loaded. Size:", width, "x", height);
         refreshTables();
@@ -267,6 +269,7 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.editTable(modelData.tableName)
                                 }
                             }
                             Text {

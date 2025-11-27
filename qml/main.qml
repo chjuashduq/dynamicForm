@@ -22,15 +22,6 @@ Item {
 
     signal editorLoaded(var loader)
 
-    Component.onCompleted: {
-        // Instantiate tabs for background loading/state preservation
-        var a = configEditorTab.createObject(root);
-        var b = formPreviewTab.createObject(root);
-        var c = generatorTab.createObject(root);
-        var d = dbTableListTab.createObject(root);
-        MessageManager.registerRootItem(root);
-    }
-
     StackView {
         id: stackView
         anchors.fill: parent
@@ -117,33 +108,56 @@ Item {
         value: topBar.visible ? topBar.height : 0
     }
 
+    property var dynamicRoutes: (
+        // "sys_user": "pages/SysUserList.qml"
+        {})
+
+    function navigateTo(target) {
+        console.log("Navigating to:", target);
+
+        // 1. Static/System Routes (Keep-Alive)
+        var staticRoutes = {
+            "generator": root.loaderInstance.generatorLoader,
+            "config": root.loaderInstance.configEditorLoader,
+            "db_tables": root.loaderInstance.dbTableListLoader
+        };
+
+        if (staticRoutes[target]) {
+            var loader = staticRoutes[target];
+            if (loader) {
+                loader.visible = true;
+                stackView.push(loader.parent);
+            } else {
+                console.error("Loader not ready for:", target);
+            }
+            return;
+        }
+
+        // 2. Special Cases
+        if (target === "list") {
+            stackView.push(dynamicListLoadingTab);
+            return;
+        }
+
+        // 3. Dynamic Routes (URL or Map)
+        if (root.dynamicRoutes[target]) {
+            stackView.push(Qt.resolvedUrl(root.dynamicRoutes[target]));
+            return;
+        }
+
+        // 4. Direct Path
+        if (target.indexOf("/") >= 0) {
+            stackView.push(Qt.resolvedUrl(target));
+            return;
+        }
+
+        console.warn("Unknown route:", target);
+    }
+
     Component {
         id: homeComponent
         Home {
-            onNavigate: target => {
-                console.log("Navigating to:", target);
-                if (target === "generator") {
-                    if (root.loaderInstance.generatorLoader) {
-                        root.loaderInstance.generatorLoader.visible = true;
-                        stackView.push(root.loaderInstance.generatorLoader.parent);
-                    }
-                } else if (target === "config") {
-                    if (root.loaderInstance.configEditorLoader) {
-                        root.loaderInstance.configEditorLoader.visible = true;
-                        stackView.push(root.loaderInstance.configEditorLoader.parent);
-                    }
-                } else if (target === "list") {
-                    stackView.push(dynamicListLoadingTab);
-                } else if (target === "db_tables") {
-                    console.log("Attempting to navigate to db_tables. Loader instance:", root.loaderInstance.dbTableListLoader);
-                    if (root.loaderInstance.dbTableListLoader) {
-                        root.loaderInstance.dbTableListLoader.visible = true;
-                        stackView.push(root.loaderInstance.dbTableListLoader.parent);
-                    } else {
-                        console.error("dbTableListLoader is not ready!");
-                    }
-                }
-            }
+            onNavigate: target => root.navigateTo(target)
         }
     }
 
@@ -289,6 +303,24 @@ Item {
 
                 onLoaded: {
                     console.log("dbTableListLoader content loaded successfully");
+                    if (item) {
+                        item.editTable.connect(function (tableName) {
+                            console.log("Edit table requested:", tableName);
+                            if (root.loaderInstance.genEditLoader) {
+                                var loader = root.loaderInstance.genEditLoader;
+                                loader.visible = true;
+                                if (loader.item) {
+                                    loader.item.tableName = tableName;
+                                } else {
+                                    // If not loaded yet, set it when loaded
+                                    loader.loaded.connect(function () {
+                                        loader.item.tableName = tableName;
+                                    });
+                                }
+                                stackView.push(loader.parent);
+                            }
+                        });
+                    }
                 }
                 onStatusChanged: {
                     console.log("dbTableListLoader status changed to:", status);
@@ -299,5 +331,42 @@ Item {
                 }
             }
         }
+    }
+
+    // Tab 5: 生成配置编辑
+    Component {
+        id: genEditTab
+        Item {
+            Loader {
+                id: genEditLoader
+                anchors.fill: parent
+                source: "database/GenEdit.qml"
+                asynchronous: false
+                active: true
+                visible: false
+
+                Component.onCompleted: {
+                    root.loaderInstance.genEditLoader = genEditLoader;
+                }
+
+                onLoaded: {
+                    if (item) {
+                        item.back.connect(function () {
+                            stackView.pop();
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        // Instantiate tabs for background loading/state preservation
+        var a = configEditorTab.createObject(root);
+        var b = formPreviewTab.createObject(root);
+        var c = generatorTab.createObject(root);
+        var d = dbTableListTab.createObject(root);
+        var e = genEditTab.createObject(root);
+        MessageManager.registerRootItem(root);
     }
 }

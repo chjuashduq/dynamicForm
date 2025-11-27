@@ -19,6 +19,8 @@ qt_add_executable(DynamicFormQML
     mysql/MySqlHelper/MySqlHelper.cpp
     utils/FileHelper.h
     utils/FileHelper.cpp
+    generator/CodeGenerator.h
+    generator/CodeGenerator.cpp
 )
 
 # 添加 include 路径，让 #include "MySqlHelper.h" 可以找到
