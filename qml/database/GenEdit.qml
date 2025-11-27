@@ -73,7 +73,9 @@ Item {
                     cols[i].displayType = "StyledTextField";
                     if (cols[i].cppType === "Integer" || cols[i].cppType === "Long" || cols[i].cppType === "Double") {
                         cols[i].displayType = "StyledSpinBox";
-                    } else if (cols[i].cppType === "DateTime") {}
+                    } else if (cols[i].cppType === "DateTime") {
+                        // Maybe date picker later
+                    }
                 }
                 columnModel = cols;
             }
@@ -104,20 +106,29 @@ Item {
         // 2. 否则，根据字段列表生成默认布局 (每行3列 + 底部按钮)
         var visualItems = [];
         var currentRowChildren = [];
+        var rowIndex = 1;
 
         // 辅助函数：将当前行推入主列表
         function pushRow() {
             if (currentRowChildren.length > 0) {
                 visualItems.push({
                     "type": "StyledRow",
+                    "id": "row_" + rowIndex,
                     "props": {
+                        "key": "row_" + rowIndex // 确保有Key
+                        ,
                         "layoutType": "fill",
-                        "spacing": 20,
-                        "padding": 0
+                        "spacing": 30 // 约4%的间距 (假设800px宽)
+                        ,
+                        "paddingTop": 0,
+                        "paddingBottom": 10,
+                        "paddingLeft": 0,
+                        "paddingRight": 0
                     },
                     "children": currentRowChildren
                 });
                 currentRowChildren = [];
+                rowIndex++;
             }
         }
 
@@ -134,11 +145,13 @@ Item {
                 "props": {
                     "key": col.cppField,
                     "label": col.columnComment || col.columnName,
-                    "layoutType": "flex" // 在行内使用 Flex 布局
+                    "layoutType": "percent" // 使用百分比布局
                     ,
-                    "flex": 1,
+                    "widthPercent": 30      // 30% 宽度，一行3个
+                    ,
                     "visible": true,
-                    "enabled": true
+                    "enabled": true,
+                    "labelRatio": 0.3
                 }
             };
 
@@ -152,43 +165,56 @@ Item {
         // 处理剩余控件
         pushRow();
 
-        // 3. 添加底部操作按钮行
+        // 3. 添加底部操作按钮行 (包含完整的事件逻辑)
+        var submitLogic = "// 1. 验证所有字段\n" + "var validation = validateAll();\n" + "if (!validation.valid) return;\n\n" + "// 2. 收集数据\n" + "var data = getAllValues();\n\n" + "// 3. 处理主键(如果是编辑模式)\n" + "if (isEditMode && formData && formData.id) {\n" + "    data['id'] = formData.id;\n" + "}\n\n" + "// 4. 调用Controller\n" + "var success = false;\n" + "if (isAdd) {\n" + "    success = controller.add(data);\n" + "} else {\n" + "    success = controller.update(data);\n" + "}\n\n" + "// 5. 关闭窗口\n" + "if (success) {\n" + "    if (root.StackView.view) root.StackView.view.pop();\n" + "    else root.visible = false;\n" + "}";
+
+        var cancelLogic = "if (root.StackView.view) root.StackView.view.pop();\n" + "else root.visible = false;";
+
         var btnSave = {
             "type": "StyledButton",
+            "id": "btn_submit",
             "props": {
-                "label": "保存",
+                "key": "submit" // 确保有Key
+                ,
                 "text": "保存",
                 "buttonType": "primary",
                 "width": 100,
                 "layoutType": "fixed"
             },
             "events": {
-                "onClicked": "saveData()"  // 绑定保存函数
+                "onClicked": submitLogic  // 嵌入完整逻辑
             }
         };
 
         var btnCancel = {
             "type": "StyledButton",
+            "id": "btn_cancel",
             "props": {
-                "label": "取消",
+                "key": "cancel" // 确保有Key
+                ,
                 "text": "取消",
                 "buttonType": "secondary",
                 "width": 100,
                 "layoutType": "fixed"
             },
             "events": {
-                "onClicked": "closeForm()" // 绑定取消函数
+                "onClicked": cancelLogic // 嵌入完整逻辑
             }
         };
 
         visualItems.push({
             "type": "StyledRow",
+            "id": "row_actions",
             "props": {
+                "key": "row_actions",
                 "layoutType": "fill",
-                "alignment": 4 // Center
+                "alignment": 4 // Center (Qt.AlignHCenter)
                 ,
                 "spacing": 20,
-                "padding": 20
+                "paddingTop": 20,
+                "paddingBottom": 20,
+                "paddingLeft": 0,
+                "paddingRight": 0
             },
             "children": [btnCancel, btnSave]
         });
@@ -248,26 +274,7 @@ Item {
 
                     // 3. 获取可视化生成的 QML 代码
                     if (generatorLoader.item) {
-                        // 生成核心表单代码
                         var qmlBody = generatorLoader.item.getGeneratedCode();
-
-                        // 包装成完整的 Edit 页面代码 (包含必要的属性和函数)
-                        var fullQml = "/* Generated Edit Form */\n" + "import QtQuick\n" + "import QtQuick.Controls\n" + "import QtQuick.Layouts\n" + "import Common 1.0\n" + "import \"../components\"\n\n" + "Item {\n" + "    id: root\n" + "    width: parent ? parent.width : 800\n" + "    height: parent ? parent.height : 600\n\n" + "    property var controller: null\n" + "    property bool isAdd: true\n" + "    property var formData: ({})\n\n" + "    // 背景\n" + "    Rectangle {\n" + "        anchors.fill: parent\n" + "        color: \"#f5f7fa\"\n" + "    }\n\n" + "    ScrollView {\n" + "        anchors.fill: parent\n" + "        clip: true\n" + "        contentWidth: parent.width\n\n" + "        ColumnLayout {\n" + "            width: Math.min(parent.width, 1000)\n" + "            anchors.horizontalCenter: parent.horizontalCenter\n" + "            spacing: 10\n\n" + "            // Title\n" + "            Text {\n" + "                text: (isAdd ? \"新增\" : \"修改\") + \" " + tableName + "\"\n" + "                font.pixelSize: 22\n" + "                font.bold: true\n" + "                Layout.alignment: Qt.AlignHCenter\n" + "                Layout.margins: 20\n" + "            }\n\n";
-
-                        // 插入可视化生成的表单主体 (去掉外层 import 和 Item)
-                        // FormGenerator 生成的代码包含外层 Item，我们需要提取内容或调整生成逻辑
-                        // 这里为了简单，我们让 FormGenerator 直接返回 Body 内容，或者我们解析它
-                        // 更好的方式：让 CodeGenerator 识别 customEditQml
-
-                        fullQml += "            // === 可视化布局开始 ===\n";
-                        // 提取 FormGenerator 生成代码中的主要布局部分 (GridLayout 及其内容)
-                        // 注意：Logic.generateCode 生成的是包含 import 的完整 Item
-                        // 这里我们使用一个简化的提取方式，或者修改 FormGenerator 逻辑
-                        // 假设我们直接将 generatorLoader.item.getGeneratedCode() 作为 customEditQml 传给 C++
-                        // 但我们需要注入 controller binding 等。
-
-                        // 方案 B：直接使用 generator 生成的代码作为主体，但我们需要注入 saveData 函数
-                        // 我们在 CodeGenerator.cpp 中处理替换
                         config.customEditQml = qmlBody;
                         config.injectFunctions = true; // 标记需要注入 helper 函数
                     }
@@ -588,12 +595,13 @@ Item {
                 }
             }
 
-            // Tab 3: 可视化布局调整
+            // Tab 3: Visual Layout
             Item {
                 Loader {
                     id: generatorLoader
                     source: "../generator/FormGenerator.qml"
                     anchors.fill: parent
+
                     onLoaded: {
                         if (item) {
                             item.previewMode = false;

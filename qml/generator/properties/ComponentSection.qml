@@ -41,11 +41,11 @@ CollapsePanel {
         }
     }
 
-    // Label Ratio (New: Slider)
+    // Label Ratio (Slider)
     RowLayout {
         visible: hasProp("labelRatio")
         Layout.fillWidth: true
-        spacing: 10
+        spacing: 5
         Text {
             text: "标签占比"
             color: AppStyles.textPrimary
@@ -53,8 +53,8 @@ CollapsePanel {
         }
         Slider {
             Layout.fillWidth: true
-            from: 0.1
-            to: 0.9
+            from: 0.0
+            to: 1.0
             stepSize: 0.05
             value: (getProp("labelRatio") != null) ? getProp("labelRatio") : 0.3
             onMoved: updateProp("labelRatio", value)
@@ -62,27 +62,8 @@ CollapsePanel {
         Text {
             text: Math.round(((getProp("labelRatio") != null) ? getProp("labelRatio") : 0.3) * 100) + "%"
             color: AppStyles.textPrimary
-            Layout.preferredWidth: 35
+            Layout.preferredWidth: 40
             horizontalAlignment: Text.AlignRight
-        }
-    }
-
-    // Label Width (Fixed - Legacy/Optional)
-    RowLayout {
-        visible: hasProp("labelWidth") && (!hasProp("labelRatio") || getProp("labelRatio") === 0)
-        Layout.fillWidth: true
-        spacing: 10
-        Text {
-            text: "标签宽度"
-            color: AppStyles.textPrimary
-            Layout.preferredWidth: 70
-        }
-        SpinBox {
-            Layout.fillWidth: true
-            from: 20
-            to: 300
-            value: (getProp("labelWidth") != null) ? getProp("labelWidth") : 80
-            onValueModified: updateProp("labelWidth", value)
         }
     }
 
@@ -147,7 +128,6 @@ CollapsePanel {
             width: parent.width
             spacing: 5
 
-            // Header
             RowLayout {
                 Layout.fillWidth: true
                 Text {
@@ -167,7 +147,6 @@ CollapsePanel {
                 }
             }
 
-            // List Items
             Repeater {
                 model: getProp("model") || []
                 delegate: RowLayout {
@@ -221,7 +200,6 @@ CollapsePanel {
                 }
             }
 
-            // Add Button
             Button {
                 text: "+ 添加选项"
                 Layout.fillWidth: true

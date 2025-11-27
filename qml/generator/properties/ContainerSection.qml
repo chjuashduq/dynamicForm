@@ -22,60 +22,82 @@ CollapsePanel {
         propertyChanged(name, value);
     }
 
-    visible: hasProp("spacing") || hasProp("wrap") || hasProp("padding")
+    visible: hasProp("spacing") || hasProp("wrap") || hasProp("paddingTop")
 
-    // Spacing (Slider + SpinBox)
+    // Spacing
     RowLayout {
         visible: hasProp("spacing")
         Layout.fillWidth: true
-        spacing: 10
+        spacing: 5
         Text {
             text: "间距"
             color: AppStyles.textPrimary
-            Layout.preferredWidth: 70
+            Layout.preferredWidth: 60
         }
         Slider {
             Layout.fillWidth: true
             from: 0
             to: 100
-            value: (getProp("spacing") != null) ? getProp("spacing") : 10
+            value: getProp("spacing") || 0
             onMoved: updateProp("spacing", Math.round(value))
         }
         SpinBox {
-            Layout.preferredWidth: 60
+            Layout.preferredWidth: 70
             from: 0
             to: 200
+            value: getProp("spacing") || 0
             editable: true
-            value: (getProp("spacing") != null) ? getProp("spacing") : 10
             onValueModified: updateProp("spacing", value)
         }
     }
 
-    // Padding (Slider + SpinBox)
-    RowLayout {
-        visible: hasProp("padding")
+    // Padding Controls Helper
+    component PaddingControl: RowLayout {
+        property string label: ""
+        property string propName: ""
         Layout.fillWidth: true
-        spacing: 10
+        spacing: 5
         Text {
-            text: "内边距"
+            text: label
             color: AppStyles.textPrimary
-            Layout.preferredWidth: 70
+            Layout.preferredWidth: 60
         }
         Slider {
             Layout.fillWidth: true
             from: 0
             to: 100
-            value: (getProp("padding") != null) ? getProp("padding") : 0
-            onMoved: updateProp("padding", Math.round(value))
+            value: getProp(propName) || 0
+            onMoved: updateProp(propName, Math.round(value))
         }
         SpinBox {
-            Layout.preferredWidth: 60
+            Layout.preferredWidth: 70
             from: 0
             to: 200
+            value: getProp(propName) || 0
             editable: true
-            value: (getProp("padding") != null) ? getProp("padding") : 0
-            onValueModified: updateProp("padding", value)
+            onValueModified: updateProp(propName, value)
         }
+    }
+
+    PaddingControl {
+        visible: hasProp("paddingTop")
+        label: "上边距"
+        propName: "paddingTop"
+    }
+    PaddingControl {
+        visible: hasProp("paddingBottom")
+        label: "下边距"
+        propName: "paddingBottom"
+    }
+    PaddingControl {
+        visible: hasProp("paddingLeft")
+        label: "左边距"
+        propName: "paddingLeft"
+    }
+    PaddingControl {
+        visible: hasProp("paddingRight")
+        label: "右边距"
+        propName: "paddingRight"
     }
 
     // Wrap
@@ -86,7 +108,7 @@ CollapsePanel {
         Text {
             text: "自动换行"
             color: AppStyles.textPrimary
-            Layout.preferredWidth: 70
+            Layout.preferredWidth: 60
         }
         CheckBox {
             checked: getProp("wrap") !== false

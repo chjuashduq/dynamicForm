@@ -73,7 +73,7 @@ RowLayout {
             code += indent + "    visible: false\n";
         }
 
-        // 生成标签比例代码
+        // Generate label ratio code
         if (props.labelRatio !== undefined) {
             code += indent + "    labelRatio: " + props.labelRatio + "\n";
         }
@@ -121,8 +121,7 @@ RowLayout {
         text: baseRoot.label
         visible: baseRoot.showLabel
 
-        // 宽度计算：优先使用比例，否则使用固定宽度
-        // 限制最小宽度以防止布局崩塌
+        // Calculate width: prefer ratio, fallback to fixed
         Layout.preferredWidth: {
             if (baseRoot.labelRatio > 0 && baseRoot.width > 0) {
                 return Math.max(20, baseRoot.width * baseRoot.labelRatio);

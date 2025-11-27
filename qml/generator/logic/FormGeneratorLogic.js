@@ -74,7 +74,7 @@ function findItemInModel(model, itemId) {
 }
 
 function createItem(type, root) {
-    var id = type + "_" + Math.floor(Math.random() * 10000);
+    var id = type + "_" + Math.floor(Math.random() * 100000);
     var props = {};
     var children = [];
 
@@ -95,12 +95,12 @@ function createItem(type, root) {
             tempObject.destroy();
         }
     } else {
-        // Fallback
         props = { visible: true };
     }
 
-    if (!props.key) {
-        props.key = type + "_" + new Date().getTime();
+    // [修复] 强制确保所有组件都有 key，防止选择冲突
+    if (!props.key || props.key === "") {
+        props.key = type.toLowerCase() + "_" + Math.floor(Math.random() * 10000).toString();
     }
 
     return { type: type, id: id, props: props, children: children };
@@ -166,28 +166,19 @@ function moveItem(itemData, sourceParentList, targetParent, targetIndex, root) {
 }
 
 function generateCode(root, codeDialog) {
-    var code = "import QtQuick\nimport QtQuick.Controls\nimport QtQuick.Layouts\nimport Common 1.0\nimport \"../components\"\n\nItem {\n    width: 800\n    height: 600\n\n    // 主容器 (默认 GridLayout)\n    GridLayout {\n        anchors.fill: parent\n        anchors.margins: 20\n        columns: 2 // 默认列数\n        rowSpacing: 10\n        columnSpacing: 15\n\n";
     var functions = [];
-    code += generateChildrenCode(root.formModel, 2, root, functions);
-    code += "    }\n\n";
+    var code = generateChildrenCode(root.formModel, 2, root, functions);
 
     if (functions.length > 0) {
-        code += "    // Event Handlers\n";
+        code += "\n            // Event Handlers\n";
         code += functions.join("\n\n") + "\n";
     }
 
-    code += "}";
     if (codeDialog) {
         codeDialog.code = code;
         codeDialog.open();
     }
-    return code; // Return the code string
-}
-
-// 新增：仅生成子元素代码，不包裹 Item
-function generateFormBody(formModel, root) {
-    var functions = []; // 暂不处理内联函数，因为是用于生成的 C++ 模板
-    return generateChildrenCode(formModel, 2, root, functions);
+    return code;
 }
 
 function generateChildrenCode(children, indentLevel, root, functions) {
@@ -202,12 +193,10 @@ function generateChildrenCode(children, indentLevel, root, functions) {
 function generateItemCode(item, indentLevel, root, functions) {
     var indent = "    ".repeat(indentLevel);
     var code = "";
-
     var componentName = item.type;
     if (item.type.charAt(0) === item.type.charAt(0).toLowerCase()) {
         componentName = item.type.charAt(0).toUpperCase() + item.type.slice(1);
     }
-
     var componentUrl = "../../components/" + componentName + ".qml";
     var component = Qt.createComponent(componentUrl);
 
@@ -220,27 +209,21 @@ function generateItemCode(item, indentLevel, root, functions) {
                     childrenCode = generateChildrenCode(item.children, indentLevel + 1, root, functions);
                 }
 
-                // [关键修改] 手动注入 id，因为 generateCode 通常不包含 id
-                // 如果 props 中有 id（我们在 GenEdit 中设置的），则使用它
-                // 如果没有，但有 key，则使用 field_key 格式
-                var originalId = item.props.id;
-                if (!originalId && item.props.key) {
-                    item.props.id = "field_" + item.props.key;
+                var propsWithId = item.props;
+                // 确保有 ID，优先使用 key
+                if (!propsWithId.id && propsWithId.key) {
+                    if (propsWithId.key === "submit") propsWithId.id = "btn_submit";
+                    else if (propsWithId.key === "cancel") propsWithId.id = "btn_cancel";
+                    else propsWithId.id = "field_" + propsWithId.key;
                 }
 
-                code = tempObject.generateCode(item.props, childrenCode, indent, item.events, functions);
-
-                // 恢复 props，以免影响界面显示
-                if (!originalId) delete item.props.id;
-            } else {
-                code = indent + "// Error: generateCode not implemented for " + item.type;
+                code = tempObject.generateCode(propsWithId, childrenCode, indent, item.events, functions);
             }
             tempObject.destroy();
         }
     } else {
-        code = indent + "// Error loading " + item.type + ": " + component.errorString();
+        code = indent + "// Error: " + component.errorString();
     }
-
     return code;
 }
 
