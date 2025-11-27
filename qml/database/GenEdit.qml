@@ -5,7 +5,7 @@ import mysqlhelper 1.0
 import generator 1.0
 import Common 1.0
 import "../components"
-import "../generator" // 引入可视化编辑器所在的目录
+import "../generator"
 
 Item {
     id: root
@@ -95,7 +95,6 @@ Item {
     function syncToVisual() {
         if (!generatorLoader.item)
             return;
-
         // 1. 如果已有保存的修改，直接加载
         if (savedVisualModel) {
             generatorLoader.item.formModel = savedVisualModel;
@@ -115,11 +114,9 @@ Item {
                     "type": "StyledRow",
                     "id": "row_" + rowIndex,
                     "props": {
-                        "key": "row_" + rowIndex // 确保有Key
-                        ,
+                        "key": "row_" + rowIndex,
                         "layoutType": "fill",
-                        "spacing": 30 // 约4%的间距 (假设800px宽)
-                        ,
+                        "spacing": 30,
                         "paddingTop": 0,
                         "paddingBottom": 10,
                         "paddingLeft": 0,
@@ -138,7 +135,6 @@ Item {
             // 只处理勾选了"编辑"的字段
             if (!col.isEdit)
                 continue;
-
             var item = {
                 "type": col.displayType || "StyledTextField",
                 "id": "field_" + col.cppField,
@@ -151,10 +147,10 @@ Item {
                     ,
                     "visible": true,
                     "enabled": true,
-                    "labelRatio": 0.3
+                    // [修改] 默认标签占比设为 0.2 (20%)
+                    "labelRatio": 0.2
                 }
             };
-
             currentRowChildren.push(item);
 
             // 每3个控件换一行
@@ -166,42 +162,42 @@ Item {
         pushRow();
 
         // 3. 添加底部操作按钮行 (包含完整的事件逻辑)
-        var submitLogic = "// 1. 验证所有字段\n" + "var validation = validateAll();\n" + "if (!validation.valid) return;\n\n" + "// 2. 收集数据\n" + "var data = getAllValues();\n\n" + "// 3. 处理主键(如果是编辑模式)\n" + "if (isEditMode && formData && formData.id) {\n" + "    data['id'] = formData.id;\n" + "}\n\n" + "// 4. 调用Controller\n" + "var success = false;\n" + "if (isAdd) {\n" + "    success = controller.add(data);\n" + "} else {\n" + "    success = controller.update(data);\n" + "}\n\n" + "// 5. 关闭窗口\n" + "if (success) {\n" + "    if (root.StackView.view) root.StackView.view.pop();\n" + "    else root.visible = false;\n" + "}";
 
-        var cancelLogic = "if (root.StackView.view) root.StackView.view.pop();\n" + "else root.visible = false;";
+        // [修复] Submit 逻辑：支持预览环境，使用 !isEditMode
+        var submitLogic = "// 1. 验证所有字段\n" + "var validation = validateAll();\n" + "if (!validation.valid) return;\n\n" + "// 2. 收集数据\n" + "var data = getAllValues();\n\n" + "// 3. 环境检查 (预览模式)\n" + "if (typeof controller === 'undefined') {\n" + "    console.log('预览提交数据:', JSON.stringify(data));\n" + "    showMessage('验证通过！(预览模式不写入数据库)', 'success');\n" + "    return;\n" + "}\n\n" + "// 4. 处理主键(如果是编辑模式)\n" + "if (isEditMode && formData && formData.id) {\n" + "    data['id'] = formData.id;\n" + "}\n\n" + "// 5. 调用Controller\n" + "var success = false;\n" + "if (!isEditMode) {\n" + // 使用 !isEditMode 代替 isAdd
+        "    success = controller.add(data);\n" + "} else {\n" + "    success = controller.update(data);\n" + "}\n\n" + "// 6. 关闭窗口\n" + "if (success) {\n" + "    if (typeof closeForm === 'function') closeForm();\n" + "    else showMessage('保存成功', 'success');\n" + "}";
+
+        // [修复] Cancel 逻辑：支持预览环境
+        var cancelLogic = "if (typeof closeForm === 'function') {\n" + "    closeForm();\n" + "} else if (typeof root !== 'undefined' && root.StackView && root.StackView.view) {\n" + "    root.StackView.view.pop();\n" + "} else {\n" + "    showMessage('取消操作 (预览模式)', 'info');\n" + "}";
 
         var btnSave = {
             "type": "StyledButton",
             "id": "btn_submit",
             "props": {
-                "key": "submit" // 确保有Key
-                ,
+                "key": "submit",
                 "text": "保存",
                 "buttonType": "primary",
                 "width": 100,
                 "layoutType": "fixed"
             },
             "events": {
-                "onClicked": submitLogic  // 嵌入完整逻辑
+                "onClicked": submitLogic
             }
         };
-
         var btnCancel = {
             "type": "StyledButton",
             "id": "btn_cancel",
             "props": {
-                "key": "cancel" // 确保有Key
-                ,
+                "key": "cancel",
                 "text": "取消",
                 "buttonType": "secondary",
                 "width": 100,
                 "layoutType": "fixed"
             },
             "events": {
-                "onClicked": cancelLogic // 嵌入完整逻辑
+                "onClicked": cancelLogic
             }
         };
-
         visualItems.push({
             "type": "StyledRow",
             "id": "row_actions",
@@ -221,7 +217,7 @@ Item {
 
         // 赋值给可视化编辑器
         generatorLoader.item.formModel = visualItems;
-        console.log("已生成默认 3列布局，包含 " + visualItems.length + " 行");
+        console.log("已生成默认布局，包含 " + visualItems.length + " 行");
     }
 
     // 从可视化编辑器同步回状态
@@ -271,7 +267,6 @@ Item {
                         "version": version,
                         "columns": columnModel
                     };
-
                     // 3. 获取可视化生成的 QML 代码
                     if (generatorLoader.item) {
                         var qmlBody = generatorLoader.item.getGeneratedCode();

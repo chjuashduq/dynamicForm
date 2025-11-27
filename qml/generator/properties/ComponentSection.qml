@@ -56,11 +56,13 @@ CollapsePanel {
             from: 0.0
             to: 1.0
             stepSize: 0.05
-            value: (getProp("labelRatio") != null) ? getProp("labelRatio") : 0.3
+            // [修改] 默认值设为 0.2
+            value: (getProp("labelRatio") != null) ? getProp("labelRatio") : 0.2
             onMoved: updateProp("labelRatio", value)
         }
         Text {
-            text: Math.round(((getProp("labelRatio") != null) ? getProp("labelRatio") : 0.3) * 100) + "%"
+            // [修改] 显示百分比默认值改为 0.2
+            text: Math.round(((getProp("labelRatio") != null) ? getProp("labelRatio") : 0.2) * 100) + "%"
             color: AppStyles.textPrimary
             Layout.preferredWidth: 40
             horizontalAlignment: Text.AlignRight

@@ -19,9 +19,8 @@ Item {
     property int paddingTop: 0
     property int paddingBottom: 0
 
-    // Legacy padding support (setter only)
+    // Legacy padding support
     property int padding: 0
-
     onPaddingChanged: {
         if (padding > 0) {
             paddingLeft = padding;
@@ -31,9 +30,9 @@ Item {
         }
     }
 
-    // Size properties
-    implicitWidth: rowLayout.implicitWidth + paddingLeft + paddingRight
-    implicitHeight: rowLayout.implicitHeight + paddingTop + paddingBottom
+    // [修复] 边距计算修复：Flow 的 implicitHeight 已经包含了 padding，不需要额外加
+    implicitWidth: rowLayout.implicitWidth
+    implicitHeight: rowLayout.implicitHeight
 
     property var defaultProps: {
         "key": "",
@@ -48,19 +47,11 @@ Item {
     }
 
     function generateCode(props, childrenCode, indent) {
-        var code = indent + "StyledRow {\n";
+        var code = indent + "Flow {\n";
         code += indent + "    spacing: " + (props.spacing || 0) + "\n";
+        code += indent + "    flow: Flow.LeftToRight\n";
 
-        // Alignment
-        var align = props.alignment;
-        if (align === 4) { // Qt.AlignHCenter
-            code += indent + "    alignment: Qt.AlignHCenter\n";
-        } else if (align === Qt.AlignRight) {
-            code += indent + "    alignment: Qt.AlignRight\n";
-        } else {
-            code += indent + "    alignment: Qt.AlignLeft\n";
-        }
-
+        // 布局处理
         if (props.layoutType === "fixed") {
             code += indent + "    width: " + (props.width || 350) + "\n";
         } else if (props.layoutType === "percent") {
@@ -69,19 +60,32 @@ Item {
             code += indent + "    width: parent.width\n";
         }
 
+        // 居中/对齐处理
+        var align = props.alignment;
+        if (align === Qt.AlignRight) {
+            code += indent + "    layoutDirection: Qt.RightToLeft\n";
+        } else if (align === 4) { // Qt.AlignHCenter
+            // [修复] 生成代码也加入宽度适应逻辑
+            code += indent + "    width: implicitWidth\n";
+            code += indent + "    anchors.horizontalCenter: parent.horizontalCenter\n";
+            code += indent + "    layoutDirection: Qt.LeftToRight\n";
+        } else {
+            code += indent + "    layoutDirection: Qt.LeftToRight\n";
+        }
+
         if (props.key && props.key.trim() !== "") {
             code += indent + "    objectName: \"" + props.key + "\"\n";
         }
 
-        // Generate specific padding
+        // Padding
         if (props.paddingTop)
-            code += indent + "    paddingTop: " + props.paddingTop + "\n";
+            code += indent + "    topPadding: " + props.paddingTop + "\n";
         if (props.paddingBottom)
-            code += indent + "    paddingBottom: " + props.paddingBottom + "\n";
+            code += indent + "    bottomPadding: " + props.paddingBottom + "\n";
         if (props.paddingLeft)
-            code += indent + "    paddingLeft: " + props.paddingLeft + "\n";
+            code += indent + "    leftPadding: " + props.paddingLeft + "\n";
         if (props.paddingRight)
-            code += indent + "    paddingRight: " + props.paddingRight + "\n";
+            code += indent + "    rightPadding: " + props.paddingRight + "\n";
 
         if (childrenCode && childrenCode.trim().length > 0) {
             code += childrenCode;
@@ -94,16 +98,17 @@ Item {
     Flow {
         id: rowLayout
 
-        // [修改] 修复居中对齐问题
-        // 如果是居中对齐，Flow 的宽度适应内容（但不超过父容器），并水平居中
+        // [修复] 核心逻辑：如果是居中对齐，宽度设为适应内容(implicitWidth)，让父级Anchor生效
+        // 否则占满父宽 (parent.width)
         width: (root.alignment === Qt.AlignHCenter) ? Math.min(implicitWidth, parent.width) : parent.width
-
-        anchors.horizontalCenter: (root.alignment === Qt.AlignHCenter) ? parent.horizontalCenter : undefined
 
         flow: Flow.LeftToRight
 
-        // Alignment logic (Right alignment is handled by layoutDirection)
+        // Alignment logic
         layoutDirection: (root.alignment === Qt.AlignRight) ? Qt.RightToLeft : Qt.LeftToRight
+
+        // [修复] 居中对齐时，锚定到父容器水平中心
+        anchors.horizontalCenter: (root.alignment === Qt.AlignHCenter) ? parent.horizontalCenter : undefined
 
         // Margins/Padding
         topPadding: root.paddingTop
