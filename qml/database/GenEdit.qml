@@ -5,6 +5,7 @@ import mysqlhelper 1.0
 import generator 1.0
 import Common 1.0
 import "../components"
+import "../generator" // 引入可视化编辑器所在的目录
 
 Item {
     id: root
@@ -66,7 +67,6 @@ Item {
                     cols[i].queryType = "=";
                     cols[i].isRequired = (cols[i].isNullable === "NO");
                     cols[i].displayType = "StyledTextField";
-
                     // Smart default for display type
                     if (cols[i].cppType === "Integer" || cols[i].cppType === "Long" || cols[i].cppType === "Double") {
                         cols[i].displayType = "StyledSpinBox";
@@ -85,6 +85,77 @@ Item {
     property string packageName: "com.example"
     property string moduleName: "system"
     property string version: "1.0.0"
+
+    // ========== 新增：同步逻辑 ==========
+
+    // 将当前字段配置同步到可视化编辑器
+    function syncToVisual() {
+        if (!generatorLoader.item) return;
+
+        var visualItems = [];
+        // 遍历字段列表，生成可视化控件模型
+        for(var i = 0; i < columnModel.length; i++) {
+            var col = columnModel[i];
+            // 只处理勾选了"编辑"的字段
+            if (!col.isEdit) continue;
+
+            visualItems.push({
+                "type": col.displayType || "StyledTextField",
+                "id": "field_" + col.cppField,
+                "props": {
+                    "key": col.cppField,
+                    "label": col.columnComment || col.columnName,
+                    "layoutType": "fill", // 默认宽度填充
+                    "visible": true,
+                    "enabled": true
+                }
+            });
+        }
+
+        // 赋值给可视化编辑器
+        generatorLoader.item.formModel = visualItems;
+        console.log("已同步 " + visualItems.length + " 个字段到可视化编辑器");
+    }
+
+    // 从可视化编辑器同步回字段配置（主要是顺序和标签）
+    function syncFromVisual() {
+        if (!generatorLoader.item) return;
+        var visualModel = generatorLoader.item.formModel;
+
+        // 如果还没有进行过可视化编辑，则不需要同步回写
+        if (!visualModel || visualModel.length === 0) return;
+
+        var newColList = [];
+        var colMap = {};
+
+        // 建立现有字段的映射
+        for(var i = 0; i < columnModel.length; i++) {
+            colMap[columnModel[i].cppField] = columnModel[i];
+        }
+
+        // 根据可视化编辑器的顺序重组字段列表
+        for(var j = 0; j < visualModel.length; j++) {
+            var vItem = visualModel[j];
+            var key = vItem.props.key;
+
+            if (colMap[key]) {
+                // 更新属性：标签和控件类型
+                colMap[key].columnComment = vItem.props.label;
+                colMap[key].displayType = vItem.type;
+
+                newColList.push(colMap[key]);
+                delete colMap[key]; // 标记为已处理
+            }
+        }
+
+        // 将未在可视化编辑器中出现的字段（例如未勾选编辑的字段）追加到末尾
+        for(var k in colMap) {
+            newColList.push(colMap[k]);
+        }
+
+        columnModel = newColList;
+        console.log("已从可视化编辑器同步字段顺序和属性");
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -110,6 +181,12 @@ Item {
                 text: "提交生成"
                 highlighted: true
                 onClicked: {
+                    // 1. 如果可视化编辑器已加载，先尝试同步最新的布局
+                    if (bar.currentIndex === 2 || generatorLoader.item) {
+                        syncFromVisual();
+                    }
+
+                    // 2. 准备生成配置
                     var config = {
                         "tableName": tableName,
                         "author": authorName,
@@ -140,6 +217,16 @@ Item {
             }
             TabButton {
                 text: "生成信息"
+            }
+            TabButton {
+                text: "可视化布局调整"
+            }
+
+            onCurrentIndexChanged: {
+                // 当切换到可视化布局 Tab 时，执行数据同步
+                if (currentIndex === 2) {
+                    syncToVisual();
+                }
             }
         }
 
@@ -434,6 +521,23 @@ Item {
 
                 Item {
                     Layout.fillHeight: true
+                }
+            }
+
+            // Tab 3: 可视化布局调整
+            Item {
+                // 使用 Loader 嵌入 FormGenerator
+                Loader {
+                    id: generatorLoader
+                    source: "../generator/FormGenerator.qml"
+                    anchors.fill: parent
+
+                    onLoaded: {
+                        if (item) {
+                            // 隐藏不需要的 UI 元素，简化界面专注于布局调整
+                            item.previewMode = false;
+                        }
+                    }
                 }
             }
         }

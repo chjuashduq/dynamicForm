@@ -1,10 +1,7 @@
-
 // FormGeneratorLogic.js
 
 function handleDrop(drop, root, targetParent, targetIndex) {
-    if (!drop.source) {
-        return;
-    }
+    if (!drop.source) return;
 
     // Handle Move Existing Component
     if (drop.source.isExistingComponent) {
@@ -13,51 +10,34 @@ function handleDrop(drop, root, targetParent, targetIndex) {
         return;
     }
 
-    if (!drop.source.componentType) {
-        return;
-    }
+    if (!drop.source.componentType) return;
 
     var type = drop.source.componentType;
     var newItem = createItem(type, root);
 
     if (targetParent) {
-        // Find the REAL container in the formModel
         var realContainer = findItemInModel(root.formModel, targetParent.id);
-        if (!realContainer) {
-            console.error("Error: Could not find container in formModel", targetParent.id);
-            return;
-        }
-
-        // Create a new children array from the REAL container
+        if (!realContainer) return;
         var newChildren = [].concat(realContainer.children || []);
-
         if (typeof targetIndex === "number" && targetIndex >= 0) {
             newChildren.splice(targetIndex, 0, newItem);
         } else {
             newChildren.push(newItem);
         }
-
-        // Update the REAL container's children
         realContainer.children = newChildren;
-
-        // Force formModel update by creating a deep copy
         root.formModel = deepCopyFormModel(root.formModel);
     } else {
         var newModel = [].concat(root.formModel);
-
         if (typeof targetIndex === "number" && targetIndex >= 0) {
             newModel.splice(targetIndex, 0, newItem);
         } else {
             newModel.push(newItem);
         }
-
         root.formModel = newModel;
     }
-
     drop.accept(Qt.CopyAction);
 }
 
-// Deep copy function to ensure formModel changes trigger updates
 function deepCopyFormModel(model) {
     var newModel = [];
     for (var i = 0; i < model.length; i++) {
@@ -74,29 +54,20 @@ function deepCopyItem(item) {
         events: item.events ? JSON.parse(JSON.stringify(item.events)) : {},
         children: []
     };
-
     if (item.children && item.children.length > 0) {
         for (var i = 0; i < item.children.length; i++) {
             newItem.children.push(deepCopyItem(item.children[i]));
         }
     }
-
     return newItem;
 }
 
-// Helper function to recursively find an item in the model tree by ID
 function findItemInModel(model, itemId) {
     for (var i = 0; i < model.length; i++) {
-        if (model[i].id === itemId) {
-            return model[i];
-        }
-
-        // Recursively search in children
+        if (model[i].id === itemId) return model[i];
         if (model[i].children && model[i].children.length > 0) {
             var found = findItemInModel(model[i].children, itemId);
-            if (found) {
-                return found;
-            }
+            if (found) return found;
         }
     }
     return null;
@@ -107,10 +78,8 @@ function createItem(type, root) {
     var props = {};
     var children = [];
 
-    // Map type to component name - handle both lowercase and capitalized
     var componentName = type;
     if (type.charAt(0) === type.charAt(0).toLowerCase()) {
-        // If lowercase, capitalize first letter
         componentName = type.charAt(0).toUpperCase() + type.slice(1);
     }
 
@@ -121,41 +90,25 @@ function createItem(type, root) {
         var tempObject = component.createObject(root);
         if (tempObject) {
             if (tempObject.defaultProps) {
-                // Deep copy to avoid reference issues
                 props = JSON.parse(JSON.stringify(tempObject.defaultProps));
             }
             tempObject.destroy();
         }
     } else {
-        console.error("Error loading component for creation:", componentUrl, component.errorString());
-        // Fallback for safety
-        props = {
-            visible: true
-        };
+        // Fallback
+        props = { visible: true };
     }
 
-    // Initialize key if not present or empty
     if (!props.key) {
         props.key = type + "_" + new Date().getTime();
     }
 
-    return {
-        type: type,
-        id: id,
-        props: props,
-        children: children
-    };
+    return { type: type, id: id, props: props, children: children };
 }
 
 function deleteItem(item, parentList, root) {
-    // Find the real parent list in the current model
-    // parentList passed from CanvasItem might be stale due to model updates
-
     var found = findParentListAndIndex(root.formModel, item.id);
-    if (!found) {
-        console.error("Error: Could not find component to delete in model");
-        return;
-    }
+    if (!found) return;
 
     var realParentList = found.list;
     var index = found.index;
@@ -169,82 +122,51 @@ function deleteItem(item, parentList, root) {
     }
 }
 
-// Helper to find list and index
 function findParentListAndIndex(currentList, itemId) {
     for (var i = 0; i < currentList.length; i++) {
-        if (currentList[i].id === itemId) {
-            return {
-                list: currentList,
-                index: i
-            };
-        }
+        if (currentList[i].id === itemId) return { list: currentList, index: i };
         if (currentList[i].children && currentList[i].children.length > 0) {
             var result = findParentListAndIndex(currentList[i].children, itemId);
-            if (result)
-                return result;
+            if (result) return result;
         }
     }
     return null;
 }
 
 function moveItem(itemData, sourceParentList, targetParent, targetIndex, root) {
-    // Find real source list and index
     var sourceInfo = findParentListAndIndex(root.formModel, itemData.id);
-    if (!sourceInfo) {
-        console.error("Error: Could not find component in source list");
-        return;
-    }
+    if (!sourceInfo) return;
 
     var realSourceList = sourceInfo.list;
     var sourceIndex = sourceInfo.index;
-
-    // Determine target children list
     var targetChildren;
+
     if (targetParent) {
         var realTargetParent = findItemInModel(root.formModel, targetParent.id);
-        if (!realTargetParent) {
-            console.error("Error: Could not find target container");
-            return;
-        }
+        if (!realTargetParent) return;
         targetChildren = realTargetParent.children;
     } else {
         targetChildren = root.formModel;
     }
 
     var sameList = (realSourceList === targetChildren);
-
     if (sameList) {
-        if (targetIndex === -1)
-            targetIndex = targetChildren.length;
-
-        // If moving down, adjust index because removal shifts subsequent items
-        if (sourceIndex < targetIndex) {
-            targetIndex--;
-        }
-
-        // Remove and Insert
+        if (targetIndex === -1) targetIndex = targetChildren.length;
+        if (sourceIndex < targetIndex) targetIndex--;
         var movedItem = realSourceList.splice(sourceIndex, 1)[0];
         targetChildren.splice(targetIndex, 0, movedItem);
     } else {
-        // Remove from source
         var movedItem = realSourceList.splice(sourceIndex, 1)[0];
-
-        // Add to target
-        if (targetIndex === -1) {
-            targetChildren.push(movedItem);
-        } else {
-            targetChildren.splice(targetIndex, 0, movedItem);
-        }
+        if (targetIndex === -1) targetChildren.push(movedItem);
+        else targetChildren.splice(targetIndex, 0, movedItem);
     }
 
-    // Force update
     root.formModel = deepCopyFormModel(root.formModel);
-    // Restore selection
     root.selectedItem = findItemInModel(root.formModel, itemData.id);
 }
 
 function generateCode(root, codeDialog) {
-    var code = "import QtQuick\nimport QtQuick.Controls\nimport QtQuick.Layouts\nimport Common 1.0\nimport \"../components\"\n\nItem {\n    width: 800\n    height: 600\n\n    ColumnLayout {\n        anchors.fill: parent\n        anchors.margins: 20\n        spacing: 10\n\n";
+    var code = "import QtQuick\nimport QtQuick.Controls\nimport QtQuick.Layouts\nimport Common 1.0\nimport \"../components\"\n\nItem {\n    width: 800\n    height: 600\n\n    // 主容器 (默认 GridLayout)\n    GridLayout {\n        anchors.fill: parent\n        anchors.margins: 20\n        columns: 2 // 默认列数\n        rowSpacing: 10\n        columnSpacing: 15\n\n";
     var functions = [];
     code += generateChildrenCode(root.formModel, 2, root, functions);
     code += "    }\n\n";
@@ -255,8 +177,17 @@ function generateCode(root, codeDialog) {
     }
 
     code += "}";
-    codeDialog.code = code;
-    codeDialog.open();
+    if (codeDialog) {
+        codeDialog.code = code;
+        codeDialog.open();
+    }
+    return code; // Return the code string
+}
+
+// 新增：仅生成子元素代码，不包裹 Item
+function generateFormBody(formModel, root) {
+    var functions = []; // 暂不处理内联函数，因为是用于生成的 C++ 模板
+    return generateChildrenCode(formModel, 2, root, functions);
 }
 
 function generateChildrenCode(children, indentLevel, root, functions) {
@@ -272,7 +203,6 @@ function generateItemCode(item, indentLevel, root, functions) {
     var indent = "    ".repeat(indentLevel);
     var code = "";
 
-    // Map type to component name - handle both lowercase and capitalized
     var componentName = item.type;
     if (item.type.charAt(0) === item.type.charAt(0).toLowerCase()) {
         componentName = item.type.charAt(0).toUpperCase() + item.type.slice(1);
@@ -286,12 +216,22 @@ function generateItemCode(item, indentLevel, root, functions) {
         if (tempObject) {
             if (typeof tempObject.generateCode === "function") {
                 var childrenCode = "";
-                // Only generate children code if it's a container (like StyledRow)
                 if (item.children && item.children.length > 0) {
                     childrenCode = generateChildrenCode(item.children, indentLevel + 1, root, functions);
                 }
 
+                // [关键修改] 手动注入 id，因为 generateCode 通常不包含 id
+                // 如果 props 中有 id（我们在 GenEdit 中设置的），则使用它
+                // 如果没有，但有 key，则使用 field_key 格式
+                var originalId = item.props.id;
+                if (!originalId && item.props.key) {
+                    item.props.id = "field_" + item.props.key;
+                }
+
                 code = tempObject.generateCode(item.props, childrenCode, indent, item.events, functions);
+
+                // 恢复 props，以免影响界面显示
+                if (!originalId) delete item.props.id;
             } else {
                 code = indent + "// Error: generateCode not implemented for " + item.type;
             }
@@ -306,7 +246,6 @@ function generateItemCode(item, indentLevel, root, functions) {
 
 function updateItemProperty(root, key, value) {
     if (root.selectedItem) {
-        // Find the real object in formModel
         var realItem = findItemInModel(root.formModel, root.selectedItem.id);
         if (realItem) {
             if (key === "events") {
@@ -314,14 +253,8 @@ function updateItemProperty(root, key, value) {
             } else {
                 realItem.props[key] = value;
             }
-
-            // Force UI update by deep copying the formModel
             root.formModel = deepCopyFormModel(root.formModel);
-
-            // Update selectedItem reference to the new object
             root.selectedItem = findItemInModel(root.formModel, root.selectedItem.id);
-        } else {
-            console.error("Error: Could not find item in formModel", root.selectedItem.id);
         }
     }
 }

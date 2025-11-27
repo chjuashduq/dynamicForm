@@ -2,7 +2,7 @@
  * File: {{ className }}List.qml
  * Author: {{ author }}
  * Date: {{ createDate }}
- * Description: List view for {{ tableName }}
+ * Description: {{ tableName }} 列表管理页面
  */
 import QtQuick
 import QtQuick.Controls
@@ -22,11 +22,11 @@ Item {
     {{ className }}Controller {
         id: controller
         onOperationSuccess: function(message) {
-            console.log(message);
+            console.log("Success:", message);
             loadData();
         }
         onOperationFailed: function(message) {
-            console.error(message);
+            console.error("Failed:", message);
         }
     }
     
@@ -34,49 +34,69 @@ Item {
     
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 10
+        anchors.margins: 15
         spacing: 10
         
         // Search Area
-        Flow {
+        GroupBox {
+            title: "查询条件"
             Layout.fillWidth: true
-            spacing: 10
             
-            {{# columns }}
-            {{# isQuery }}
-            RowLayout {
-                Text { 
-                    text: "{{ columnComment }}: " 
-                    visible: true 
-                }
-                StyledTextField {
-                    id: search_{{ cppField }}
-                    showLabel: false 
-                    placeholderText: {{# isQueryBetween }}"范围: 开始,结束"{{/ isQueryBetween }}{{^ isQueryBetween }}"请输入"{{/ isQueryBetween }}
-                    implicitWidth: 200
-                }
-            }
-            {{/ isQuery }}
-            {{/ columns }}
-            
-            RowLayout {
-                StyledButton {
-                    text: "搜索"
-                    onClicked: {
-                        pageNum = 1;
-                        loadData();
+            GridLayout {
+                anchors.fill: parent
+                // 响应式布局：根据宽度自动调整列数
+                columns: root.width < 800 ? 2 : 4
+                columnSpacing: 15
+                rowSpacing: 10
+                
+                {{# columns }}
+                {{# isQuery }}
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.columnSpan: 1
+                    
+                    Text { 
+                        text: "{{ columnComment }}: " 
+                        font.pixelSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+                    StyledTextField {
+                        id: search_{{ cppField }}
+                        showLabel: false 
+                        Layout.fillWidth: true
+                        placeholderText: {{# isQueryBetween }}"范围: 开始,结束"{{/ isQueryBetween }}{{^ isQueryBetween }}"请输入"{{/ isQueryBetween }}
                     }
                 }
-                StyledButton {
-                    text: "重置"
-                    onClicked: {
-                        {{# columns }}
-                        {{# isQuery }}
-                        search_{{ cppField }}.text = ""
-                        {{/ isQuery }}
-                        {{/ columns }}
-                        pageNum = 1;
-                        loadData()
+                {{/ isQuery }}
+                {{/ columns }}
+                
+                // 查询操作按钮
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.columnSpan: 1
+                    Layout.alignment: Qt.AlignRight
+                    spacing: 10
+                    
+                    StyledButton {
+                        text: "搜索"
+                        buttonType: "primary"
+                        onClicked: {
+                            pageNum = 1;
+                            loadData();
+                        }
+                    }
+                    StyledButton {
+                        text: "重置"
+                        buttonType: "secondary"
+                        onClicked: {
+                            {{# columns }}
+                            {{# isQuery }}
+                            search_{{ cppField }}.text = ""
+                            {{/ isQuery }}
+                            {{/ columns }}
+                            pageNum = 1;
+                            loadData()
+                        }
                     }
                 }
             }
@@ -85,103 +105,138 @@ Item {
         // Toolbar
         RowLayout {
             Layout.fillWidth: true
+            spacing: 10
+            
             StyledButton { 
                 text: "新增"
-                onClicked: {
-                    var comp = Qt.createComponent("{{ className }}Edit.qml");
-                    if (comp.status === Component.Ready) {
-                        var obj = comp.createObject(root.parent, {controller: controller});
-                        if (root.StackView.view) {
-                            root.StackView.view.push(obj);
-                        } else {
-                            obj.parent = root.parent;
-                        }
-                    } else {
-                        console.error("Error loading {{ className }}Edit.qml:", comp.errorString());
-                    }
+                buttonType: "success"
+                onClicked: openEditDialog(true, {})
+            }
+            
+            Item { Layout.fillWidth: true }
+        }
+        
+        // List Header
+        Rectangle {
+            Layout.fillWidth: true
+            height: 45
+            color: "#f5f7fa"
+            border.color: "#e4e7ed"
+            border.width: 1
+            radius: 4
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: 10
+                anchors.leftMargin: 15
+                anchors.rightMargin: 15
+                
+                {{# columns }}
+                {{# isList }}
+                Text { 
+                    Layout.preferredWidth: 120
+                    Layout.fillWidth: true
+                    text: "{{ columnComment }}"
+                    font.bold: true 
+                    color: "#606266"
+                }
+                {{/ isList }}
+                {{/ columns }}
+                Text { 
+                    Layout.preferredWidth: 150
+                    text: "操作" 
+                    font.bold: true 
+                    horizontalAlignment: Text.AlignHCenter
+                    color: "#606266"
                 }
             }
         }
         
-        // Header
-        Rectangle {
-            Layout.fillWidth: true
-            height: 40
-            color: "#eee"
-            RowLayout {
-                anchors.fill: parent
-                spacing: 10
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                
-                {{# columns }}
-                {{# isList }}
-                Text { Layout.preferredWidth: 100; text: "{{ columnComment }}"; font.bold: true }
-                {{/ isList }}
-                {{/ columns }}
-                Text { Layout.preferredWidth: 150; text: "操作"; font.bold: true }
-            }
-        }
-        
-        // List
+        // List Content
         ListView {
             id: listView
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
             model: root.tableModel
+            spacing: 5
             
             delegate: Rectangle {
                 width: ListView.view.width
                 height: 50
-                color: index % 2 === 0 ? "#fff" : "#f9f9f9"
+                color: index % 2 === 0 ? "#ffffff" : "#fafafa"
+                border.width: 0
+                
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    propagateComposedEvents: true
+                    onEntered: parent.color = "#f0f9eb"
+                    onExited: parent.color = index % 2 === 0 ? "#ffffff" : "#fafafa"
+                }
                 
                 RowLayout {
                     anchors.fill: parent
                     spacing: 10
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
+                    anchors.leftMargin: 15
+                    anchors.rightMargin: 15
                     
                     {{# columns }}
                     {{# isList }}
                     Text {
-                        Layout.preferredWidth: 100
+                        Layout.preferredWidth: 120
+                        Layout.fillWidth: true
                         text: modelData["{{ cppField }}"]
                         elide: Text.ElideRight
+                        color: "#333333"
                     }
                     {{/ isList }}
                     {{/ columns }}
                     
                     RowLayout {
                         Layout.preferredWidth: 150
-                        spacing: 5
+                        Layout.alignment: Qt.AlignHCenter
+                        spacing: 8
+                        
                         StyledButton {
                             text: "编辑"
-                            onClicked: {
-                                var comp = Qt.createComponent("{{ className }}Edit.qml");
-                                if (comp.status === Component.Ready) {
-                                    var obj = comp.createObject(root.parent, {
-                                        controller: controller,
-                                        isAdd: false,
-                                        formData: modelData
-                                    });
-                                    if (root.StackView.view) {
-                                        root.StackView.view.push(obj);
-                                    }
-                                }
-                            }
+                            width: 60
+                            height: 30
+                            onClicked: openEditDialog(false, modelData)
                         }
+                        
                         StyledButton {
                             text: "删除"
+                            buttonType: "danger"
+                            width: 60
+                            height: 30
                             onClicked: {
-                                var pk = 0;
-                                {{# columns }}{{# isPk }}pk = modelData["{{ cppField }}"];{{/ isPk }}{{/ columns }}
+                                var pk = modelData["{{ pkCppField }}"];
                                 controller.remove(pk);
                             }
                         }
                     }
                 }
             }
+        }
+    }
+    
+    function openEditDialog(isAdd, data) {
+        var comp = Qt.createComponent("{{ className }}Edit.qml");
+        if (comp.status === Component.Ready) {
+            var props = {
+                controller: controller,
+                isAdd: isAdd,
+                formData: data
+            };
+            var obj = comp.createObject(root.parent, props);
+            if (root.StackView.view) {
+                root.StackView.view.push(obj);
+            } else {
+                obj.parent = root.parent;
+            }
+        } else {
+            console.error("Error loading {{ className }}Edit.qml:", comp.errorString());
         }
     }
     

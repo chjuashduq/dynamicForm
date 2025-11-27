@@ -178,14 +178,16 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
     QVariantList colsList;
     QJsonArray columns = config["columns"].toArray();
     
+    // 预定义主键字段名，默认为 id
+    QString pkCppField = "id";
+
     for (const QJsonValue &val : columns) {
         QJsonObject obj = val.toObject();
         QVariantMap colMap = obj.toVariantMap();
         
-        // [修复] 如果没有注释，使用更友好的驼峰属性名
+        // [修复] 如果没有注释，使用更友好的驼峰属性名或列名
         QString comment = colMap["columnComment"].toString();
         if (comment.trimmed().isEmpty()) {
-            // 优先使用 cppField (如 userName) 而不是 columnName (如 user_name)
             QString friendlyName = colMap["cppField"].toString();
             if (friendlyName.isEmpty()) friendlyName = colMap["columnName"].toString();
             colMap["columnComment"] = friendlyName;
@@ -205,6 +207,11 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
             colMap["cppFieldCap"] = field.at(0).toUpper() + field.mid(1);
         }
         
+        // [新增] 识别主键并保存到根数据中
+        if (colMap["isPk"].toBool()) {
+            pkCppField = field;
+        }
+
         // Map to actual C++ types
         QString cppType = colMap["cppType"].toString();
         if (cppType == "String") colMap["cppType"] = "QString";
@@ -248,6 +255,9 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
         colsList.append(colMap);
     }
     data["columns"] = colsList;
+    
+    // [新增] 将找到的主键字段名注入到模板数据中
+    data["pkCppField"] = pkCppField;
     
     return data;
 }
