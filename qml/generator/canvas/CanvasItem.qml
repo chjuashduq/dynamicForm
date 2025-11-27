@@ -50,7 +50,6 @@ Rectangle {
             return 800;
         var w = 800;
         var pWidth = parent ? parent.width : 800;
-
         if (itemData.props.layoutType === "percent") {
             w = pWidth * ((itemData.props.widthPercent || 100) / 100);
         } else if (itemData.props.layoutType === "fixed") {
@@ -125,7 +124,6 @@ Rectangle {
         }
 
         console.log("CanvasItem: Loading component for type:", itemData.type, "-> name:", name);
-
         if (name === "StyledRow") {
             console.log("CanvasItem: Using sourceComponent for StyledRow");
             contentLoader.sourceComponent = rowComp;
@@ -186,7 +184,6 @@ Rectangle {
 
         if (!previewMode)
             return;
-
         var item = contentLoader.item;
 
         // Register to FormAPI if key exists (for getControlValue etc.)
@@ -204,7 +201,6 @@ Rectangle {
             var code = itemData.events[eventName];
             if (!code)
                 continue;
-
             var signalName = eventName;
             if (signalName.startsWith("on")) {
                 signalName = signalName.substring(2);
@@ -281,15 +277,19 @@ Rectangle {
             id: rowContainer
             width: parent.width
             implicitHeight: {
+                // [修复] 获取详细的 padding 值，如果未定义则回退到 padding 或 0
+                var pt = (itemData.props && (itemData.props.paddingTop !== undefined ? itemData.props.paddingTop : (itemData.props.padding || 0))) || 0;
+                var pb = (itemData.props && (itemData.props.paddingBottom !== undefined ? itemData.props.paddingBottom : (itemData.props.padding || 0))) || 0;
+
                 if (previewMode) {
                     // In preview mode, height is determined by content
                     // If no children, height is 0
                     if (!itemData.children || itemData.children.length === 0)
                         return 0;
-                    return rowLayout.childrenRect.height + ((itemData.props && itemData.props.padding) || 0) * 2;
+                    return rowLayout.childrenRect.height + pt + pb;
                 } else {
                     // In edit mode, ensure minimum height for drop area
-                    return Math.max(100, rowLayout.childrenRect.height + 40);
+                    return Math.max(100, rowLayout.childrenRect.height + pt + pb + 40);
                 }
             }
             height: implicitHeight
@@ -320,16 +320,13 @@ Rectangle {
 
                     var point = rowLayout.mapFromItem(dropArea, drop.x, drop.y);
                     var visualIndex = 0;
-
                     for (var i = 0; i < rowLayout.children.length; i++) {
                         var child = rowLayout.children[i];
-
                         // Skip Repeater or other non-visual items
                         // We can check if it has 'itemData' property which we set on Loaders
                         // Check if it is a Loader with a loaded item that has itemData
                         if (!child.item || !child.item.hasOwnProperty("itemData"))
                             continue;
-
                         // Check if point is before this child
                         // For Flow (LeftToRight), we check X primarily, but also Y for wrapping
                         if (point.y < child.y + child.height && point.x < child.x + child.width / 2) {
@@ -362,11 +359,16 @@ Rectangle {
                 layoutDirection: (itemData.props.alignment === Qt.AlignRight) ? Qt.RightToLeft : Qt.LeftToRight
 
                 anchors.top: parent.top
-                anchors.topMargin: (itemData.props && itemData.props.padding) || 0
+                // [修复] 优先使用 paddingTop
+                anchors.topMargin: (itemData.props && (itemData.props.paddingTop !== undefined ? itemData.props.paddingTop : (itemData.props.padding || 0))) || 0
+
                 anchors.left: (itemData.props.alignment === Qt.AlignHCenter) ? undefined : parent.left
-                anchors.leftMargin: (itemData.props && itemData.props.padding) || 0
+                // [修复] 优先使用 paddingLeft
+                anchors.leftMargin: (itemData.props && (itemData.props.paddingLeft !== undefined ? itemData.props.paddingLeft : (itemData.props.padding || 0))) || 0
+
                 anchors.right: (itemData.props.alignment === Qt.AlignHCenter) ? undefined : parent.right
-                anchors.rightMargin: (itemData.props && itemData.props.padding) || 0
+                // [修复] 优先使用 paddingRight
+                anchors.rightMargin: (itemData.props && (itemData.props.paddingRight !== undefined ? itemData.props.paddingRight : (itemData.props.padding || 0))) || 0
 
                 spacing: (itemData.props && itemData.props.spacing) || 0
 
@@ -376,7 +378,6 @@ Rectangle {
                     delegate: Loader {
                         width: {
                             var containerWidth = rowLayout.width;
-
                             if (modelData.props.layoutType === "fixed")
                                 return modelData.props.width || 350;
                             if (modelData.props.layoutType === "percent")

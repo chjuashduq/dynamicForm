@@ -1,7 +1,7 @@
 import QtQuick 6.5
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
-import Common 1.0
+import Common 1.0 as Common
 
 /**
  * 美化的文本输入框
@@ -77,41 +77,41 @@ StyledBase {
 
         // property bool hasError: false // 移除，使用 root.hasError
 
-        height: AppStyles.inputHeight
-        font.pixelSize: AppStyles.fontSizeMedium
-        font.family: AppStyles.fontFamily
-        color: AppStyles.textPrimary
-        placeholderTextColor: AppStyles.textPlaceholder
+        height: Common.AppStyles.inputHeight
+        font.pixelSize: Common.AppStyles.fontSizeMedium
+        font.family: Common.AppStyles.fontFamily
+        color: Common.AppStyles.textPrimary
+        placeholderTextColor: Common.AppStyles.textPlaceholder
         selectByMouse: true
 
-        leftPadding: AppStyles.inputPadding
-        rightPadding: AppStyles.inputPadding
+        leftPadding: Common.AppStyles.inputPadding
+        rightPadding: Common.AppStyles.inputPadding
 
         onEditingFinished: root.editingFinished()
         onTextEdited: root.textEdited()
 
         background: Rectangle {
-            color: control.enabled ? AppStyles.inputBackground : AppStyles.backgroundColor
+            color: control.enabled ? Common.AppStyles.inputBackground : Common.AppStyles.backgroundColor
             border.color: {
                 // [修改] 优先判断错误状态
                 if (root.hasError)
                     return "red"; // 验证失败变红
                 if (control.activeFocus)
-                    return AppStyles.inputBorderFocus;
-                return AppStyles.inputBorder;
+                    return Common.AppStyles.inputBorderFocus;
+                return Common.AppStyles.inputBorder;
             }
-            border.width: (control.activeFocus || root.hasError) ? 2 : AppStyles.inputBorderWidth
-            radius: AppStyles.inputRadius
+            border.width: (control.activeFocus || root.hasError) ? 2 : Common.AppStyles.inputBorderWidth
+            radius: Common.AppStyles.inputRadius
 
             Behavior on border.color {
                 ColorAnimation {
-                    duration: AppStyles.animationDuration
+                    duration: Common.AppStyles.animationDuration
                 }
             }
 
             Behavior on border.width {
                 NumberAnimation {
-                    duration: AppStyles.animationDuration
+                    duration: Common.AppStyles.animationDuration
                 }
             }
         }

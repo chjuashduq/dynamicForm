@@ -255,8 +255,7 @@ QtObject {
         }
 
         var control = controlsMap[controlKey];
-
-        // [修改] 重置 valid 为 undefined
+        // [修复] 重置 valid 为 undefined
         if (control.hasOwnProperty("valid")) {
             control.valid = undefined;
         }
@@ -365,7 +364,9 @@ QtObject {
         var isValid = true;
         var errorMsg = "";
 
-        // 执行自定义验证函数
+        // [修复] 逻辑调整：严格遵循 "undefined 视为 false" 的要求
+
+        // 1. 如果有配置 validationFunction，执行它
         if (config.validationFunction && config.validationFunction.trim() !== "") {
             if (scriptEngine) {
                 try {
@@ -373,8 +374,8 @@ QtObject {
                         value: value,
                         formAPI: formAPI
                     });
+                    // 函数返回 false 视为失败
                     if (result === false) {
-                        // 验证失败
                         isValid = false;
                         errorMsg = config.label ? (config.label + " 验证失败") : "验证失败";
                     }
@@ -387,9 +388,27 @@ QtObject {
                     }
                 }
             }
+        } else
+        // 2. 如果没有 validationFunction，检查控件当前的 valid 属性
+        // 允许用户通过事件 (如 onFocusLost) 手动设置 valid，validateAll 必须尊重这个状态
+        if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("valid")) {
+            // [关键修改] 只有显式为 true 才算通过，undefined 或 false 均视为失败
+            if (controlsMap[controlKey].valid !== true) {
+                isValid = false;
+                // 如果是 undefined (未交互)，通常不报错，但返回 false 阻止提交
+                // 如果是 false (已交互且失败)，则显示错误
+                if (controlsMap[controlKey].valid === false) {
+                    errorMsg = config.label ? (config.label + " 验证未通过") : "验证未通过";
+                } else {
+                    // undefined 情况：仅拦截，不报错（或者根据需求报错）
+                    // 按照用户需求 "预览直接点击保存，验证通过"，说明之前这里默认了 true
+                    // 现在改为默认 false
+                    errorMsg = "请完善 " + (config.label || controlKey);
+                }
+            }
         }
 
-        // [修改] 更新控件的 valid 状态，触发 UI 变色
+        // 更新控件的 valid 状态 (触发 UI 变色)
         if (controlsMap[controlKey]) {
             controlsMap[controlKey].valid = isValid;
         }
@@ -414,7 +433,7 @@ QtObject {
      * @return boolean - true表示验证通过，false表示验证失败或未验证
      */
     function isControlValid(controlKey) {
-        // [修改] 严格检查 valid 属性，只有 true 才算通过
+        // [修复] 严格检查 valid 属性，只有 true 才算通过，undefined 视为 false
         if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("valid")) {
             return controlsMap[controlKey].valid === true;
         }
@@ -453,9 +472,12 @@ QtObject {
             if (controlConfigs.hasOwnProperty(key)) {
                 var config = controlConfigs[key];
 
+                // 排除按钮等不需要验证的控件
+                if (config.type === "button" || config.type === "StyledRow")
+                    continue;
+
                 // [修改] 主动触发一次验证，确保状态更新
                 var result = validateControl(key, false);
-
                 if (!result.valid) {
                     errors.push({
                         key: key,

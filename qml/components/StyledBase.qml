@@ -12,30 +12,28 @@ RowLayout {
     property real labelRatio: 0.2
     property bool showLabel: true
 
-    // Expose the label item for customization
     property alias labelItem: labelText
-    // [修改] 颜色由内部逻辑控制，外部样式作为基准
+    // 颜色由内部逻辑控制
     property color labelColor: AppStyles.textPrimary
     property alias labelFont: labelText.font
 
-    // Expose Text alignment properties
     property alias labelHorizontalAlignment: labelText.horizontalAlignment
-
     property alias labelVerticalAlignment: labelText.verticalAlignment
     property alias labelElide: labelText.elide
 
     property string key: ""
 
-    // [修改] valid 初始化为 undefined
+    // [修复] valid 初始化为 undefined
+    // 当 valid 为 undefined 时，isControlValid() 返回 false，validateAll() 也会视为失败
     property var valid: undefined
-    // [新增] 错误状态计算属性
+
+    // [新增] 错误状态计算属性，用于 UI 绑定 (只在明确为 false 时标红，undefined 不标红)
     property bool hasError: valid === false
 
-    // Common default properties for all components
     readonly property var baseDefaultProps: ({
             "label": "Label",
             "labelWidth": 80,
-            "labelRatio": 0.2 // [修改] 默认为 0.2
+            "labelRatio": 0.2 // 默认为 0.2
             ,
             "showLabel": true,
             "layoutType": "fill",
@@ -44,10 +42,9 @@ RowLayout {
             "visible": true,
             "enabled": true,
             "key": "",
-            "valid": undefined // [修改]
+            "valid": undefined // [修复] 默认配置中也为 undefined
         })
 
-    // Helper to merge specific props with base props
     function mergeProps(specificProps) {
         var props = JSON.parse(JSON.stringify(baseDefaultProps));
         for (var key in specificProps) {
@@ -56,10 +53,8 @@ RowLayout {
         return props;
     }
 
-    // Helper to generate common layout code
     function generateLayoutCode(props, indent) {
         var code = "";
-        // Generate width properties based on layoutType
         if (props.layoutType === "fill") {
             code += indent + "    Layout.fillWidth: true\n";
         } else if (props.layoutType === "fixed") {
@@ -80,7 +75,6 @@ RowLayout {
             code += indent + "    visible: false\n";
         }
 
-        // Generate label ratio code
         if (props.labelRatio !== undefined) {
             code += indent + "    labelRatio: " + props.labelRatio + "\n";
         }
@@ -88,7 +82,6 @@ RowLayout {
         return code;
     }
 
-    // Helper to generate common events code
     function generateCommonEventsCode(props, events, indent, functions) {
         var code = "";
         function wrapCode(eventCode, args) {
@@ -97,31 +90,22 @@ RowLayout {
             return "scriptEngine.executeFunction(" + codeStr + ", " + contextObj + ")";
         }
 
-        // [修改] 即使内容为空，只要 CheckBox 被选中（在 events 对象中存在 key），就生成代码
         if (events && events.hasOwnProperty("onVisibleChanged")) {
             var funcName = (props.key && props.key.trim() !== "") ? (props.key + "_VisibleChanged") : "";
-
             if (funcName && functions) {
                 code += indent + "    onVisibleChanged: " + funcName + "()\n";
-                // 添加注释
-                var comment = props.label ? (" // " + props.label + " 可见性变化") : "";
-                var body = events.onVisibleChanged ? ("        " + wrapCode(events.onVisibleChanged)) : "";
-                var funcCode = "    function " + funcName + "() {" + comment + "\n" + body + "\n    }";
+                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onVisibleChanged) + "\n" + "    }";
                 functions.push(funcCode);
             } else if (events.onVisibleChanged) {
-                // 如果没有 key 或不需要分离函数，且有代码内容，则内联生成
                 code += indent + "    onVisibleChanged: {\n" + indent + "        " + wrapCode(events.onVisibleChanged) + "\n" + indent + "    }\n";
             }
         }
 
         if (events && events.hasOwnProperty("onEnabledChanged")) {
             var funcName = (props.key && props.key.trim() !== "") ? (props.key + "_EnabledChanged") : "";
-
             if (funcName && functions) {
                 code += indent + "    onEnabledChanged: " + funcName + "()\n";
-                var comment = props.label ? (" // " + props.label + " 启用状态变化") : "";
-                var body = events.onEnabledChanged ? ("        " + wrapCode(events.onEnabledChanged)) : "";
-                var funcCode = "    function " + funcName + "() {" + comment + "\n" + body + "\n    }";
+                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onEnabledChanged) + "\n" + "    }";
                 functions.push(funcCode);
             } else if (events.onEnabledChanged) {
                 code += indent + "    onEnabledChanged: {\n" + indent + "        " + wrapCode(events.onEnabledChanged) + "\n" + indent + "    }\n";
@@ -131,13 +115,11 @@ RowLayout {
         return code;
     }
 
-    // Label Component
     Text {
         id: labelText
         text: baseRoot.label
         visible: baseRoot.showLabel
 
-        // Calculate width: prefer ratio, fallback to fixed
         Layout.preferredWidth: {
             if (baseRoot.labelRatio > 0 && baseRoot.width > 0) {
                 return Math.max(20, baseRoot.width * baseRoot.labelRatio);
@@ -147,7 +129,8 @@ RowLayout {
 
         Layout.alignment: Qt.AlignVCenter
         font.pixelSize: AppStyles.fontSizeMedium
-        // [修改] 根据 hasError 状态改变颜色
+
+        // [修复] 只有当 hasError (valid===false) 时才标红，undefined 不标红
         color: baseRoot.hasError ? "red" : baseRoot.labelColor
 
         Behavior on color {
