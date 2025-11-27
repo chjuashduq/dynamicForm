@@ -15,7 +15,7 @@ StyledBase {
     property alias placeholderText: control.placeholderText
     property alias readOnly: control.readOnly
     property alias echoMode: control.echoMode
-    property alias color: control.color
+    // property alias color: control.color // Removed to avoid conflict with StyledBase handling
 
     property var defaultProps: mergeProps({
         "label": "文本输入",
@@ -27,7 +27,6 @@ StyledBase {
     function generateCode(props, childrenCode, indent, events, functions) {
         var layoutProps = generateLayoutCode(props, indent);
         var code = "StyledTextField {\n" + indent + "    text: \"" + props.text + "\"\n" + indent + "    placeholderText: \"" + props.placeholder + "\"\n" + indent + "    readOnly: " + props.readOnly + "\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps;
-
         if (props.key && props.key.trim() !== "") {
             code += indent + "    key: \"" + props.key + "\"\n";
         }
@@ -38,32 +37,36 @@ StyledBase {
             return "scriptEngine.executeFunction(" + JSON.stringify(c) + ", " + contextObj + ")";
         }
 
-        if (events && events.onEditingFinished) {
-            if (props.key && props.key.trim() !== "" && functions) {
-                var funcName = props.key + "_EditingFinished";
-                code += indent + "    onEditingFinished: " + funcName + "()\n";
+        // [修改] 支持空函数生成和注释
+        if (events && events.hasOwnProperty("onEditingFinished")) {
+            var funcName = (props.key && props.key.trim() !== "") ? (props.key + "_EditingFinished") : "";
 
-                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onEditingFinished) + "\n" + "    }";
+            if (funcName && functions) {
+                code += indent + "    onEditingFinished: " + funcName + "()\n";
+                var comment = props.label ? (" // " + props.label + " 编辑完成") : "";
+                var body = events.onEditingFinished ? ("        " + wrapCode(events.onEditingFinished)) : "";
+                var funcCode = "    function " + funcName + "() {" + comment + "\n" + body + "\n    }";
                 functions.push(funcCode);
-            } else {
+            } else if (events.onEditingFinished) {
                 code += indent + "    onEditingFinished: {\n" + indent + "        " + wrapCode(events.onEditingFinished) + "\n" + indent + "    }\n";
             }
         }
 
-        if (events && events.onTextEdited) {
-            if (props.key && props.key.trim() !== "" && functions) {
-                var funcName = props.key + "_TextEdited";
-                code += indent + "    onTextEdited: " + funcName + "()\n";
+        if (events && events.hasOwnProperty("onTextEdited")) {
+            var funcName = (props.key && props.key.trim() !== "") ? (props.key + "_TextEdited") : "";
 
-                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onTextEdited) + "\n" + "    }";
+            if (funcName && functions) {
+                code += indent + "    onTextEdited: " + funcName + "()\n";
+                var comment = props.label ? (" // " + props.label + " 文本改变") : "";
+                var body = events.onTextEdited ? ("        " + wrapCode(events.onTextEdited)) : "";
+                var funcCode = "    function " + funcName + "() {" + comment + "\n" + body + "\n    }";
                 functions.push(funcCode);
-            } else {
+            } else if (events.onTextEdited) {
                 code += indent + "    onTextEdited: {\n" + indent + "        " + wrapCode(events.onTextEdited) + "\n" + indent + "    }\n";
             }
         }
 
         code += generateCommonEventsCode(props, events, indent, functions);
-
         code += indent + "}";
         return code;
     }
@@ -72,7 +75,7 @@ StyledBase {
         id: control
         Layout.fillWidth: true
 
-        property bool hasError: false
+        // property bool hasError: false // 移除，使用 root.hasError
 
         height: AppStyles.inputHeight
         font.pixelSize: AppStyles.fontSizeMedium
@@ -90,13 +93,14 @@ StyledBase {
         background: Rectangle {
             color: control.enabled ? AppStyles.inputBackground : AppStyles.backgroundColor
             border.color: {
-                if (control.hasError)
-                    return AppStyles.inputBorderError;
+                // [修改] 优先判断错误状态
+                if (root.hasError)
+                    return "red"; // 验证失败变红
                 if (control.activeFocus)
                     return AppStyles.inputBorderFocus;
                 return AppStyles.inputBorder;
             }
-            border.width: control.activeFocus ? 2 : AppStyles.inputBorderWidth
+            border.width: (control.activeFocus || root.hasError) ? 2 : AppStyles.inputBorderWidth
             radius: AppStyles.inputRadius
 
             Behavior on border.color {

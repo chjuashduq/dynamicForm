@@ -240,7 +240,12 @@ Rectangle {
 
                                     generatorRoot.scriptEngine.executeFunction(c, {
                                         self: item,
-                                        value: val
+                                        value: val,
+                                        root: {
+                                            isAdd: true
+                                        } // Mock root object for preview
+                                        ,
+                                        isAdd: true // Direct access if needed
                                     });
                                 } catch (err) {
                                     console.error("Error executing event code via ScriptEngine for", name, ":", err);
@@ -351,15 +356,16 @@ Rectangle {
 
             Flow {
                 id: rowLayout
-                width: parent.width
+                width: (itemData.props.alignment === Qt.AlignHCenter) ? Math.min(implicitWidth, parent.width) : parent.width
+                anchors.horizontalCenter: (itemData.props.alignment === Qt.AlignHCenter) ? parent.horizontalCenter : undefined
 
                 layoutDirection: (itemData.props.alignment === Qt.AlignRight) ? Qt.RightToLeft : Qt.LeftToRight
 
                 anchors.top: parent.top
                 anchors.topMargin: (itemData.props && itemData.props.padding) || 0
-                anchors.left: parent.left
+                anchors.left: (itemData.props.alignment === Qt.AlignHCenter) ? undefined : parent.left
                 anchors.leftMargin: (itemData.props && itemData.props.padding) || 0
-                anchors.right: parent.right
+                anchors.right: (itemData.props.alignment === Qt.AlignHCenter) ? undefined : parent.right
                 anchors.rightMargin: (itemData.props && itemData.props.padding) || 0
 
                 spacing: (itemData.props && itemData.props.spacing) || 0

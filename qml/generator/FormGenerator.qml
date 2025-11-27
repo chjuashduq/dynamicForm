@@ -216,14 +216,10 @@ Item {
                                 console.log("根节点 DropArea 触发");
                                 var targetIndex = -1;
                                 var yPos = canvasContent.mapFromItem(rootDropArea, drop.x, drop.y).y;
-
                                 // Calculate index based on Y position
-                                // canvasContent children includes the Repeater and the loaded items
                                 var visualChildren = [];
                                 for (var i = 0; i < canvasContent.children.length; i++) {
                                     var child = canvasContent.children[i];
-                                    // Filter out Repeater or non-visual items if any
-                                    // Check if it is a Loader with a loaded item that has itemData
                                     if (child.item && child.item.hasOwnProperty("itemData")) {
                                         visualChildren.push(child);
                                     }
@@ -265,8 +261,7 @@ Item {
                                                 if (type === "fixed")
                                                     return modelData.props.width || 100;
                                                 if (type === "percent")
-                                                    return (canvasContent.width - 10) * ((modelData.props.widthPercent || 100) / 100); // Subtract spacing safety
-
+                                                    return (canvasContent.width - 10) * ((modelData.props.widthPercent || 100) / 100);
                                                 // Default or fill
                                                 return canvasContent.width;
                                             }
@@ -296,7 +291,8 @@ Item {
 
         // Right Panel: Properties
         Rectangle {
-            Layout.preferredWidth: 300
+            // [修改] 增加属性面板宽度到 350
+            Layout.preferredWidth: 350
             Layout.fillHeight: true
             color: "#f0f2f5"
             border.color: "#dcdfe6"

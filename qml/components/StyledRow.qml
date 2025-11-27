@@ -21,6 +21,7 @@ Item {
 
     // Legacy padding support (setter only)
     property int padding: 0
+
     onPaddingChanged: {
         if (padding > 0) {
             paddingLeft = padding;
@@ -47,9 +48,18 @@ Item {
     }
 
     function generateCode(props, childrenCode, indent) {
-        var code = indent + "Flow {\n";
+        var code = indent + "StyledRow {\n";
         code += indent + "    spacing: " + (props.spacing || 0) + "\n";
-        code += indent + "    flow: Flow.LeftToRight\n";
+
+        // Alignment
+        var align = props.alignment;
+        if (align === 4) { // Qt.AlignHCenter
+            code += indent + "    alignment: Qt.AlignHCenter\n";
+        } else if (align === Qt.AlignRight) {
+            code += indent + "    alignment: Qt.AlignRight\n";
+        } else {
+            code += indent + "    alignment: Qt.AlignLeft\n";
+        }
 
         if (props.layoutType === "fixed") {
             code += indent + "    width: " + (props.width || 350) + "\n";
@@ -59,31 +69,19 @@ Item {
             code += indent + "    width: parent.width\n";
         }
 
-        var align = props.alignment;
-        if (align === Qt.AlignRight) {
-            code += indent + "    layoutDirection: Qt.RightToLeft\n";
-        } else if (align === 4) { // Qt.AlignHCenter
-            // Flow 本身不支持 Content Alignment Center，对于按钮行，通常是希望整体居中
-            // 在生成的代码中，我们让 Flow 本身在父容器中居中
-            code += indent + "    anchors.horizontalCenter: parent.horizontalCenter\n";
-            code += indent + "    layoutDirection: Qt.LeftToRight\n";
-        } else {
-            code += indent + "    layoutDirection: Qt.LeftToRight\n";
-        }
-
         if (props.key && props.key.trim() !== "") {
             code += indent + "    objectName: \"" + props.key + "\"\n";
         }
 
         // Generate specific padding
         if (props.paddingTop)
-            code += indent + "    topPadding: " + props.paddingTop + "\n";
+            code += indent + "    paddingTop: " + props.paddingTop + "\n";
         if (props.paddingBottom)
-            code += indent + "    bottomPadding: " + props.paddingBottom + "\n";
+            code += indent + "    paddingBottom: " + props.paddingBottom + "\n";
         if (props.paddingLeft)
-            code += indent + "    leftPadding: " + props.paddingLeft + "\n";
+            code += indent + "    paddingLeft: " + props.paddingLeft + "\n";
         if (props.paddingRight)
-            code += indent + "    rightPadding: " + props.paddingRight + "\n";
+            code += indent + "    paddingRight: " + props.paddingRight + "\n";
 
         if (childrenCode && childrenCode.trim().length > 0) {
             code += childrenCode;
@@ -95,14 +93,17 @@ Item {
 
     Flow {
         id: rowLayout
-        width: parent.width
+
+        // [修改] 修复居中对齐问题
+        // 如果是居中对齐，Flow 的宽度适应内容（但不超过父容器），并水平居中
+        width: (root.alignment === Qt.AlignHCenter) ? Math.min(implicitWidth, parent.width) : parent.width
+
+        anchors.horizontalCenter: (root.alignment === Qt.AlignHCenter) ? parent.horizontalCenter : undefined
+
         flow: Flow.LeftToRight
 
-        // Alignment logic
+        // Alignment logic (Right alignment is handled by layoutDirection)
         layoutDirection: (root.alignment === Qt.AlignRight) ? Qt.RightToLeft : Qt.LeftToRight
-
-        // 可视化编辑器中的居中效果
-        anchors.horizontalCenter: (root.alignment === Qt.AlignHCenter) ? parent.horizontalCenter : undefined
 
         // Margins/Padding
         topPadding: root.paddingTop

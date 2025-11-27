@@ -32,7 +32,7 @@ CollapsePanel {
         Text {
             text: "间距"
             color: AppStyles.textPrimary
-            Layout.preferredWidth: 60
+            Layout.preferredWidth: 50
         }
         Slider {
             Layout.fillWidth: true
@@ -42,7 +42,7 @@ CollapsePanel {
             onMoved: updateProp("spacing", Math.round(value))
         }
         SpinBox {
-            Layout.preferredWidth: 70
+            Layout.preferredWidth: 90
             from: 0
             to: 200
             value: getProp("spacing") || 0
@@ -60,7 +60,7 @@ CollapsePanel {
         Text {
             text: label
             color: AppStyles.textPrimary
-            Layout.preferredWidth: 60
+            Layout.preferredWidth: 50
         }
         Slider {
             Layout.fillWidth: true
@@ -70,7 +70,7 @@ CollapsePanel {
             onMoved: updateProp(propName, Math.round(value))
         }
         SpinBox {
-            Layout.preferredWidth: 70
+            Layout.preferredWidth: 90
             from: 0
             to: 200
             value: getProp(propName) || 0
@@ -108,7 +108,7 @@ CollapsePanel {
         Text {
             text: "自动换行"
             color: AppStyles.textPrimary
-            Layout.preferredWidth: 60
+            Layout.preferredWidth: 50
         }
         CheckBox {
             checked: getProp("wrap") !== false

@@ -6,14 +6,10 @@ import Common 1.0
 ColumnLayout {
     id: root
     Layout.fillWidth: true
-    spacing: 0 // Spacing handled by CollapsePanels themselves or parent
+    spacing: 0
 
     property var targetItem
     property var onPropertyChanged
-
-    function hasEvents(type) {
-        return ["StyledButton", "StyledTextField", "StyledComboBox", "StyledSpinBox"].indexOf(type) !== -1;
-    }
 
     // API Documentation Popup
     Popup {
@@ -150,205 +146,153 @@ if (areControlsValid(['username', 'password'])) {
     }
 
     function getEventCode(eventName) {
-        if (targetItem && targetItem.events && targetItem.events[eventName]) {
-            return targetItem.events[eventName];
+        if (targetItem && targetItem.events && targetItem.events.hasOwnProperty(eventName)) {
+            return targetItem.events[eventName] || "";
         }
         return "";
     }
 
-    function updateEvent(eventName, code) {
+    // [修改] 检查事件是否启用（存在key）
+    function isEventEnabled(eventName) {
+        return !!(targetItem && targetItem.events && targetItem.events.hasOwnProperty(eventName));
+    }
+
+    function updateEvent(eventName, code, isEnabled) {
         if (!targetItem)
             return;
 
-        // Create a copy of events object or new one
-        var events = targetItem.events || {};
-        events[eventName] = code;
+        // 深拷贝 events 对象
+        var events = targetItem.events ? JSON.parse(JSON.stringify(targetItem.events)) : {};
+
+        if (isEnabled) {
+            // 启用时，保存代码（即使为空）
+            events[eventName] = code;
+        } else {
+            // 禁用时，删除 key
+            if (events.hasOwnProperty(eventName)) {
+                delete events[eventName];
+            }
+        }
 
         if (onPropertyChanged) {
-            // We pass the entire events object as a single property "events"
+            // 作为一个整体属性更新 "events"
             onPropertyChanged("events", events);
         }
     }
 
-    // StyledButton: onClicked
-    CollapsePanel {
-        visible: targetItem && targetItem.type === "StyledButton"
+    // [新增] 封装事件编辑项组件
+    component EventItem: CollapsePanel {
+        property string eventName: ""
+        property string titleText: ""
+        property string placeholder: ""
+
+        visible: targetItem
         Layout.fillWidth: true
-        title: "点击事件 (onClicked)"
         isExpanded: false
 
-        TextArea {
+        // 自定义标题显示启用状态
+        title: titleText + (isEventEnabled(eventName) ? " (已启用)" : "")
+
+        ColumnLayout {
+            spacing: 5
             Layout.fillWidth: true
-            Layout.preferredHeight: 200
-            text: getEventCode("onClicked")
-            placeholderText: "console.log('Clicked');"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
+
+            // [新增] 启用复选框
+            CheckBox {
+                text: "启用此事件" + (targetItem.props.label ? (" - " + targetItem.props.label) : "")
+                checked: isEventEnabled(eventName)
+                onToggled: {
+                    updateEvent(eventName, codeArea.text, checked);
+                }
             }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onClicked", text);
+
+            // [修改] 支持滚动
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 200
+                clip: true
+                // 只有启用时才显示编辑框
+                visible: isEventEnabled(eventName)
+
+                TextArea {
+                    id: codeArea
+                    text: getEventCode(eventName)
+                    placeholderText: placeholder
+                    background: Rectangle {
+                        border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
+                        radius: 4
+                    }
+                    onTextChanged: {
+                        if (activeFocus) {
+                            // 文本变化时更新，保持启用状态
+                            updateEvent(eventName, text, true);
+                        }
+                    }
+                }
             }
         }
+    }
+
+    // StyledButton: onClicked
+    EventItem {
+        visible: targetItem && targetItem.type === "StyledButton"
+        eventName: "onClicked"
+        titleText: "点击事件 (onClicked)"
+        placeholder: "console.log('Clicked');"
     }
 
     // StyledTextField: onEditingFinished
-    CollapsePanel {
+    EventItem {
         visible: targetItem && targetItem.type === "StyledTextField"
-        Layout.fillWidth: true
-        title: "编辑完成 (onEditingFinished)"
-        isExpanded: false
-
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
-            text: getEventCode("onEditingFinished")
-            placeholderText: "console.log('Finished');"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onEditingFinished", text);
-            }
-        }
+        eventName: "onEditingFinished"
+        titleText: "编辑完成 (onEditingFinished)"
+        placeholder: "console.log('Finished');"
     }
 
     // StyledTextField: onTextEdited
-    CollapsePanel {
+    EventItem {
         visible: targetItem && targetItem.type === "StyledTextField"
-        Layout.fillWidth: true
-        title: "文本改变 (onTextEdited)"
-        isExpanded: false
-
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
-            text: getEventCode("onTextEdited")
-            placeholderText: "console.log('Edited');"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onTextEdited", text);
-            }
-        }
+        eventName: "onTextEdited"
+        titleText: "文本改变 (onTextEdited)"
+        placeholder: "console.log('Edited');"
     }
 
     // StyledComboBox: onActivated
-    CollapsePanel {
+    EventItem {
         visible: targetItem && targetItem.type === "StyledComboBox"
-        Layout.fillWidth: true
-        title: "选中改变 (onActivated)"
-        isExpanded: false
-
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
-            text: getEventCode("onActivated")
-            placeholderText: "console.log('Activated: ' + index);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onActivated", text);
-            }
-        }
+        eventName: "onActivated"
+        titleText: "选中改变 (onActivated)"
+        placeholder: "console.log('Activated: ' + index);"
     }
 
     // StyledComboBox: onCurrentIndexChanged
-    CollapsePanel {
+    EventItem {
         visible: targetItem && targetItem.type === "StyledComboBox"
-        Layout.fillWidth: true
-        title: "值改变 (onCurrentIndexChanged)"
-        isExpanded: false
-
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
-            text: getEventCode("onCurrentIndexChanged")
-            placeholderText: "console.log('Index Changed: ' + currentIndex);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onCurrentIndexChanged", text);
-            }
-        }
+        eventName: "onCurrentIndexChanged"
+        titleText: "值改变 (onCurrentIndexChanged)"
+        placeholder: "console.log('Index Changed: ' + currentIndex);"
     }
 
     // StyledSpinBox: onValueModified
-    CollapsePanel {
+    EventItem {
         visible: targetItem && targetItem.type === "StyledSpinBox"
-        Layout.fillWidth: true
-        title: "值改变 (onValueModified)"
-        isExpanded: false
-
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
-            text: getEventCode("onValueModified")
-            placeholderText: "console.log('Value: ' + value);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onValueModified", text);
-            }
-        }
+        eventName: "onValueModified"
+        titleText: "值改变 (onValueModified)"
+        placeholder: "console.log('Value: ' + value);"
     }
 
-    CollapsePanel {
+    // Common Events
+    EventItem {
         visible: targetItem
-        Layout.fillWidth: true
-        title: "可见性改变 (onVisibleChanged)"
-        isExpanded: false
-
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
-            text: getEventCode("onVisibleChanged")
-            placeholderText: "console.log('Visible: ' + visible);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onVisibleChanged", text);
-            }
-        }
+        eventName: "onVisibleChanged"
+        titleText: "可见性改变 (onVisibleChanged)"
+        placeholder: "console.log('Visible: ' + visible);"
     }
 
-    CollapsePanel {
+    EventItem {
         visible: targetItem
-        Layout.fillWidth: true
-        title: "启用状态改变 (onEnabledChanged)"
-        isExpanded: false
-
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
-            text: getEventCode("onEnabledChanged")
-            placeholderText: "console.log('Enabled: ' + enabled);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onEnabledChanged", text);
-            }
-        }
+        eventName: "onEnabledChanged"
+        titleText: "启用状态改变 (onEnabledChanged)"
+        placeholder: "console.log('Enabled: ' + enabled);"
     }
 }

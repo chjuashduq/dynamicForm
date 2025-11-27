@@ -4,24 +4,35 @@ import QtQuick.Layouts 1.15
 import Common 1.0
 
 /**
- * 美化的按钮
+ * 美化的按钮组件
  */
 StyledBase {
     id: root
-    showLabel: false // Buttons usually don't have a side label
+    showLabel: false // 按钮通常不需要侧边标签
 
-    // Set implicit size so the RowLayout sizes correctly
+    // 设置隐式大小，以便 RowLayout 正确计算尺寸
     implicitWidth: control.implicitWidth
     implicitHeight: control.implicitHeight
 
+    // 导出属性
     property alias text: control.text
     property alias checkable: control.checkable
     property alias checked: control.checked
     property string buttonType: "primary"  // primary, secondary, danger
-    // Note: Button's contentItem color is managed by buttonType, not directly exposed
 
-    // Expose clicked signal
+    // 导出点击信号
     signal clicked
+
+    // 防止初始化时的颜色闪烁
+    property bool enableAnimations: false
+    resources: [
+        Timer {
+            interval: 200
+            running: true
+            repeat: false
+            onTriggered: enableAnimations = true
+        }
+    ]
 
     property var defaultProps: {
         "text": "Styled Button",
@@ -38,13 +49,13 @@ StyledBase {
     function generateCode(props, childrenCode, indent, events, functions) {
         var layoutProps = generateLayoutCode(props, indent);
         var code = "StyledButton {\n" + indent + "    text: \"" + props.text + "\"\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps;
-
         if (props.key && props.key.trim() !== "") {
             code += indent + "    key: \"" + props.key + "\"\n";
         }
 
-        if (events && events.onClicked) {
-            // Helper to wrap code
+        // 处理点击事件
+        // 使用 hasOwnProperty 检查，支持空函数生成
+        if (events && events.hasOwnProperty("onClicked")) {
             function wrapCode(c) {
                 return "scriptEngine.executeFunction(" + JSON.stringify(c) + ", {self: root})";
             }
@@ -52,29 +63,26 @@ StyledBase {
             if (props.key && props.key.trim() !== "" && functions) {
                 var funcName = props.key + "_Clicked";
                 code += indent + "    onClicked: " + funcName + "()\n";
-
-                var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onClicked) + "\n" + "    }";
+                // 添加注释
+                var comment = props.label ? (" // " + props.label + " 点击事件") : (props.text ? (" // " + props.text + " 点击事件") : "");
+                var body = events.onClicked ? ("        " + wrapCode(events.onClicked)) : "";
+                var funcCode = "    function " + funcName + "() {" + comment + "\n" + body + "\n    }";
                 functions.push(funcCode);
-            } else {
+            } else if (events.onClicked) {
                 code += indent + "    onClicked: {\n" + indent + "        " + wrapCode(events.onClicked) + "\n" + indent + "    }\n";
             }
         }
 
         code += generateCommonEventsCode(props, events, indent, functions);
-
         code += indent + "}";
         return code;
     }
 
     Button {
         id: control
-        // Layout.fillWidth only when explicitly needed
-        // If layoutType is fixed, StyledBase handles the container width,
-        // but Button inside should probably fill the container.
+        text: "Button"
 
-        text: "Button" // Default, overwritten by alias
-
-        // Styling logic from original StyledButton
+        // 样式设置
         height: AppStyles.buttonHeight
         font.pixelSize: AppStyles.fontSizeMedium
         font.family: AppStyles.fontFamily
@@ -118,18 +126,19 @@ StyledBase {
             radius: AppStyles.buttonRadius
 
             Behavior on color {
+                enabled: root.enableAnimations
                 ColorAnimation {
                     duration: AppStyles.animationDuration
                 }
             }
         }
 
-        // Hover effect
+        // 鼠标悬停手势
         HoverHandler {
             cursorShape: Qt.PointingHandCursor
         }
 
-        // Forward clicked signal
+        // 转发点击信号
         onClicked: root.clicked()
     }
 }

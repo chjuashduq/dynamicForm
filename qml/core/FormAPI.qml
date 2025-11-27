@@ -51,6 +51,8 @@ QtObject {
                 return control.value;
             } else if (control.hasOwnProperty("currentText")) {
                 return control.currentText;
+            } else if (control.hasOwnProperty("checked")) {
+                return control.checked;
             }
         }
         return "";
@@ -66,6 +68,8 @@ QtObject {
                 control.text = newValue;
             } else if (control.hasOwnProperty("value")) {
                 control.value = newValue;
+            } else if (control.hasOwnProperty("checked")) {
+                control.checked = newValue;
             } else if (control.hasOwnProperty("currentIndex") && control.hasOwnProperty("optionValues")) {
                 // 对于有optionValues的下拉框，根据value查找索引
                 var index = control.optionValues.indexOf(newValue);
@@ -252,9 +256,13 @@ QtObject {
 
         var control = controlsMap[controlKey];
 
+        // [修改] 重置 valid 为 undefined
+        if (control.hasOwnProperty("valid")) {
+            control.valid = undefined;
+        }
+
         // 重置文本输入框
         if (control.hasOwnProperty("text") && control.hasOwnProperty("placeholderText")) {
-            // 有placeholderText属性说明是文本输入框，不是按钮
             control.text = "";
         } else
         // 重置数字输入框
@@ -272,10 +280,21 @@ QtObject {
     }
 
     /**
+     * 重置整个表单
+     */
+    function resetForm() {
+        for (var key in controlsMap) {
+            resetControl(key);
+        }
+    }
+
+    /**
      * 让指定控件获得焦点
      */
     function focusControl(controlKey) {
-        if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("focus")) {
+        if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("forceActiveFocus")) {
+            controlsMap[controlKey].forceActiveFocus();
+        } else if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("focus")) {
             controlsMap[controlKey].focus = true;
         }
     }
@@ -290,7 +309,6 @@ QtObject {
         for (var key in controlsMap) {
             if (controlsMap.hasOwnProperty(key)) {
                 var control = controlsMap[key];
-
                 // 跳过按钮类型
                 var config = controlConfigs[key];
                 if (config && config.type === "button") {
@@ -299,19 +317,14 @@ QtObject {
 
                 // 处理不同类型的控件
                 if (control.hasOwnProperty("getValue")) {
-                    // 如果控件有自定义的getValue方法（如ComboBox、CheckBox组、Radio组）
                     result[key] = control.getValue();
                 } else if (control.hasOwnProperty("text")) {
-                    // 文本输入框
                     result[key] = control.text;
                 } else if (control.hasOwnProperty("value")) {
-                    // 数字输入框
                     result[key] = control.value;
                 } else if (control.hasOwnProperty("currentText")) {
-                    // 下拉框
                     result[key] = control.currentText;
                 } else if (control.hasOwnProperty("checked")) {
-                    // 单个复选框
                     result[key] = control.checked;
                 }
             }
@@ -333,15 +346,11 @@ QtObject {
      * 验证单个控件
      * @param controlKey 控件的key
      * @param showError 是否显示错误消息（默认true）
-     * @param markLabel 是否标记标签（默认true）
      * @return {valid: boolean, message: string}
      */
-    function validateControl(controlKey, showError, markLabel) {
+    function validateControl(controlKey, showError) {
         if (showError === undefined) {
             showError = true;
-        }
-        if (markLabel === undefined) {
-            markLabel = true;
         }
 
         var config = controlConfigs[controlKey];
@@ -380,15 +389,9 @@ QtObject {
             }
         }
 
-        // 标记标签颜色
-        if (markLabel && labelsMap[controlKey]) {
-            var label = labelsMap[controlKey];
-            if (!isValid) {
-                label.color = "#ff0000";  // 验证失败：标红
-            } else {
-                // 验证成功：恢复原始颜色
-                label.color = config.style && config.style.labelColor ? config.style.labelColor : "#000000";
-            }
+        // [修改] 更新控件的 valid 状态，触发 UI 变色
+        if (controlsMap[controlKey]) {
+            controlsMap[controlKey].valid = isValid;
         }
 
         // 更新验证状态缓存
@@ -399,7 +402,6 @@ QtObject {
             valid: isValid,
             lastValidated: Date.now()
         };
-
         return {
             valid: isValid,
             message: errorMsg
@@ -412,16 +414,17 @@ QtObject {
      * @return boolean - true表示验证通过，false表示验证失败或未验证
      */
     function isControlValid(controlKey) {
+        // [修改] 严格检查 valid 属性，只有 true 才算通过
         if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("valid")) {
-            return controlsMap[controlKey].valid;
+            return controlsMap[controlKey].valid === true;
         }
-        return true; // 默认有效
+        return true; // 默认有效（无验证规则）
     }
 
     /**
      * 检查多个控件是否都验证通过
-     * @param controlKeys 控件key的数组，例如：["name", "age", "email"]
-     * @return boolean - true表示所有控件都验证通过，false表示至少有一个验证失败
+     * @param controlKeys 控件key的数组
+     * @return boolean
      */
     function areControlsValid(controlKeys) {
         if (!controlKeys || !Array.isArray(controlKeys)) {
@@ -445,29 +448,20 @@ QtObject {
      */
     function validateAll() {
         var errors = [];
-
         // 遍历所有控件配置
         for (var key in controlConfigs) {
             if (controlConfigs.hasOwnProperty(key)) {
                 var config = controlConfigs[key];
 
-                // 检查控件的 valid 属性
-                if (!isControlValid(key)) {
+                // [修改] 主动触发一次验证，确保状态更新
+                var result = validateControl(key, false);
+
+                if (!result.valid) {
                     errors.push({
                         key: key,
                         label: config.label || key,
-                        message: "验证失败" // 由于valid属性只是bool，这里只能给通用消息，除非控件有errorMessage属性
+                        message: result.message
                     });
-
-                    // 标记标签颜色
-                    if (labelsMap[key]) {
-                        labelsMap[key].color = "#ff0000";
-                    }
-                } else {
-                    // 恢复标签颜色
-                    if (labelsMap[key]) {
-                        labelsMap[key].color = config.style && config.style.labelColor ? config.style.labelColor : "#000000";
-                    }
                 }
             }
         }
@@ -482,7 +476,6 @@ QtObject {
                 errorMsg += "...等 " + errors.length + " 个字段";
             }
             showMessage(errorMsg, "error");
-
             // 让第一个错误的控件获得焦点
             focusControl(errors[0].key);
         }
@@ -493,28 +486,17 @@ QtObject {
         };
     }
 
-    /**
-     * 获取控件的验证状态信息
-     * @param controlKey 控件的key
-     * @return {valid: boolean, lastValidated: timestamp} 或 null
-     */
     function getValidationState(controlKey) {
         if (!validationStates || !validationStates[controlKey]) {
             return null;
         }
-
         return validationStates[controlKey];
     }
 
-    /**
-     * 清除控件的验证状态
-     * @param controlKey 控件的key，如果不提供则清除所有
-     */
     function clearValidationState(controlKey) {
         if (!validationStates) {
             return;
         }
-
         if (controlKey) {
             delete validationStates[controlKey];
         } else {
@@ -522,24 +504,13 @@ QtObject {
         }
     }
 
-    /**
-     * 设置临时存储的值
-     * @param key 存储的键
-     * @param value 存储的值
-     */
     function setTempValue(key, value) {
         if (!tempStorage) {
             tempStorage = {};
         }
         tempStorage[key] = value;
-        console.log("FormAPI: 临时存储设置", key, "=", value);
     }
 
-    /**
-     * 获取临时存储的值
-     * @param key 存储的键
-     * @return 存储的值，如果不存在则返回undefined
-     */
     function getTempValue(key) {
         if (!tempStorage) {
             return undefined;
@@ -547,15 +518,10 @@ QtObject {
         return tempStorage[key];
     }
 
-    /**
-     * 清除临时存储
-     * @param key 要清除的键，如果不提供则清除所有
-     */
     function clearTempStorage(key) {
         if (!tempStorage) {
             return;
         }
-
         if (key) {
             delete tempStorage[key];
         } else {
