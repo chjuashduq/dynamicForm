@@ -24,39 +24,55 @@ CollapsePanel {
 
     visible: hasProp("spacing") || hasProp("wrap") || hasProp("padding")
 
-    // Spacing
+    // Spacing (Slider + SpinBox)
     RowLayout {
         visible: hasProp("spacing")
         Layout.fillWidth: true
         spacing: 10
         Text {
-            text: "间距 (px)"
+            text: "间距"
             color: AppStyles.textPrimary
             Layout.preferredWidth: 70
         }
-        SpinBox {
+        Slider {
             Layout.fillWidth: true
             from: 0
-            to: 50
+            to: 100
+            value: (getProp("spacing") != null) ? getProp("spacing") : 10
+            onMoved: updateProp("spacing", Math.round(value))
+        }
+        SpinBox {
+            Layout.preferredWidth: 60
+            from: 0
+            to: 200
+            editable: true
             value: (getProp("spacing") != null) ? getProp("spacing") : 10
             onValueModified: updateProp("spacing", value)
         }
     }
 
-    // Padding
+    // Padding (Slider + SpinBox)
     RowLayout {
         visible: hasProp("padding")
         Layout.fillWidth: true
         spacing: 10
         Text {
-            text: "内边距 (px)"
+            text: "内边距"
             color: AppStyles.textPrimary
             Layout.preferredWidth: 70
         }
-        SpinBox {
+        Slider {
             Layout.fillWidth: true
             from: 0
-            to: 50
+            to: 100
+            value: (getProp("padding") != null) ? getProp("padding") : 0
+            onMoved: updateProp("padding", Math.round(value))
+        }
+        SpinBox {
+            Layout.preferredWidth: 60
+            from: 0
+            to: 200
+            editable: true
             value: (getProp("padding") != null) ? getProp("padding") : 0
             onValueModified: updateProp("padding", value)
         }

@@ -8,6 +8,8 @@ RowLayout {
 
     property string label: "Label"
     property int labelWidth: 80
+    // 新增：标签宽度比例，默认 0.3 (30%)
+    property real labelRatio: 0.3
     property bool showLabel: true
 
     // Expose the label item for customization
@@ -27,6 +29,7 @@ RowLayout {
     readonly property var baseDefaultProps: ({
             "label": "Label",
             "labelWidth": 80,
+            "labelRatio": 0.3,
             "showLabel": true,
             "layoutType": "fill",
             "flex": 1,
@@ -49,24 +52,17 @@ RowLayout {
     // Helper to generate common layout code
     function generateLayoutCode(props, indent) {
         var code = "";
-
         // Generate width properties based on layoutType
         if (props.layoutType === "fill") {
-            // For fill, only use Layout properties (Flow will auto-size)
             code += indent + "    Layout.fillWidth: true\n";
         } else if (props.layoutType === "fixed") {
-            // For fixed width, set both width and Layout.preferredWidth
             var fixedWidth = props.width || 100;
             code += indent + "    width: " + fixedWidth + "\n";
             code += indent + "    Layout.preferredWidth: " + fixedWidth + "\n";
         } else if (props.layoutType === "flex") {
-            // For flex, use Layout properties
             code += indent + "    Layout.fillWidth: true\n";
-            // Use preferredWidth to set flex ratio
             code += indent + "    Layout.preferredWidth: " + (props.flex || 1) + "\n";
         } else if (props.layoutType === "percent") {
-            // For percentage width, use parent.width * ratio
-            // This works in both Flow and Layout
             var widthPercent = props.widthPercent || 100;
             var ratio = widthPercent / 100;
             code += indent + "    width: parent.width * " + ratio + "\n";
@@ -77,17 +73,19 @@ RowLayout {
             code += indent + "    visible: false\n";
         }
 
+        // 生成标签比例代码
+        if (props.labelRatio !== undefined) {
+            code += indent + "    labelRatio: " + props.labelRatio + "\n";
+        }
+
         return code;
     }
 
     // Helper to generate common events code
     function generateCommonEventsCode(props, events, indent, functions) {
         var code = "";
-
-        // Helper to wrap code in scriptEngine.executeFunction
         function wrapCode(eventCode, args) {
             var contextObj = "{self: root" + (args ? ", " + args : "") + "}";
-            // Escape the code string for QML
             var codeStr = JSON.stringify(eventCode);
             return "scriptEngine.executeFunction(" + codeStr + ", " + contextObj + ")";
         }
@@ -96,7 +94,6 @@ RowLayout {
             if (props.key && props.key.trim() !== "" && functions) {
                 var funcName = props.key + "_VisibleChanged";
                 code += indent + "    onVisibleChanged: " + funcName + "()\n";
-
                 var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onVisibleChanged) + "\n" + "    }";
                 functions.push(funcCode);
             } else {
@@ -108,7 +105,6 @@ RowLayout {
             if (props.key && props.key.trim() !== "" && functions) {
                 var funcName = props.key + "_EnabledChanged";
                 code += indent + "    onEnabledChanged: " + funcName + "()\n";
-
                 var funcCode = "    function " + funcName + "() {\n" + "        " + wrapCode(events.onEnabledChanged) + "\n" + "    }";
                 functions.push(funcCode);
             } else {
@@ -124,11 +120,18 @@ RowLayout {
         id: labelText
         text: baseRoot.label
         visible: baseRoot.showLabel
-        Layout.preferredWidth: baseRoot.labelWidth
+
+        // 宽度计算：优先使用比例，否则使用固定宽度
+        // 限制最小宽度以防止布局崩塌
+        Layout.preferredWidth: {
+            if (baseRoot.labelRatio > 0 && baseRoot.width > 0) {
+                return Math.max(20, baseRoot.width * baseRoot.labelRatio);
+            }
+            return baseRoot.labelWidth;
+        }
+
         Layout.alignment: Qt.AlignVCenter
         font.pixelSize: AppStyles.fontSizeMedium
         color: AppStyles.textPrimary
     }
-
-    // Content Item (Children will be added here by default)
 }

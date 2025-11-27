@@ -17,6 +17,9 @@ Item {
     property var queryTypes: ["=", "!=", ">", ">=", "<", "<=", "LIKE", "BETWEEN", "IS NULL", "IS NOT NULL", "IN"]
     property var cppTypes: ["String", "Integer", "Long", "Double", "Boolean", "DateTime"]
 
+    // 保存可视化编辑器修改后的模型，防止切换Tab丢失
+    property var savedVisualModel: null
+
     signal back
 
     Component.onCompleted: {
@@ -29,6 +32,8 @@ Item {
     onTableNameChanged: {
         if (tableName) {
             loadColumns();
+            // 切换表时清空缓存
+            savedVisualModel = null;
         }
     }
 
@@ -58,7 +63,6 @@ Item {
         try {
             if (typeof MySqlHelper !== "undefined") {
                 var cols = MySqlHelper.getDbTableColumns(tableName);
-                // Add default values for UI flags if missing
                 for (var i = 0; i < cols.length; i++) {
                     cols[i].isInsert = true;
                     cols[i].isEdit = true;
@@ -67,12 +71,9 @@ Item {
                     cols[i].queryType = "=";
                     cols[i].isRequired = (cols[i].isNullable === "NO");
                     cols[i].displayType = "StyledTextField";
-                    // Smart default for display type
                     if (cols[i].cppType === "Integer" || cols[i].cppType === "Long" || cols[i].cppType === "Double") {
                         cols[i].displayType = "StyledSpinBox";
-                    } else if (cols[i].cppType === "DateTime") {
-                        // Maybe date picker later, default text for now
-                    }
+                    } else if (cols[i].cppType === "DateTime") {}
                 }
                 columnModel = cols;
             }
@@ -90,71 +91,120 @@ Item {
 
     // 将当前字段配置同步到可视化编辑器
     function syncToVisual() {
-        if (!generatorLoader.item) return;
+        if (!generatorLoader.item)
+            return;
 
+        // 1. 如果已有保存的修改，直接加载
+        if (savedVisualModel) {
+            generatorLoader.item.formModel = savedVisualModel;
+            console.log("已加载保存的可视化布局");
+            return;
+        }
+
+        // 2. 否则，根据字段列表生成默认布局 (每行3列 + 底部按钮)
         var visualItems = [];
-        // 遍历字段列表，生成可视化控件模型
-        for(var i = 0; i < columnModel.length; i++) {
+        var currentRowChildren = [];
+
+        // 辅助函数：将当前行推入主列表
+        function pushRow() {
+            if (currentRowChildren.length > 0) {
+                visualItems.push({
+                    "type": "StyledRow",
+                    "props": {
+                        "layoutType": "fill",
+                        "spacing": 20,
+                        "padding": 0
+                    },
+                    "children": currentRowChildren
+                });
+                currentRowChildren = [];
+            }
+        }
+
+        // 遍历字段列表
+        for (var i = 0; i < columnModel.length; i++) {
             var col = columnModel[i];
             // 只处理勾选了"编辑"的字段
-            if (!col.isEdit) continue;
+            if (!col.isEdit)
+                continue;
 
-            visualItems.push({
+            var item = {
                 "type": col.displayType || "StyledTextField",
                 "id": "field_" + col.cppField,
                 "props": {
                     "key": col.cppField,
                     "label": col.columnComment || col.columnName,
-                    "layoutType": "fill", // 默认宽度填充
+                    "layoutType": "flex" // 在行内使用 Flex 布局
+                    ,
+                    "flex": 1,
                     "visible": true,
                     "enabled": true
                 }
-            });
+            };
+
+            currentRowChildren.push(item);
+
+            // 每3个控件换一行
+            if (currentRowChildren.length >= 3) {
+                pushRow();
+            }
         }
+        // 处理剩余控件
+        pushRow();
+
+        // 3. 添加底部操作按钮行
+        var btnSave = {
+            "type": "StyledButton",
+            "props": {
+                "label": "保存",
+                "text": "保存",
+                "buttonType": "primary",
+                "width": 100,
+                "layoutType": "fixed"
+            },
+            "events": {
+                "onClicked": "saveData()"  // 绑定保存函数
+            }
+        };
+
+        var btnCancel = {
+            "type": "StyledButton",
+            "props": {
+                "label": "取消",
+                "text": "取消",
+                "buttonType": "secondary",
+                "width": 100,
+                "layoutType": "fixed"
+            },
+            "events": {
+                "onClicked": "closeForm()" // 绑定取消函数
+            }
+        };
+
+        visualItems.push({
+            "type": "StyledRow",
+            "props": {
+                "layoutType": "fill",
+                "alignment": 4 // Center
+                ,
+                "spacing": 20,
+                "padding": 20
+            },
+            "children": [btnCancel, btnSave]
+        });
 
         // 赋值给可视化编辑器
         generatorLoader.item.formModel = visualItems;
-        console.log("已同步 " + visualItems.length + " 个字段到可视化编辑器");
+        console.log("已生成默认 3列布局，包含 " + visualItems.length + " 行");
     }
 
-    // 从可视化编辑器同步回字段配置（主要是顺序和标签）
+    // 从可视化编辑器同步回状态
     function syncFromVisual() {
-        if (!generatorLoader.item) return;
-        var visualModel = generatorLoader.item.formModel;
-
-        // 如果还没有进行过可视化编辑，则不需要同步回写
-        if (!visualModel || visualModel.length === 0) return;
-
-        var newColList = [];
-        var colMap = {};
-
-        // 建立现有字段的映射
-        for(var i = 0; i < columnModel.length; i++) {
-            colMap[columnModel[i].cppField] = columnModel[i];
-        }
-
-        // 根据可视化编辑器的顺序重组字段列表
-        for(var j = 0; j < visualModel.length; j++) {
-            var vItem = visualModel[j];
-            var key = vItem.props.key;
-
-            if (colMap[key]) {
-                // 更新属性：标签和控件类型
-                colMap[key].columnComment = vItem.props.label;
-                colMap[key].displayType = vItem.type;
-
-                newColList.push(colMap[key]);
-                delete colMap[key]; // 标记为已处理
-            }
-        }
-
-        // 将未在可视化编辑器中出现的字段（例如未勾选编辑的字段）追加到末尾
-        for(var k in colMap) {
-            newColList.push(colMap[k]);
-        }
-
-        columnModel = newColList;
-        console.log("已从可视化编辑器同步字段顺序和属性");
+        if (!generatorLoader.item)
+            return;
+        // 保存当前模型状态，以便下次进入时恢复
+        savedVisualModel = generatorLoader.item.formModel;
+        console.log("已保存可视化布局修改");
     }
 
     ColumnLayout {
@@ -181,8 +231,8 @@ Item {
                 text: "提交生成"
                 highlighted: true
                 onClicked: {
-                    // 1. 如果可视化编辑器已加载，先尝试同步最新的布局
-                    if (bar.currentIndex === 2 || generatorLoader.item) {
+                    // 1. 同步最新状态
+                    if (generatorLoader.item) {
                         syncFromVisual();
                     }
 
@@ -195,8 +245,36 @@ Item {
                         "version": version,
                         "columns": columnModel
                     };
+
+                    // 3. 获取可视化生成的 QML 代码
+                    if (generatorLoader.item) {
+                        // 生成核心表单代码
+                        var qmlBody = generatorLoader.item.getGeneratedCode();
+
+                        // 包装成完整的 Edit 页面代码 (包含必要的属性和函数)
+                        var fullQml = "/* Generated Edit Form */\n" + "import QtQuick\n" + "import QtQuick.Controls\n" + "import QtQuick.Layouts\n" + "import Common 1.0\n" + "import \"../components\"\n\n" + "Item {\n" + "    id: root\n" + "    width: parent ? parent.width : 800\n" + "    height: parent ? parent.height : 600\n\n" + "    property var controller: null\n" + "    property bool isAdd: true\n" + "    property var formData: ({})\n\n" + "    // 背景\n" + "    Rectangle {\n" + "        anchors.fill: parent\n" + "        color: \"#f5f7fa\"\n" + "    }\n\n" + "    ScrollView {\n" + "        anchors.fill: parent\n" + "        clip: true\n" + "        contentWidth: parent.width\n\n" + "        ColumnLayout {\n" + "            width: Math.min(parent.width, 1000)\n" + "            anchors.horizontalCenter: parent.horizontalCenter\n" + "            spacing: 10\n\n" + "            // Title\n" + "            Text {\n" + "                text: (isAdd ? \"新增\" : \"修改\") + \" " + tableName + "\"\n" + "                font.pixelSize: 22\n" + "                font.bold: true\n" + "                Layout.alignment: Qt.AlignHCenter\n" + "                Layout.margins: 20\n" + "            }\n\n";
+
+                        // 插入可视化生成的表单主体 (去掉外层 import 和 Item)
+                        // FormGenerator 生成的代码包含外层 Item，我们需要提取内容或调整生成逻辑
+                        // 这里为了简单，我们让 FormGenerator 直接返回 Body 内容，或者我们解析它
+                        // 更好的方式：让 CodeGenerator 识别 customEditQml
+
+                        fullQml += "            // === 可视化布局开始 ===\n";
+                        // 提取 FormGenerator 生成代码中的主要布局部分 (GridLayout 及其内容)
+                        // 注意：Logic.generateCode 生成的是包含 import 的完整 Item
+                        // 这里我们使用一个简化的提取方式，或者修改 FormGenerator 逻辑
+                        // 假设我们直接将 generatorLoader.item.getGeneratedCode() 作为 customEditQml 传给 C++
+                        // 但我们需要注入 controller binding 等。
+
+                        // 方案 B：直接使用 generator 生成的代码作为主体，但我们需要注入 saveData 函数
+                        // 我们在 CodeGenerator.cpp 中处理替换
+                        config.customEditQml = qmlBody;
+                        config.injectFunctions = true; // 标记需要注入 helper 函数
+                    }
+
                     console.log("Generating code with config:", JSON.stringify(config));
                     var success = CodeGenerator.generate(config);
+
                     if (success) {
                         console.log("Code generated successfully!");
                         MessageManager.showToast("代码生成成功！", "success");
@@ -223,9 +301,13 @@ Item {
             }
 
             onCurrentIndexChanged: {
-                // 当切换到可视化布局 Tab 时，执行数据同步
                 if (currentIndex === 2) {
                     syncToVisual();
+                } else {
+                    // 离开可视化 Tab 时自动保存
+                    if (generatorLoader.item) {
+                        syncFromVisual();
+                    }
                 }
             }
         }
@@ -242,13 +324,11 @@ Item {
                     Layout.fillWidth: true
                     height: 40
                     color: "#f8f8f9"
-
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 10
                         anchors.rightMargin: 10
                         spacing: 5
-
                         Text {
                             Layout.preferredWidth: 40
                             text: "序号"
@@ -332,13 +412,11 @@ Item {
                         width: ListView.view.width
                         height: 50
                         color: index % 2 === 0 ? "white" : "#f9f9f9"
-
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: 10
                             anchors.rightMargin: 10
                             spacing: 5
-
                             Text {
                                 Layout.preferredWidth: 40
                                 text: index + 1
@@ -348,23 +426,19 @@ Item {
                                 text: modelData.columnName
                                 elide: Text.ElideRight
                             }
-
-                            // [修复] 字段描述编辑
                             TextField {
                                 Layout.preferredWidth: 100
                                 text: modelData.columnComment
                                 onEditingFinished: {
                                     modelData.columnComment = text;
-                                    root.columnModel[index].columnComment = text; // 显式同步
+                                    root.columnModel[index].columnComment = text;
                                 }
                             }
-
                             Text {
                                 Layout.preferredWidth: 80
                                 text: modelData.dataType
                                 elide: Text.ElideRight
                             }
-
                             ComboBox {
                                 Layout.preferredWidth: 80
                                 model: root.cppTypes
@@ -374,8 +448,6 @@ Item {
                                     root.columnModel[index].cppType = currentText;
                                 }
                             }
-
-                            // [修复] C++属性名编辑
                             TextField {
                                 Layout.preferredWidth: 100
                                 text: modelData.cppField
@@ -384,7 +456,6 @@ Item {
                                     root.columnModel[index].cppField = text;
                                 }
                             }
-
                             CheckBox {
                                 Layout.preferredWidth: 40
                                 checked: modelData.isInsert
@@ -418,7 +489,6 @@ Item {
                                     root.columnModel[index].isQuery = checked;
                                 }
                             }
-
                             ComboBox {
                                 Layout.preferredWidth: 80
                                 model: root.queryTypes
@@ -429,7 +499,6 @@ Item {
                                     root.columnModel[index].queryType = currentText;
                                 }
                             }
-
                             CheckBox {
                                 Layout.preferredWidth: 40
                                 checked: modelData.isRequired
@@ -438,7 +507,6 @@ Item {
                                     root.columnModel[index].isRequired = checked;
                                 }
                             }
-
                             ComboBox {
                                 Layout.preferredWidth: 100
                                 textRole: "label"
@@ -457,7 +525,6 @@ Item {
                                     root.columnModel[index].displayType = currentValue;
                                 }
                             }
-
                             ComboBox {
                                 Layout.preferredWidth: 100
                                 model: ["请选择"]
@@ -477,7 +544,6 @@ Item {
             ColumnLayout {
                 spacing: 20
                 anchors.margins: 20
-
                 RowLayout {
                     Text {
                         text: "作者姓名:"
@@ -491,7 +557,6 @@ Item {
                         onEditingFinished: root.authorName = text
                     }
                 }
-
                 RowLayout {
                     Text {
                         text: "模块名称:"
@@ -518,7 +583,6 @@ Item {
                         onEditingFinished: root.version = text
                     }
                 }
-
                 Item {
                     Layout.fillHeight: true
                 }
@@ -526,15 +590,12 @@ Item {
 
             // Tab 3: 可视化布局调整
             Item {
-                // 使用 Loader 嵌入 FormGenerator
                 Loader {
                     id: generatorLoader
                     source: "../generator/FormGenerator.qml"
                     anchors.fill: parent
-
                     onLoaded: {
                         if (item) {
-                            // 隐藏不需要的 UI 元素，简化界面专注于布局调整
                             item.previewMode = false;
                         }
                     }

@@ -41,9 +41,35 @@ CollapsePanel {
         }
     }
 
-    // Label Width
+    // Label Ratio (New: Slider)
     RowLayout {
-        visible: hasProp("labelWidth")
+        visible: hasProp("labelRatio")
+        Layout.fillWidth: true
+        spacing: 10
+        Text {
+            text: "标签占比"
+            color: AppStyles.textPrimary
+            Layout.preferredWidth: 70
+        }
+        Slider {
+            Layout.fillWidth: true
+            from: 0.1
+            to: 0.9
+            stepSize: 0.05
+            value: (getProp("labelRatio") != null) ? getProp("labelRatio") : 0.3
+            onMoved: updateProp("labelRatio", value)
+        }
+        Text {
+            text: Math.round(((getProp("labelRatio") != null) ? getProp("labelRatio") : 0.3) * 100) + "%"
+            color: AppStyles.textPrimary
+            Layout.preferredWidth: 35
+            horizontalAlignment: Text.AlignRight
+        }
+    }
+
+    // Label Width (Fixed - Legacy/Optional)
+    RowLayout {
+        visible: hasProp("labelWidth") && (!hasProp("labelRatio") || getProp("labelRatio") === 0)
         Layout.fillWidth: true
         spacing: 10
         Text {
@@ -115,7 +141,7 @@ CollapsePanel {
         visible: hasProp("model")
         Layout.fillWidth: true
         title: "选项列表配置"
-        isExpanded: false // Default collapsed for nested list
+        isExpanded: false
 
         ColumnLayout {
             width: parent.width
