@@ -8,13 +8,11 @@ RowLayout {
 
     property string label: "Label"
     property int labelWidth: 80
-    // [修改] 标签宽度比例，默认 0.2 (20%)
     property real labelRatio: 0.2
     property bool showLabel: true
 
     // Expose the label item for customization
     property alias labelItem: labelText
-    // [修改] 颜色由内部逻辑控制，外部样式作为基准
     property color labelColor: AppStyles.textPrimary
     property alias labelFont: labelText.font
 
@@ -25,23 +23,25 @@ RowLayout {
 
     property string key: ""
 
-    // [修改] valid 初始化为 undefined
-    // valid = undefined: 初始状态 (不红，但验证不通过)
-    // valid = true: 验证通过 (绿/正常)
-    // valid = false: 验证失败 (红)
-    property var valid: undefined
+    // [新增] 是否必填
+    property bool required: false
 
-    // [新增] 错误状态计算属性
-    // 只有当 valid 明确被设为 false 时才标红
-    // undefined (初始状态) 不显示红色，保持页面整洁
-    property bool hasError: valid === false
+    // [关键修改] valid 状态枚举
+    // 0: Unchecked (待验证) - 必填项的初始状态
+    // 1: Valid (合格) - 非必填项的初始状态，或验证通过
+    // 2: Invalid (不合格) - 验证失败
+    // undefined: 不参与验证 (如按钮)
+    property var valid: required ? 0 : 1
+
+    // [修改] 错误状态计算属性
+    // 只有状态明确为 2 (Invalid) 时才标红
+    property bool hasError: valid === 2
 
     // Common default properties for all components
     readonly property var baseDefaultProps: ({
             "label": "Label",
             "labelWidth": 80,
-            "labelRatio": 0.2 // [修改] 默认为 0.2
-            ,
+            "labelRatio": 0.2,
             "showLabel": true,
             "layoutType": "fill",
             "flex": 1,
@@ -49,10 +49,10 @@ RowLayout {
             "visible": true,
             "enabled": true,
             "key": "",
-            "valid": undefined // [修改]
+            "required": false,
+            "valid": 1 // 默认合格
         })
 
-    // Helper to merge specific props with base props
     function mergeProps(specificProps) {
         var props = JSON.parse(JSON.stringify(baseDefaultProps));
         for (var key in specificProps) {
@@ -61,10 +61,8 @@ RowLayout {
         return props;
     }
 
-    // Helper to generate common layout code
     function generateLayoutCode(props, indent) {
         var code = "";
-        // Generate width properties based on layoutType
         if (props.layoutType === "fill") {
             code += indent + "    Layout.fillWidth: true\n";
         } else if (props.layoutType === "fixed") {
@@ -85,15 +83,17 @@ RowLayout {
             code += indent + "    visible: false\n";
         }
 
-        // Generate label ratio code
         if (props.labelRatio !== undefined) {
             code += indent + "    labelRatio: " + props.labelRatio + "\n";
+        }
+
+        if (props.required === true) {
+            code += indent + "    required: true\n";
         }
 
         return code;
     }
 
-    // Helper to generate common events code
     function generateCommonEventsCode(props, events, indent, functions) {
         var code = "";
         function wrapCode(eventCode, args) {
@@ -102,19 +102,16 @@ RowLayout {
             return "scriptEngine.executeFunction(" + codeStr + ", " + contextObj + ")";
         }
 
-        // [修改] 即使内容为空，只要 CheckBox 被选中（在 events 对象中存在 key），就生成代码
         if (events && events.hasOwnProperty("onVisibleChanged")) {
             var funcName = (props.key && props.key.trim() !== "") ? (props.key + "_VisibleChanged") : "";
 
             if (funcName && functions) {
                 code += indent + "    onVisibleChanged: " + funcName + "()\n";
-                // 添加注释
                 var comment = props.label ? (" // " + props.label + " 可见性变化") : "";
                 var body = events.onVisibleChanged ? ("        " + wrapCode(events.onVisibleChanged)) : "";
                 var funcCode = "    function " + funcName + "() {" + comment + "\n" + body + "\n    }";
                 functions.push(funcCode);
             } else if (events.onVisibleChanged) {
-                // 如果没有 key 或不需要分离函数，且有代码内容，则内联生成
                 code += indent + "    onVisibleChanged: {\n" + indent + "        " + wrapCode(events.onVisibleChanged) + "\n" + indent + "    }\n";
             }
         }
@@ -136,13 +133,11 @@ RowLayout {
         return code;
     }
 
-    // Label Component
     Text {
         id: labelText
         text: baseRoot.label
         visible: baseRoot.showLabel
 
-        // Calculate width: prefer ratio, fallback to fixed
         Layout.preferredWidth: {
             if (baseRoot.labelRatio > 0 && baseRoot.width > 0) {
                 return Math.max(20, baseRoot.width * baseRoot.labelRatio);
@@ -152,13 +147,24 @@ RowLayout {
 
         Layout.alignment: Qt.AlignVCenter
         font.pixelSize: AppStyles.fontSizeMedium
-        // [修改] 根据 hasError 状态改变颜色
+        // 根据 hasError (valid===2) 变色
         color: baseRoot.hasError ? "red" : baseRoot.labelColor
 
         Behavior on color {
             ColorAnimation {
                 duration: 200
             }
+        }
+
+        // 必填项显示红色星号
+        Text {
+            visible: baseRoot.required
+            text: "*"
+            color: "red"
+            anchors.left: parent.right
+            anchors.leftMargin: 2
+            anchors.verticalCenter: parent.verticalCenter
+            font.pixelSize: parent.font.pixelSize
         }
     }
 }

@@ -22,7 +22,7 @@ CollapsePanel {
         propertyChanged(name, value);
     }
 
-    visible: hasProp("key") || hasProp("from") || hasProp("to") || hasProp("value") || hasProp("readOnly") || hasProp("enabled")
+    visible: hasProp("key") || hasProp("from") || hasProp("to") || hasProp("value") || hasProp("readOnly") || hasProp("enabled") || hasProp("required")
 
     // Key
     RowLayout {
@@ -36,6 +36,21 @@ CollapsePanel {
             Layout.fillWidth: true
             text: getProp("key") || ""
             onEditingFinished: updateProp("key", text)
+        }
+    }
+
+    // [新增] Required (必填/不允许为空)
+    // 排除按钮和布局类型
+    RowLayout {
+        visible: targetItem && targetItem.type !== "StyledButton" && targetItem.type !== "StyledRow" && targetItem.type !== "StyledLabel"
+        Text {
+            text: "必填 (Required)"
+            color: AppStyles.textPrimary
+            Layout.preferredWidth: 70
+        }
+        CheckBox {
+            checked: getProp("required") === true
+            onToggled: updateProp("required", checked)
         }
     }
 

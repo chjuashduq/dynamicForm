@@ -8,9 +8,8 @@ import Common 1.0
  */
 StyledBase {
     id: root
-    showLabel: false // 按钮通常不需要侧边标签
+    showLabel: false
 
-    // 设置隐式大小，以便 RowLayout 正确计算尺寸
     implicitWidth: control.implicitWidth
     implicitHeight: control.implicitHeight
 
@@ -18,12 +17,14 @@ StyledBase {
     property alias text: control.text
     property alias checkable: control.checkable
     property alias checked: control.checked
-    property string buttonType: "primary"  // primary, secondary, danger
+    property string buttonType: "primary"
 
-    // 导出点击信号
+    // [关键修改] 按钮不需要验证，设置为 undefined
+    // 覆盖 StyledBase 的默认逻辑，使其在验证时被跳过
+    valid: undefined
+
     signal clicked
 
-    // 防止初始化时的颜色闪烁
     property bool enableAnimations: false
     resources: [
         Timer {
@@ -43,7 +44,7 @@ StyledBase {
         "visible": true,
         "enabled": true,
         "key": "",
-        "valid": true
+        "valid": undefined // 生成代码时也默认为 undefined
     }
 
     function generateCode(props, childrenCode, indent, events, functions) {
@@ -53,8 +54,6 @@ StyledBase {
             code += indent + "    key: \"" + props.key + "\"\n";
         }
 
-        // 处理点击事件
-        // 使用 hasOwnProperty 检查，支持空函数生成
         if (events && events.hasOwnProperty("onClicked")) {
             function wrapCode(c) {
                 return "scriptEngine.executeFunction(" + JSON.stringify(c) + ", {self: root})";
@@ -63,7 +62,6 @@ StyledBase {
             if (props.key && props.key.trim() !== "" && functions) {
                 var funcName = props.key + "_Clicked";
                 code += indent + "    onClicked: " + funcName + "()\n";
-                // 添加注释
                 var comment = props.label ? (" // " + props.label + " 点击事件") : (props.text ? (" // " + props.text + " 点击事件") : "");
                 var body = events.onClicked ? ("        " + wrapCode(events.onClicked)) : "";
                 var funcCode = "    function " + funcName + "() {" + comment + "\n" + body + "\n    }";
@@ -81,13 +79,10 @@ StyledBase {
     Button {
         id: control
         text: "Button"
-
-        // 样式设置
         height: AppStyles.buttonHeight
         font.pixelSize: AppStyles.fontSizeMedium
         font.family: AppStyles.fontFamily
         font.bold: true
-
         leftPadding: AppStyles.buttonPadding
         rightPadding: AppStyles.buttonPadding
 
@@ -133,12 +128,10 @@ StyledBase {
             }
         }
 
-        // 鼠标悬停手势
         HoverHandler {
             cursorShape: Qt.PointingHandCursor
         }
 
-        // 转发点击信号
         onClicked: root.clicked()
     }
 }

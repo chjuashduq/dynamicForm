@@ -1,17 +1,16 @@
-/*
- * @Author: 刘勇 yongliu_s@163.com
- * @Date: 2025-10-27 16:16:13
- * @LastEditors: 刘勇 yongliu_s@163.com
- * @LastEditTime: 2025-11-13 16:10:25
- * @FilePath: \DynamicFormQML\mainwindow.cpp
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+
+#include <FelgoApplication>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QFile>
+#include <QDir>
+#include <QQuickWindow>
+#include <QWidget>
+
 #include "utils/FileHelper.h"
 #include "generator/CodeGenerator.h"
-
-using namespace std;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -19,49 +18,60 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // 设置窗口全屏
-    this->showMaximized();
-    // 或者使用 this->showFullScreen(); 来完全全屏（无标题栏）
+    static FelgoApplication felgo;
 
-    QQuickWidget *quickWidget = new QQuickWidget(this);
-    quickWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    setCentralWidget(quickWidget);
-    // 获取 QQuickWidget 的 QQmlEngine
-    QQmlEngine *engine = quickWidget->engine();
+    // 使用 QQmlApplicationEngine
+    QQmlApplicationEngine *engine = new QQmlApplicationEngine(this);
+    felgo.initialize(engine); // 传 engine 指针即可
 
-    // 加入 QRC 路径
-    engine->addImportPath("qrc:/qml");
+    // 添加 QML 模块搜索路径
+    engine->addImportPath(QDir::currentPath() + "/qml");
+    engine->addImportPath(QDir::currentPath() + "/qml/Common");
 
-    // 读取 JSON
-    QFile file(":/form_config.json");
+    // 注册 C++ 单例对象
+    qmlRegisterSingletonType<MySqlHelper>("mysqlhelper", 1, 0, "MySqlHelper",
+                                          [](QQmlEngine *, QJSEngine *) -> QObject * { return new MySqlHelper; });
+
+    qmlRegisterSingletonType<MySqlConnectionManager>("mysqlconnectionmanager", 1, 0, "MySqlConnectionManager",
+                                                     [](QQmlEngine *, QJSEngine *) -> QObject * { return MySqlConnectionManager::getInstance(); });
+
+    qmlRegisterSingletonType<FileHelper>("utils", 1, 0, "FileHelper",
+                                         [](QQmlEngine *, QJSEngine *) -> QObject * { return new FileHelper; });
+
+    qmlRegisterSingletonType<CodeGenerator>("generator", 1, 0, "CodeGenerator",
+                                            [](QQmlEngine *, QJSEngine *) -> QObject * { return new CodeGenerator; });
+
+    // 读取 JSON 文件
+    QFile file("form_config.json");
     QString jsonStr;
-    if(file.open(QIODevice::ReadOnly)){
+    if(file.open(QIODevice::ReadOnly)) {
         jsonStr = QString(file.readAll());
         file.close();
     }
-    quickWidget->rootContext()->setContextProperty("formJson", jsonStr);
-    QFile file2 (":/qml/components/components.json");
+    engine->rootContext()->setContextProperty("formJson", jsonStr);
+
+    QFile file2("qml/components/components.json");
     QString jsonStr2;
-    if(file2.open(QIODevice::ReadOnly)){
+    if(file2.open(QIODevice::ReadOnly)) {
         jsonStr2 = QString(file2.readAll());
         file2.close();
     }
-    quickWidget->rootContext()->setContextProperty("componentJson", jsonStr2);
+    engine->rootContext()->setContextProperty("componentJson", jsonStr2);
 
-    qmlRegisterSingletonType<MySqlHelper>("mysqlhelper", 1, 0, "MySqlHelper", [](QQmlEngine *, QJSEngine *) -> QObject * {
-        return new MySqlHelper;
-    });
-    qmlRegisterSingletonType<MySqlConnectionManager>("mysqlconnectionmanager", 1, 0, "MySqlConnectionManager", [](QQmlEngine *, QJSEngine *) -> QObject * {
-        return MySqlConnectionManager::getInstance();
-    });
-    qmlRegisterSingletonType<FileHelper>("utils", 1, 0, "FileHelper", [](QQmlEngine *, QJSEngine *) -> QObject * {
-        return new FileHelper;
-    });
-    qmlRegisterSingletonType<CodeGenerator>("generator", 1, 0, "CodeGenerator", [](QQmlEngine *, QJSEngine *) -> QObject * {
-        return new CodeGenerator;
-    });
-
-    quickWidget->setSource(QUrl("qrc:/qml/main.qml"));
+    // 创建 Window Container 嵌入 QMainWindow
+    QQuickWindow *qmlWindow = qobject_cast<QQuickWindow*>(engine->rootObjects().isEmpty() ? nullptr : engine->rootObjects().first());
+    if(!qmlWindow) {
+        engine->load(QUrl::fromLocalFile(QDir::currentPath() + "/qml/Main.qml"));
+        if(!engine->rootObjects().isEmpty()) {
+            qmlWindow = qobject_cast<QQuickWindow*>(engine->rootObjects().first());
+        }
+    }
+    if(qmlWindow) {
+        QWidget *container = QWidget::createWindowContainer(qmlWindow, this);
+        container->setFocusPolicy(Qt::TabFocus);
+        setCentralWidget(container);
+        this->showMaximized();
+    }
 }
 
 MainWindow::~MainWindow()
