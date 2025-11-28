@@ -133,6 +133,8 @@ Item {
             // 只处理勾选了"编辑"的字段
             if (!col.isEdit)
                 continue;
+
+            // [关键] 确保 key 使用 cppField (驼峰命名)
             var item = {
                 "type": col.displayType || "StyledTextField",
                 "id": "field_" + col.cppField,
@@ -161,10 +163,11 @@ Item {
 
         // 3. 添加底部操作按钮行 (修改了事件逻辑)
 
-        // [修复] Submit 逻辑：先执行所有验证和数据收集，只在最后一步判断是 Controller 提交还是预览提示
-        var submitLogic = "// 1. 验证所有字段 (预览模式下依然会执行，触发红框报错)\n" + "var validation = validateAll();\n" + "if (!validation.valid) return;\n\n" + "// 2. 收集数据\n" + "var data = getAllValues();\n\n" + "// 3. 处理主键 (如果是编辑模式)\n" + "if (isEditMode && formData && formData.id) {\n" + "    data['id'] = formData.id;\n" + "}\n\n" + "// 4. 提交数据\n" + "if (typeof controller !== 'undefined') {\n" + "    // 正式环境：调用 Controller\n" + "    var success = false;\n" + "    if (!isEditMode) {\n" + "        success = controller.add(data);\n" + "    } else {\n" + "        success = controller.update(data);\n" + "    }\n" + "    if (success) {\n" + "        if (typeof closeForm === 'function') closeForm();\n" + "        else showMessage('保存成功', 'success');\n" + "    }\n" + "} else {\n" + "    // 预览环境：模拟提交\n" + "    console.log('预览提交数据:', JSON.stringify(data));\n" + "    showMessage('验证通过！(预览模式不写入数据库)', 'success');\n" + "}";
+        // [修复] Submit 逻辑：支持预览环境，使用 !isEditMode
+        var submitLogic = "// 1. 验证所有字段\n" + "var validation = validateAll();\n" + "if (!validation.valid) return;\n\n" + "// 2. 收集数据\n" + "var data = getAllValues();\n\n" + "// 3. 环境检查 (预览模式)\n" + "if (typeof controller === 'undefined') {\n" + "    console.log('预览提交数据:', JSON.stringify(data));\n" + "    showMessage('验证通过！(预览模式不写入数据库)', 'success');\n" + "    return;\n" + "}\n\n" + "// 4. 处理主键(如果是编辑模式)\n" + "if (isEditMode && formData && formData.id) {\n" + "    data['id'] = formData.id;\n" + "}\n\n" + "// 5. 调用Controller\n" + "var success = false;\n" + "if (!isEditMode) {\n" + // 使用 !isEditMode 代替 isAdd
+        "    success = controller.add(data);\n" + "} else {\n" + "    success = controller.update(data);\n" + "}\n\n" + "// 6. 关闭窗口\n" + "if (success) {\n" + "    if (typeof closeForm === 'function') closeForm();\n" + "    else showMessage('保存成功', 'success');\n" + "}";
 
-        // [修复] Cancel 逻辑
+        // [修复] Cancel 逻辑：支持预览环境
         var cancelLogic = "if (typeof closeForm === 'function') {\n" + "    closeForm();\n" + "} else if (typeof root !== 'undefined' && root.StackView && root.StackView.view) {\n" + "    root.StackView.view.pop();\n" + "} else {\n" + "    showMessage('取消操作 (预览模式)', 'info');\n" + "}";
 
         var btnSave = {

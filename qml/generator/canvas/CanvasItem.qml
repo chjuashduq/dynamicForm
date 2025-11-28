@@ -190,6 +190,9 @@ Rectangle {
         if (itemData.props && itemData.props.key && generatorRoot && generatorRoot.formAPI) {
             console.log("CanvasItem: Registering control", itemData.props.key, "to FormAPI");
             generatorRoot.formAPI.controlsMap[itemData.props.key] = item;
+
+            // [新增] 注册控件配置，确保 validateAll 能遍历到此控件
+            generatorRoot.formAPI.registerControlConfig(itemData.props.key, itemData.props);
         }
 
         // Use local property eventHandlers instead of attaching to item

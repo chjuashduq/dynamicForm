@@ -43,15 +43,15 @@ QtObject {
         if (controlsMap[controlKey]) {
             var control = controlsMap[controlKey];
             // 优先使用自定义的getValue方法（如ComboBox、CheckBox组、Radio组）
-            if (control.hasOwnProperty("getValue")) {
+            if (control.getValue && typeof control.getValue === "function") {
                 return control.getValue();
-            } else if (control.hasOwnProperty("text")) {
+            } else if (control.text !== undefined) {
                 return control.text;
-            } else if (control.hasOwnProperty("value")) {
+            } else if (control.value !== undefined) {
                 return control.value;
-            } else if (control.hasOwnProperty("currentText")) {
+            } else if (control.currentText !== undefined) {
                 return control.currentText;
-            } else if (control.hasOwnProperty("checked")) {
+            } else if (control.checked !== undefined) {
                 return control.checked;
             }
         }
@@ -64,13 +64,13 @@ QtObject {
     function setControlValue(controlKey, newValue) {
         if (controlsMap[controlKey]) {
             var control = controlsMap[controlKey];
-            if (control.hasOwnProperty("text")) {
+            if (control.text !== undefined) {
                 control.text = newValue;
-            } else if (control.hasOwnProperty("value")) {
+            } else if (control.value !== undefined) {
                 control.value = newValue;
-            } else if (control.hasOwnProperty("checked")) {
+            } else if (control.checked !== undefined) {
                 control.checked = newValue;
-            } else if (control.hasOwnProperty("currentIndex") && control.hasOwnProperty("optionValues")) {
+            } else if (control.currentIndex !== undefined && control.optionValues !== undefined) {
                 // 对于有optionValues的下拉框，根据value查找索引
                 var index = control.optionValues.indexOf(newValue);
                 if (index >= 0) {
@@ -82,7 +82,7 @@ QtObject {
                         control.currentIndex = index;
                     }
                 }
-            } else if (control.hasOwnProperty("currentIndex") && control.hasOwnProperty("model")) {
+            } else if (control.currentIndex !== undefined && control.model !== undefined) {
                 var idx = control.model.indexOf(newValue);
                 if (idx >= 0) {
                     control.currentIndex = idx;
@@ -97,9 +97,9 @@ QtObject {
     function getControlText(controlKey) {
         if (controlsMap[controlKey]) {
             var control = controlsMap[controlKey];
-            if (control.hasOwnProperty("text")) {
+            if (control.text !== undefined) {
                 return control.text;
-            } else if (control.hasOwnProperty("currentText")) {
+            } else if (control.currentText !== undefined) {
                 return control.currentText;
             }
         }
@@ -110,7 +110,7 @@ QtObject {
      * 设置指定控件的文本内容
      */
     function setControlText(controlKey, newText) {
-        if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("text")) {
+        if (controlsMap[controlKey] && controlsMap[controlKey].text !== undefined) {
             controlsMap[controlKey].text = newText;
         }
     }
@@ -127,7 +127,7 @@ QtObject {
      * 设置指定控件的文字颜色
      */
     function setControlColor(controlKey, color) {
-        if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("color")) {
+        if (controlsMap[controlKey] && controlsMap[controlKey].color !== undefined) {
             controlsMap[controlKey].color = color;
         }
     }
@@ -255,25 +255,25 @@ QtObject {
         }
 
         var control = controlsMap[controlKey];
-        // [修复] 重置 valid 为 undefined
-        if (control.hasOwnProperty("valid")) {
+        // [修复] 直接设置属性，不使用 hasOwnProperty
+        if (control.valid !== undefined) {
             control.valid = undefined;
         }
 
         // 重置文本输入框
-        if (control.hasOwnProperty("text") && control.hasOwnProperty("placeholderText")) {
+        if (control.text !== undefined && control.placeholderText !== undefined) {
             control.text = "";
         } else
         // 重置数字输入框
-        if (control.hasOwnProperty("value") && !control.hasOwnProperty("text")) {
+        if (control.value !== undefined && control.text === undefined) {
             control.value = 0;
         } else
         // 重置复选框
-        if (control.hasOwnProperty("checked")) {
+        if (control.checked !== undefined) {
             control.checked = false;
         } else
         // 重置下拉框
-        if (control.hasOwnProperty("currentIndex")) {
+        if (control.currentIndex !== undefined) {
             control.currentIndex = 0;
         }
     }
@@ -291,10 +291,8 @@ QtObject {
      * 让指定控件获得焦点
      */
     function focusControl(controlKey) {
-        if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("forceActiveFocus")) {
+        if (controlsMap[controlKey]) {
             controlsMap[controlKey].forceActiveFocus();
-        } else if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("focus")) {
-            controlsMap[controlKey].focus = true;
         }
     }
 
@@ -306,24 +304,23 @@ QtObject {
     function getAllValues() {
         var result = {};
         for (var key in controlsMap) {
-            if (controlsMap.hasOwnProperty(key)) {
+            // [修复] 移除 hasOwnProperty 检查，直接遍历
+            if (controlsMap[key]) {
                 var control = controlsMap[key];
-                // 跳过按钮类型
                 var config = controlConfigs[key];
-                if (config && config.type === "button") {
+                if (config && config.type === "button")
                     continue;
-                }
 
                 // 处理不同类型的控件
-                if (control.hasOwnProperty("getValue")) {
+                if (control.getValue && typeof control.getValue === "function") {
                     result[key] = control.getValue();
-                } else if (control.hasOwnProperty("text")) {
+                } else if (control.text !== undefined) {
                     result[key] = control.text;
-                } else if (control.hasOwnProperty("value")) {
+                } else if (control.value !== undefined) {
                     result[key] = control.value;
-                } else if (control.hasOwnProperty("currentText")) {
+                } else if (control.currentText !== undefined) {
                     result[key] = control.currentText;
-                } else if (control.hasOwnProperty("checked")) {
+                } else if (control.checked !== undefined) {
                     result[key] = control.checked;
                 }
             }
@@ -364,8 +361,6 @@ QtObject {
         var isValid = true;
         var errorMsg = "";
 
-        // [修复] 逻辑调整：严格遵循 "undefined 视为 false" 的要求
-
         // 1. 如果有配置 validationFunction，执行它
         if (config.validationFunction && config.validationFunction.trim() !== "") {
             if (scriptEngine) {
@@ -390,25 +385,28 @@ QtObject {
             }
         } else
         // 2. 如果没有 validationFunction，检查控件当前的 valid 属性
-        // 允许用户通过事件 (如 onFocusLost) 手动设置 valid，validateAll 必须尊重这个状态
-        if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("valid")) {
-            // [关键修改] 只有显式为 true 才算通过，undefined 或 false 均视为失败
-            if (controlsMap[controlKey].valid !== true) {
-                isValid = false;
-                // 如果是 undefined (未交互)，通常不报错，但返回 false 阻止提交
-                // 如果是 false (已交互且失败)，则显示错误
-                if (controlsMap[controlKey].valid === false) {
-                    errorMsg = config.label ? (config.label + " 验证未通过") : "验证未通过";
-                } else {
-                    // undefined 情况：仅拦截，不报错（或者根据需求报错）
-                    // 按照用户需求 "预览直接点击保存，验证通过"，说明之前这里默认了 true
-                    // 现在改为默认 false
-                    errorMsg = "请完善 " + (config.label || controlKey);
+        // [修复] 移除 hasOwnProperty，直接读取属性
+        {
+            var control = controlsMap[controlKey];
+            if (control) {
+                // [关键修改] 只有显式为 true 才算通过，undefined 或 false 均视为失败
+                if (control.valid !== true) {
+                    isValid = false;
+                    // 如果是 undefined (未交互)，通常不报错，但返回 false 阻止提交
+                    // 如果是 false (已交互且失败)，则显示错误
+                    if (control.valid === false) {
+                        errorMsg = config.label ? (config.label + " 验证未通过") : "验证未通过";
+                    } else {
+                        // undefined 情况
+                        errorMsg = "请完善 " + (config.label || controlKey);
+                    }
                 }
+            } else {
+                console.warn("validateControl: Control not found for key:", controlKey);
             }
         }
 
-        // 更新控件的 valid 状态 (触发 UI 变色)
+        // [修复] 更新控件的 valid 状态 (触发 UI 变色)
         if (controlsMap[controlKey]) {
             controlsMap[controlKey].valid = isValid;
         }
@@ -433,11 +431,12 @@ QtObject {
      * @return boolean - true表示验证通过，false表示验证失败或未验证
      */
     function isControlValid(controlKey) {
-        // [修复] 严格检查 valid 属性，只有 true 才算通过，undefined 视为 false
-        if (controlsMap[controlKey] && controlsMap[controlKey].hasOwnProperty("valid")) {
-            return controlsMap[controlKey].valid === true;
+        var control = controlsMap[controlKey];
+        if (control) {
+            // [修复] 只有 true 返回 true，undefined/false 返回 false
+            return control.valid === true;
         }
-        return true; // 默认有效（无验证规则）
+        return true;
     }
 
     /**
@@ -469,14 +468,15 @@ QtObject {
         var errors = [];
         // 遍历所有控件配置
         for (var key in controlConfigs) {
-            if (controlConfigs.hasOwnProperty(key)) {
+            // [修复] 移除 hasOwnProperty
+            if (controlConfigs[key]) {
                 var config = controlConfigs[key];
 
                 // 排除按钮等不需要验证的控件
                 if (config.type === "button" || config.type === "StyledRow")
                     continue;
 
-                // [修改] 主动触发一次验证，确保状态更新
+                // [修改] 主动触发一次验证，确保状态更新 (将 undefined 刷新为 false)
                 var result = validateControl(key, false);
                 if (!result.valid) {
                     errors.push({
@@ -499,7 +499,9 @@ QtObject {
             }
             showMessage(errorMsg, "error");
             // 让第一个错误的控件获得焦点
-            focusControl(errors[0].key);
+            if (errors[0].key && controlsMap[errors[0].key]) {
+                focusControl(errors[0].key);
+            }
         }
 
         return {
