@@ -1,13 +1,5 @@
-/*
- * @Author: 刘勇 yongliu_s@163.com
- * @Date: 2025-10-27 16:16:13
- * @LastEditors: 刘勇 yongliu_s@163.com
- * @LastEditTime: 2025-11-12 16:23:16
- * @FilePath: \DynamicFormQML\main.cpp
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
 #include "mainwindow.h"
-#include "MySqlConnectionManager.h"
+#include "mysql/MySqlConnectionManager/MySqlConnectionManager.h"
 #include <QApplication>
 #include <QLocale>
 #include <QLoggingCategory>
@@ -24,6 +16,9 @@
 using namespace std;
 int main(int argc, char *argv[])
 {
+    // 强制添加 Felgo 插件路径 (根据您的日志路径)
+    QCoreApplication::addLibraryPath("D:/SoftWare/Felgo/Felgo/mingw_64/plugins");
+
     QApplication a(argc, argv);
     
     // 设置 Qt Quick Controls 样式为 Basic，支持自定义

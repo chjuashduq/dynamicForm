@@ -31,6 +31,9 @@ MainWindow::MainWindow(QWidget *parent)
     // 添加 QML 模块搜索路径
     engine->addImportPath(QDir::currentPath() + "/qml");
     engine->addImportPath(QDir::currentPath() + "/qml/Common");
+    engine->addImportPath("D:/SoftWare/Felgo/Felgo/mingw_64/qml");
+
+    hotReload = new FelgoHotReload(engine, this);
 
     // 注册 C++ 单例对象
     // qmlRegisterSingletonType<MySqlHelper>("App.Native", 1, 0, "CppMySqlHelper",

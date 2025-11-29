@@ -12,6 +12,8 @@
 #include <QQmlApplicationEngine>
 #include "mysql/MySqlHelper/MySqlHelper.h"
 #include "mysql/MySqlConnectionManager/MySqlConnectionManager.h"
+// [新增] 引入头文件
+#include <FelgoHotReload>
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -26,5 +28,6 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    FelgoHotReload *hotReload;
 };
 #endif // MAINWINDOW_H
