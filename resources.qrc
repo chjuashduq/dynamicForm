@@ -53,5 +53,9 @@
     <file>templates/Controller.cpp.tpl</file>
     <file>templates/List.qml.tpl</file>
     <file>templates/Edit.qml.tpl</file>
+    <file>qml/mysqlhelper/MySqlHelper.qml</file>
+    <file>qml/mysqlhelper/qmldir</file>
+    <file>qml/utils/FileHelper.qml</file>
+    <file>qml/utils/qmldir</file>
   </qresource>
 </RCC>

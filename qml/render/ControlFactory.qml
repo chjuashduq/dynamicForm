@@ -1,7 +1,7 @@
 import QtQuick 6.5                                    // 导入Qt Quick 6.5核心模块
 import QtQuick.Controls 6.5                            // 导入Qt Quick Controls 6.5控件模块
 import QtQuick.Layouts 1.4                             // 导入Qt Quick Layouts 1.4布局模块
-import Common 1.0                                       // 导入全局样式和消息管理器
+import "../Common"                                       // 导入全局样式和消息管理器
 import "../core"                                        // 导入核心功能模块
 import "../components"                                  // 导入美化组件
 

@@ -1,9 +1,10 @@
 import QtQuick 6.5
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.4
-import Common 1.0
+import "../Common"
 import "../components"
-import mysqlhelper 1.0
+import "../mysqlhelper"
+
 Item {
     id: dynamicListRoot
     width: parent.width
@@ -17,11 +18,10 @@ Item {
     }
 
     Component.onCompleted: {
-        getData()
-        
+        getData();
     }
 
-    function getData(){
+    function getData() {
         var data = MySqlHelper.select("dynamicForm", [], "");
         dynamicListModel.clear();
         for (var i = 0; i < data.length; i++) {
@@ -38,7 +38,7 @@ Item {
         anchors.fill: parent
         color: AppStyles.backgroundColor
     }
-    
+
     RowLayout {
         id: topBar
         anchors.top: parent.top
@@ -51,14 +51,14 @@ Item {
         z: 1  // 确保在最上层
 
         spacing: AppStyles.spacingSmall
-        
+
         Text {
             text: "表单列表"
             font.pixelSize: AppStyles.fontSizeTitle
             color: AppStyles.textPrimary
             Layout.fillWidth: true
         }
-        
+
         StyledButton {
             text: "代码生成器"
             buttonType: "secondary"
@@ -80,12 +80,11 @@ Item {
                     loaderInstanceRef.configEditorLoader.visible = true;
                     loaderInstanceRef.configEditorLoader.item.initConfigEditor("");
                     stackViewRef.push(loaderInstanceRef.configEditorLoader);
-                    
                 }
             }
         }
     }
-    
+
     ScrollView {
         id: scrollView
         anchors.top: topBar.bottom
@@ -99,20 +98,20 @@ Item {
             id: tableColumn
             anchors.fill: parent
             spacing: AppStyles.spacingSmall
-            
+
             // 表头
             RowLayout {
                 id: headerRow
                 Layout.fillWidth: true
                 spacing: AppStyles.spacingMedium
-                
+
                 Rectangle {
                     color: AppStyles.primaryColor
                     radius: AppStyles.radiusMedium
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0.1 * scrollView.width
                     height: AppStyles.controlHeightLarge
-                    
+
                     StyledLabel {
                         anchors.centerIn: parent
                         text: "序号"
@@ -126,7 +125,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0.2 * scrollView.width
                     height: AppStyles.controlHeightLarge
-                    
+
                     StyledLabel {
                         anchors.centerIn: parent
                         text: "表单名称"
@@ -140,7 +139,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0.4 * scrollView.width
                     height: AppStyles.controlHeightLarge
-                    
+
                     StyledLabel {
                         anchors.centerIn: parent
                         text: "表单配置"
@@ -154,7 +153,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0.25 * scrollView.width
                     height: AppStyles.controlHeightLarge
-                    
+
                     StyledLabel {
                         anchors.centerIn: parent
                         text: "操作"
@@ -170,7 +169,7 @@ Item {
                 delegate: RowLayout {
                     Layout.fillWidth: true
                     spacing: AppStyles.spacingMedium
-                    
+
                     Rectangle {
                         color: AppStyles.surfaceColor
                         radius: AppStyles.radiusMedium
@@ -179,7 +178,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 0.1 * dynamicListRoot.width
                         height: AppStyles.controlHeightLarge
-                        
+
                         StyledLabel {
                             anchors.centerIn: parent
                             text: index + 1
@@ -193,7 +192,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 0.2 * dynamicListRoot.width
                         height: AppStyles.controlHeightLarge
-                        
+
                         StyledLabel {
                             anchors.centerIn: parent
                             text: model.dynamicName
@@ -207,7 +206,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 0.4 * dynamicListRoot.width
                         height: AppStyles.controlHeightLarge
-                        
+
                         StyledLabel {
                             anchors.fill: parent
 
@@ -216,14 +215,13 @@ Item {
                             elide: Text.ElideRight         // 开启右侧省略号
                             horizontalAlignment: Text.AlignLeft
                             verticalAlignment: Text.AlignVCenter
-
                         }
                     }
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 0.25 * dynamicListRoot.width
                         spacing: AppStyles.spacingSmall
-                        
+
                         StyledButton {
                             text: "查询"
                             buttonType: "secondary"
@@ -231,9 +229,9 @@ Item {
                             onClicked: {
                                 if (loaderInstanceRef && loaderInstanceRef.dataRecordListLoader) {
                                     var loader = loaderInstanceRef.dataRecordListLoader;
-                                    
+
                                     if (!loader.item) {
-                                        var connection = loader.onLoaded.connect(function() {
+                                        var connection = loader.onLoaded.connect(function () {
                                             if (loader.item) {
                                                 loader.item.initPage(model.id, model.dynamicName, model.dynamicConfig);
                                             }
@@ -242,7 +240,7 @@ Item {
                                     } else {
                                         loader.item.initPage(model.id, model.dynamicName, model.dynamicConfig);
                                     }
-                                    
+
                                     loaderInstanceRef.dynamicListLoadingLoader.visible = false;
                                     loader.visible = true;
                                     stackViewRef.push(loader);
@@ -253,13 +251,13 @@ Item {
                             text: "新增"
                             buttonType: "primary"
                             Layout.fillWidth: true
-                            onClicked: function(){
+                            onClicked: function () {
                                 if (stackViewRef && loaderInstanceRef && loaderInstanceRef.formPreviewLoader) {
                                     var loader = loaderInstanceRef.formPreviewLoader;
-                                    
+
                                     // 如果Loader还没有加载完成，等待加载
                                     if (!loader.item) {
-                                        var connection = loader.onLoaded.connect(function() {
+                                        var connection = loader.onLoaded.connect(function () {
                                             if (loader.item) {
                                                 loader.item.initForm(model.id, model.dynamicName, model.dynamicConfig);
                                             }
@@ -268,7 +266,7 @@ Item {
                                     } else {
                                         loader.item.initForm(model.id, model.dynamicName, model.dynamicConfig);
                                     }
-                                    
+
                                     loaderInstanceRef.dynamicListLoadingLoader.visible = false;
                                     loader.visible = true;
                                     stackViewRef.push(loader);
@@ -279,13 +277,12 @@ Item {
                             text: "编辑"
                             buttonType: "secondary"
                             Layout.fillWidth: true
-                            onClicked: function(){
+                            onClicked: function () {
                                 if (stackViewRef && loaderInstanceRef) {
                                     loaderInstanceRef.dynamicListLoadingLoader.visible = false;
                                     loaderInstanceRef.configEditorLoader.visible = true;
-                                    loaderInstanceRef.configEditorLoader.item.initConfigEditor(model.dynamicName,model.dynamicConfig);
+                                    loaderInstanceRef.configEditorLoader.item.initConfigEditor(model.dynamicName, model.dynamicConfig);
                                     stackViewRef.push(loaderInstanceRef.configEditorLoader);
-                                    
                                 }
                             }
                         }
@@ -293,14 +290,14 @@ Item {
                             text: "删除"
                             buttonType: "danger"
                             Layout.fillWidth: true
-                            onClicked: function(){
-                                MessageManager.showDialog("确定要删除这个表单吗？", "warning", function() {
+                            onClicked: function () {
+                                MessageManager.showDialog("确定要删除这个表单吗？", "warning", function () {
                                     var where = "id=" + model.id;
                                     try {
                                         MySqlHelper.remove("dynamicForm", where);
                                         MessageManager.showToast("删除成功", "success");
                                         getData();  // 立即刷新列表
-                                    } catch(e) {
+                                    } catch (e) {
                                         MessageManager.showToast("删除失败: " + e, "error");
                                     }
                                 });

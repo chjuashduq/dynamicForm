@@ -22,7 +22,7 @@ public:
     Q_INVOKABLE static bool remove(const QString &tableName, const QString &where = "");
     Q_INVOKABLE QJsonArray getDbTables();
     Q_INVOKABLE QJsonArray getDbTableColumns(const QString &tableName);
-    MySqlHelper();
+    explicit MySqlHelper(QObject *parent = nullptr);
     ~MySqlHelper();
 };
 #endif // MYSQLHELPER_H

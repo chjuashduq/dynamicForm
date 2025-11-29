@@ -1,11 +1,10 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import mysqlhelper 1.0
-import generator 1.0
-import Common 1.0
-import "../components"
+import "../mysqlhelper"
 import "../generator"
+import "../Common"
+import "../components"
 
 Item {
     id: root
@@ -39,7 +38,13 @@ Item {
 
     function loadDisplayTypes() {
         try {
-            var groups = JSON.parse(componentJson);
+            if (typeof componentJson !== "undefined") {
+                var groups = JSON.parse(componentJson);
+            } else {
+                console.warn("componentJson is undefined, using default list");
+                var defaultJson = '[{"group":"布局组件","items":[{"type":"StyledRow","label":"横向布局","icon":"▤"}]},{"group":"基础组件","items":[{"type":"StyledTextField","label":"文本输入","icon":"✎","supportFormConfig":true},{"type":"StyledSpinBox","label":"数字输入","icon":"123","supportFormConfig":true},{"type":"StyledComboBox","label":"下拉选择","icon":"▼","supportFormConfig":true},{"type":"StyledButton","label":"按钮","icon":"ok"},{"type":"StyledLabel","label":"文本标签","icon":"T"}]}]';
+                var groups = JSON.parse(defaultJson);
+            }
             var types = [];
             for (var i = 0; i < groups.length; i++) {
                 var items = groups[i].items;

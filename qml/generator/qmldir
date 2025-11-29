@@ -1,0 +1,2 @@
+module generator
+singleton CodeGenerator 1.0 CodeGenerator.qml

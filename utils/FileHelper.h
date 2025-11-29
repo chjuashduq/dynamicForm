@@ -16,6 +16,7 @@ public:
     Q_INVOKABLE bool write(const QString &source, const QString &data);
     Q_INVOKABLE QString read(const QString &source);
     Q_INVOKABLE QString getLocalPath(const QString &url);
+    Q_INVOKABLE QString getProjectRoot();
 
 };
 

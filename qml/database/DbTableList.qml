@@ -1,7 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import mysqlhelper 1.0
+import "../mysqlhelper"
+import "../Common"
 
 Item {
     id: root

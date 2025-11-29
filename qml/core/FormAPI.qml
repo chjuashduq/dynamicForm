@@ -1,5 +1,5 @@
 import QtQuick 6.5
-import Common 1.0
+import "../Common"
 
 /**
  * 表单控件操作API库

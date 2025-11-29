@@ -1,0 +1,2 @@
+module utils
+singleton FileHelper 1.0 FileHelper.qml

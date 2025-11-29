@@ -1,6 +1,6 @@
 import QtQuick 6.5
-import mysqlhelper 1.0
-import Common 1.0
+import "../mysqlhelper"
+import "../Common"
 
 /**
  * JavaScript函数执行引擎

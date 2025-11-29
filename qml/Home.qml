@@ -9,6 +9,8 @@ Item {
 
     signal navigate(string target)
 
+    Component.onCompleted: console.log("Home.qml loaded")
+
     Rectangle {
         anchors.fill: parent
         color: "#f0f2f5"
@@ -60,14 +62,6 @@ Item {
                             iconText: "🗄️"
                             accentColor: "#722ed1"
                         }
-                        // Example for generated page
-                        // ListElement {
-                        //     target: "sys_user"
-                        //     title: "用户管理"
-                        //     description: "系统用户管理"
-                        //     iconText: "👤"
-                        //     accentColor: "#eb2f96"
-                        // }
                     }
 
                     delegate: HomeCard {
@@ -96,7 +90,7 @@ Item {
         signal clicked
 
         // Shadow effect (simulated with border for now, or use DropShadow if available)
-        border.color: mouseArea.containsMouse ? card.color : "#e8e8e8"
+        border.color: mouseArea.containsMouse ? card.accentColor : "#e8e8e8"
         border.width: mouseArea.containsMouse ? 2 : 1
 
         Behavior on border.color {
@@ -129,14 +123,14 @@ Item {
                 width: 50
                 height: 50
                 radius: 25
-                color: Qt.lighter(card.color, 1.8)
+                color: Qt.lighter(card.accentColor, 1.8)
                 Layout.alignment: Qt.AlignHCenter
 
                 Text {
                     anchors.centerIn: parent
                     text: card.iconText
                     font.pixelSize: 24
-                    color: card.color
+                    color: card.accentColor
                 }
             }
 

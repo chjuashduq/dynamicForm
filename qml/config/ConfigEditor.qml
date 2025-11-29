@@ -2,8 +2,8 @@ import QtQuick 6.5                                    // 导入Qt Quick 6.5核�
 import QtQuick.Controls 6.5                            // 导入Qt Quick Controls 6.5控件模块
 import QtQuick.Layouts 1.4                             // 导入Qt Quick Layouts 1.4布局模块
 import "." as Config                                    // 导入当前目录下的QML文件作为Config命名空间
-import mysqlhelper 1.0                                // 导入mysqlhelper 1.0模块，用于数据库操作
-import Common 1.0                                    // 导入Common 1.0模块，包含通用组件和功能
+import "../mysqlhelper"                                // 导入mysqlhelper 1.0模块，用于数据库操作
+import "../Common"                                    // 导入Common 1.0模块，包含通用组件和功能
 
 /**
  * 动态表单配置编辑器 (重构版)
@@ -56,11 +56,11 @@ Item {                                                  // 配置编辑器主容
                     console.log("ConfigEditor: GridPreview not loaded yet");
                 }
             });
-            
+
             // 连接 GridConfigPanel 的信号
             if (gridConfigPanelLoader.item) {
                 console.log("ConfigEditor: Connecting GridConfigPanel signal (from ConfigManager.onLoaded)");
-                gridConfigPanelLoader.item.configChanged.connect(function(newGridConfig) {
+                gridConfigPanelLoader.item.configChanged.connect(function (newGridConfig) {
                     console.log("ConfigEditor: received configChanged signal", JSON.stringify(newGridConfig));
                     configManager.updateGridConfig(newGridConfig);
                 });
@@ -68,16 +68,16 @@ Item {                                                  // 配置编辑器主容
         }
     }
 
-    function initConfigEditor(dynamicName,configData) {
-        dynamicNameText = dynamicName?dynamicName:"";
-        if (configData && configData!="" && configData.trim().length>0) {
-            configManager.initializeFromJson(configData); 
-        }else{
+    function initConfigEditor(dynamicName, configData) {
+        dynamicNameText = dynamicName ? dynamicName : "";
+        if (configData && configData != "" && configData.trim().length > 0) {
+            configManager.initializeFromJson(configData);
+        } else {
             configManager.resetConfig();
         }
-        
+
         // 强制更新所有组件
-        Qt.callLater(function() {
+        Qt.callLater(function () {
             if (gridConfigPanelLoader.item && configManager) {
                 gridConfigPanelLoader.item.gridConfig = configManager.currentConfig.grid;
             }
@@ -199,7 +199,7 @@ Item {                                                  // 配置编辑器主容
                         anchors.fill: parent
                         anchors.margins: 10
 
-                        Button{
+                        Button {
                             text: "返回列表"
                             anchors.left: parent.left
                             anchors.leftMargin: 10
@@ -286,9 +286,9 @@ Item {                                                  // 配置编辑器主容
                             // 如果配置管理器已加载
                             console.log("ConfigEditor: Connecting configChanged signal (from GridConfigPanel.onLoaded)");
                             item.gridConfig = configManager.currentConfig.grid; // 设置面板的初始网格配置
-                            
+
                             // 连接网格配置变化信号
-                            item.configChanged.connect(function(newGridConfig) {
+                            item.configChanged.connect(function (newGridConfig) {
                                 console.log("ConfigEditor: received configChanged signal (from GridConfigPanel.onLoaded)", JSON.stringify(newGridConfig));
                                 configManager.updateGridConfig(newGridConfig);
                             });
@@ -328,7 +328,7 @@ Item {                                                  // 配置编辑器主容
                     border.color: "#dee2e6"             // 浅灰色边框
                     border.width: 1                     // 1像素边框宽度
                     radius: 8                           // 8像素圆角
-                    
+
                     onHeightChanged: {
                         console.log("ConfigEditor: previewContainer height changed to", height);
                     }

@@ -2,9 +2,10 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.folderlistmodel
-import Qt.labs.platform as Platform
-import utils 1.0
-import Common 1.0
+import QtQuick.Dialogs
+
+import "../utils"
+import "../Common"
 import "../components"
 import "properties"
 import "library"
@@ -39,7 +40,13 @@ Item {
     // Component Library Model
     property var componentGroups: undefined
     Component.onCompleted: {
-        componentGroups = JSON.parse(componentJson);
+        if (typeof componentJson !== "undefined") {
+            componentGroups = JSON.parse(componentJson);
+        } else {
+            console.warn("componentJson is undefined, using default list");
+            var defaultJson = '[{"group":"布局组件","items":[{"type":"StyledRow","label":"横向布局","icon":"▤"}]},{"group":"基础组件","items":[{"type":"StyledTextField","label":"文本输入","icon":"✎","supportFormConfig":true},{"type":"StyledSpinBox","label":"数字输入","icon":"123","supportFormConfig":true},{"type":"StyledComboBox","label":"下拉选择","icon":"▼","supportFormConfig":true},{"type":"StyledButton","label":"按钮","icon":"ok"},{"type":"StyledLabel","label":"文本标签","icon":"T"}]}]';
+            componentGroups = JSON.parse(defaultJson);
+        }
     }
     RowLayout {
         anchors.fill: parent
@@ -355,14 +362,14 @@ Item {
         }
     }
 
-    Platform.FileDialog {
+    FileDialog {
         id: exportDialog
         title: "导出表单JSON"
-        fileMode: Platform.FileDialog.SaveFile
+        fileMode: FileDialog.SaveFile
         nameFilters: ["JSON files (*.json)", "All files (*)"]
         defaultSuffix: "json"
         onAccepted: {
-            var path = FileHelper.getLocalPath(file.toString());
+            var path = FileHelper.getLocalPath(selectedFile.toString());
             var json = Serializer.serialize(root.formModel, {
                 "name": "DynamicForm"
             });
@@ -374,13 +381,13 @@ Item {
         }
     }
 
-    Platform.FileDialog {
+    FileDialog {
         id: importDialog
         title: "导入表单JSON"
-        fileMode: Platform.FileDialog.OpenFile
+        fileMode: FileDialog.OpenFile
         nameFilters: ["JSON files (*.json)", "All files (*)"]
         onAccepted: {
-            var path = FileHelper.getLocalPath(file.toString());
+            var path = FileHelper.getLocalPath(selectedFile.toString());
             var content = FileHelper.read(path);
             if (content) {
                 var model = Serializer.deserialize(content);

@@ -1,0 +1,2 @@
+module mysqlhelper
+singleton MySqlHelper 1.0 MySqlHelper.qml

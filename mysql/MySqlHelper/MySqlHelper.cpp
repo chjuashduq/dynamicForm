@@ -252,7 +252,7 @@ QJsonArray MySqlHelper::getDbTableColumns(const QString &tableName)
     return columns;
 }
 
-MySqlHelper::MySqlHelper()
+MySqlHelper::MySqlHelper(QObject *parent) : QObject(parent)
 {
 }
 

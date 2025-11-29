@@ -1,6 +1,6 @@
-import QtQuick
-import QtQuick.Layouts
-import Common 1.0
+import QtQuick 6.5
+import QtQuick.Layouts 1.15
+import "../Common"
 
 RowLayout {
     id: baseRoot

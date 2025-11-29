@@ -1,19 +1,20 @@
 import QtQuick 6.5
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.4
-import Common 1.0
+import "Common"
 
 /**
  * 动态表单主组件
  * 职责：界面布局和组件协调
  */
-Item {
+ApplicationWindow {
     id: root
+    visible: true
     width: 800
     height: 600
 
     // 从外部JSON解析表单配置
-    property var formConfig: JSON.parse(formJson)
+    property var formConfig: (typeof formJson !== "undefined") ? JSON.parse(formJson) : {}
 
     // 控件映射表
     property var controlsMap: ({})
@@ -367,6 +368,6 @@ Item {
         var c = generatorTab.createObject(root);
         var d = dbTableListTab.createObject(root);
         var e = genEditTab.createObject(root);
-        MessageManager.registerRootItem(root);
+        MessageManager.registerRootItem(root.contentItem);
     }
 }

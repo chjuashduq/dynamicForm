@@ -1,4 +1,5 @@
 #include "FileHelper.h"
+#include <QDir>
 
 FileHelper::FileHelper(QObject *parent) : QObject(parent)
 {
@@ -52,4 +53,9 @@ QString FileHelper::getLocalPath(const QString &url)
         return url;
     }
     return url;
+}
+
+QString FileHelper::getProjectRoot()
+{
+    return QDir::currentPath();
 }

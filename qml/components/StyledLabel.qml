@@ -1,6 +1,6 @@
 import QtQuick 6.5
 import QtQuick.Controls 6.5
-import Common 1.0
+import "../Common"
 
 /**
  * 美化的标签

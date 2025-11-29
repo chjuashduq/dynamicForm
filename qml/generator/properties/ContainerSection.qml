@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import Common 1.0
+import "../../Common"
 
 CollapsePanel {
     title: "容器设置"
