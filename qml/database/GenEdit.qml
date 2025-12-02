@@ -16,13 +16,17 @@ Item {
     property var queryTypes: ["=", "!=", ">", ">=", "<", "<=", "LIKE", "BETWEEN", "IS NULL", "IS NOT NULL", "IN"]
     property var cppTypes: ["String", "Integer", "Long", "Double", "Boolean", "DateTime"]
 
-    // 保存可视化编辑器修改后的模型，防止切换Tab丢失
+    // 字典类型列表模型
+    property var dictTypeModel: []
+
+    // 保存可视化编辑器修改后的模型
     property var savedVisualModel: null
 
     signal back
 
     Component.onCompleted: {
         loadDisplayTypes();
+        loadDictTypes();
         if (tableName) {
             loadColumns();
         }
@@ -31,8 +35,13 @@ Item {
     onTableNameChanged: {
         if (tableName) {
             loadColumns();
-            // 切换表时清空缓存
+            // [修复] 切换表时彻底清空缓存和预览状态
             savedVisualModel = null;
+            bar.currentIndex = 0; // 重置到第一个Tab
+            if (generatorLoader.item) {
+                generatorLoader.item.formModel = [];
+                generatorLoader.item.selectedItem = null;
+            }
         }
     }
 
@@ -63,6 +72,50 @@ Item {
         }
     }
 
+    function loadDictTypes() {
+        try {
+            if (typeof MySqlHelper !== "undefined") {
+                var dicts = MySqlHelper.select("sys_dict_type", ["dict_name", "dict_type"], "status='0'");
+                var list = [];
+                list.push({
+                    text: "无",
+                    value: ""
+                });
+                for (var i = 0; i < dicts.length; i++) {
+                    list.push({
+                        text: dicts[i].dict_name + " (" + dicts[i].dict_type + ")",
+                        value: dicts[i].dict_type
+                    });
+                }
+                dictTypeModel = list;
+            }
+        } catch (e) {
+            console.error("Error loading dict types:", e);
+        }
+    }
+
+    function fetchDictOptions(dictType) {
+        if (!dictType || dictType === "")
+            return [];
+        try {
+            if (typeof MySqlHelper !== "undefined") {
+                var where = "dict_type='" + dictType + "' AND status='0' ORDER BY dict_sort";
+                var data = MySqlHelper.select("sys_dict_data", ["dict_label", "dict_value"], where);
+                var options = [];
+                for (var i = 0; i < data.length; i++) {
+                    options.push({
+                        label: data[i].dict_label,
+                        value: data[i].dict_value
+                    });
+                }
+                return options;
+            }
+        } catch (e) {
+            console.error("Error fetching options for " + dictType + ":", e);
+        }
+        return [];
+    }
+
     function loadColumns() {
         console.log("Loading columns for table:", tableName);
         try {
@@ -75,9 +128,34 @@ Item {
                     cols[i].isQuery = false;
                     cols[i].queryType = "=";
                     cols[i].isRequired = (cols[i].isNullable === "NO");
+
                     cols[i].displayType = "StyledTextField";
+                    cols[i].dictType = "";
+                    cols[i].options = [];
+
                     if (cols[i].cppType === "Integer" || cols[i].cppType === "Long" || cols[i].cppType === "Double") {
                         cols[i].displayType = "StyledSpinBox";
+                    }
+
+                    var colName = cols[i].columnName;
+
+                    // [修改] 增加 flag 结尾判断
+                    if (colName.endsWith("code") || colName.endsWith("flag")) {
+                        cols[i].displayType = "StyledComboBox";
+
+                        var foundDict = false;
+                        for (var d = 0; d < dictTypeModel.length; d++) {
+                            if (dictTypeModel[d].value === colName) {
+                                foundDict = true;
+                                break;
+                            }
+                        }
+
+                        if (foundDict) {
+                            cols[i].dictType = colName;
+                            cols[i].options = fetchDictOptions(colName);
+                            console.log("Auto-matched dictionary for " + colName);
+                        }
                     }
                 }
                 columnModel = cols;
@@ -92,87 +170,199 @@ Item {
     property string moduleName: "system"
     property string version: "1.0.0"
 
-    // ========== 新增：同步逻辑 ==========
+    // [新增] 递归遍历可视化模型，寻找并更新 Item
+    function updateVisualModelRecursively(model, columnMap, unvisitedKeys) {
+        var newModel = [];
+        for (var i = 0; i < model.length; i++) {
+            var item = model[i];
+            var newItem = JSON.parse(JSON.stringify(item)); // 深拷贝
+            var keepItem = true;
 
-    // 将当前字段配置同步到可视化编辑器
+            // 检查是否是数据字段 (拥有 key 且不是布局容器或按钮)
+            // 简单判断：如果 key 在 columnMap 中，说明是字段
+            if (newItem.props && newItem.props.key && columnMap[newItem.props.key]) {
+                var colData = columnMap[newItem.props.key];
+
+                // 1. 同步属性 (Tab 1 -> Tab 3)
+                newItem.props.label = colData.columnComment || colData.columnName;
+                newItem.props.required = colData.isRequired;
+
+                // 如果类型变了，更新类型 (例如手动改了 displayType)
+                if (colData.displayType && newItem.type !== colData.displayType) {
+                    newItem.type = colData.displayType;
+                }
+
+                // 如果是下拉框，同步选项
+                if (newItem.type === "StyledComboBox" && colData.options) {
+                    newItem.props.model = colData.options;
+                }
+
+                // 标记已访问
+                var keyIndex = unvisitedKeys.indexOf(newItem.props.key);
+                if (keyIndex > -1) {
+                    unvisitedKeys.splice(keyIndex, 1);
+                }
+
+                // 如果 Tab 1 中取消了“编辑”，则在可视化中移除
+                if (!colData.isEdit) {
+                    keepItem = false;
+                }
+            } else
+            // 此外：如果是一个看起来像字段的组件，但在 columnMap 中找不到 key，说明 Tab 1 删除了该列或改了名
+            // 我们选择移除它，除非它是纯 UI 组件（如 Row/Label/Button）
+            if (isDataComponent(newItem.type) && newItem.props && newItem.props.key) {
+                // 这是一个数据组件，但其 key 不在当前的 columnModel 中 -> 移除
+                keepItem = false;
+            }
+
+            // 递归处理子元素
+            if (keepItem && newItem.children && newItem.children.length > 0) {
+                newItem.children = updateVisualModelRecursively(newItem.children, columnMap, unvisitedKeys);
+            }
+
+            if (keepItem) {
+                newModel.push(newItem);
+            }
+        }
+        return newModel;
+    }
+
+    function isDataComponent(type) {
+        return ["StyledTextField", "StyledSpinBox", "StyledComboBox"].indexOf(type) !== -1;
+    }
+
+    // [修改] 双向同步：将字段配置同步到可视化编辑器 (合并模式)
     function syncToVisual() {
         if (!generatorLoader.item)
             return;
-        // 1. 如果已有保存的修改，直接加载
-        if (savedVisualModel) {
-            generatorLoader.item.formModel = savedVisualModel;
-            console.log("已加载保存的可视化布局");
-            return;
+
+        // 1. 准备数据映射
+        var columnMap = {};
+        var unvisitedKeys = []; // 记录所有需要显示的字段 Key
+        for (var i = 0; i < columnModel.length; i++) {
+            var col = columnModel[i];
+            columnMap[col.cppField] = col;
+            if (col.isEdit) {
+                unvisitedKeys.push(col.cppField);
+            }
         }
 
-        // 2. 否则，根据字段列表生成默认布局 (每行3列 + 底部按钮)
+        // 2. 如果已有可视化模型，进行合并更新
+        if (savedVisualModel && savedVisualModel.length > 0) {
+            // 递归更新现有模型（更新属性，移除被禁用的字段）
+            var updatedModel = updateVisualModelRecursively(savedVisualModel, columnMap, unvisitedKeys);
+
+            // 3. 处理剩余未访问的 Key（新增的字段）
+            // 将它们添加到末尾
+            if (unvisitedKeys.length > 0) {
+                var newItems = createVisualItemsFromKeys(unvisitedKeys, columnMap);
+                // 尝试添加到最后一个 Row 中，如果没有 Row 则新建
+                if (updatedModel.length > 0 && updatedModel[updatedModel.length - 1].type === "StyledRow") {
+                    var lastRow = updatedModel[updatedModel.length - 1];
+                    lastRow.children = lastRow.children.concat(newItems);
+                } else {
+                    // 创建新行
+                    updatedModel.push(createRow(updatedModel.length + 1, newItems));
+                }
+            }
+
+            generatorLoader.item.formModel = updatedModel;
+            console.log("Synced column changes to existing visual layout");
+        } else {
+            // 4. 没有历史模型，完全重新生成
+            generateDefaultLayout();
+        }
+    }
+
+    function createVisualItemsFromKeys(keys, columnMap) {
+        var items = [];
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            var col = columnMap[key];
+            if (!col)
+                continue;
+
+            var props = {
+                "key": col.cppField,
+                "label": col.columnComment || col.columnName,
+                "layoutType": "percent",
+                "widthPercent": 30,
+                "visible": true,
+                "enabled": true,
+                "labelRatio": 0.2,
+                "required": col.isRequired
+            };
+            if (col.displayType === "StyledComboBox" && col.options) {
+                props.model = col.options;
+            }
+            items.push({
+                "type": col.displayType || "StyledTextField",
+                "id": "field_" + col.cppField,
+                "props": props
+            });
+        }
+        return items;
+    }
+
+    function createRow(index, children) {
+        return {
+            "type": "StyledRow",
+            "id": "row_" + index,
+            "props": {
+                "key": "row_" + index,
+                "layoutType": "fill",
+                "spacing": 30,
+                "paddingTop": 0,
+                "paddingBottom": 10,
+                "paddingLeft": 0,
+                "paddingRight": 0,
+                "wrap": true
+            },
+            "children": children || []
+        };
+    }
+
+    function generateDefaultLayout() {
         var visualItems = [];
         var currentRowChildren = [];
         var rowIndex = 1;
 
-        // 辅助函数：将当前行推入主列表
         function pushRow() {
             if (currentRowChildren.length > 0) {
-                visualItems.push({
-                    "type": "StyledRow",
-                    "id": "row_" + rowIndex,
-                    "props": {
-                        "key": "row_" + rowIndex,
-                        "layoutType": "fill",
-                        "spacing": 30,
-                        "paddingTop": 0,
-                        "paddingBottom": 10,
-                        "paddingLeft": 0,
-                        "paddingRight": 0
-                    },
-                    "children": currentRowChildren
-                });
+                visualItems.push(createRow(rowIndex, currentRowChildren));
                 currentRowChildren = [];
                 rowIndex++;
             }
         }
 
-        // 遍历字段列表
         for (var i = 0; i < columnModel.length; i++) {
             var col = columnModel[i];
-            // 只处理勾选了"编辑"的字段
             if (!col.isEdit)
                 continue;
-            // [关键] 确保 key 使用 cppField (驼峰命名)
-            var item = {
-                "type": col.displayType || "StyledTextField",
-                "id": "field_" + col.cppField,
-                "props": {
-                    "key": col.cppField,
-                    "label": col.columnComment || col.columnName,
-                    "layoutType": "percent" // 使用百分比布局
-                    ,
-                    "widthPercent": 30      // 30% 宽度，一行3个
-                    ,
-                    "visible": true,
-                    "enabled": true,
-                    // [修改] 默认标签占比设为 0.2 (20%)
-                    "labelRatio": 0.2,
-                    // [新增] 同步必填属性
-                    "required": col.isRequired
-                }
-            };
-            currentRowChildren.push(item);
 
-            // 每3个控件换一行
+            var items = createVisualItemsFromKeys([col.cppField], (_ => {
+                    var m = {};
+                    m[col.cppField] = col;
+                    return m;
+                })());
+            currentRowChildren.push(items[0]);
+
             if (currentRowChildren.length >= 3) {
                 pushRow();
             }
         }
-        // 处理剩余控件
         pushRow();
-        // 3. 添加底部操作按钮行 (修改了事件逻辑)
 
-        // [修复] Submit 逻辑：支持预览环境，使用 !isEditMode
-        var submitLogic = "// 1. 验证所有字段\n" + "var validation = validateAll();\n" + "if (!validation.valid) return;\n\n" + "// 2. 收集数据\n" + "var data = getAllValues();\n\n" + "// 3. 环境检查 (预览模式)\n" + "if (typeof controller === 'undefined') {\n" + "    console.log('预览提交数据:', JSON.stringify(data));\n" + "    showMessage('验证通过！(预览模式不写入数据库)', 'success');\n" + "    return;\n" + "}\n\n" + "// 4. 处理主键(如果是编辑模式)\n" + "if (isEditMode && formData && formData.id) {\n" + "    data['id'] = formData.id;\n" + "}\n\n" + "// 5. 调用Controller\n" + "var success = false;\n" + "if (!isEditMode) {\n" + // 使用 !isEditMode 代替 isAdd
-        "    success = controller.add(data);\n" + "} else {\n" + "    success = controller.update(data);\n" + "}\n\n" + "// 6. 关闭窗口\n" + "if (success) {\n" + "    if (typeof closeForm === 'function') closeForm();\n" + "    else showMessage('保存成功', 'success');\n" + "}";
-        // [修复] Cancel 逻辑：支持预览环境
-        var cancelLogic = "if (typeof closeForm === 'function') {\n" + "    closeForm();\n" + "} else if (typeof root !== 'undefined' && root.StackView && root.StackView.view) {\n" + "    root.StackView.view.pop();\n" + "} else {\n" + "    showMessage('取消操作 (预览模式)', 'info');\n" + "}";
+        // 底部按钮
+        addBottomButtons(visualItems);
+        generatorLoader.item.formModel = visualItems;
+        console.log("Generated default layout");
+    }
+
+    function addBottomButtons(visualItems) {
+        var submitLogic = "// 1. 验证所有字段\nvar validation = validateAll();\nif (!validation.valid) return;\n\n// 2. 收集数据\nvar data = getAllValues();\n\n// 3. 环境检查\nif (typeof controller === 'undefined') {\n    console.log('Preview Submit:', JSON.stringify(data));\n    showMessage('验证通过！(预览模式)', 'success');\n    return;\n}\n\n// 4. 处理主键\nif (isEditMode && formData && formData.id) {\n    data['id'] = formData.id;\n}\n\n// 5. 调用Controller\nvar success = isEditMode ? controller.update(data) : controller.add(data);\n\n// 6. 关闭\nif (success) {\n    if (typeof closeForm === 'function') closeForm();\n    else showMessage('保存成功', 'success');\n}";
+        var cancelLogic = "if (typeof closeForm === 'function') closeForm();\nelse if (typeof root !== 'undefined' && root.StackView && root.StackView.view) root.StackView.view.pop();\nelse showMessage('取消操作', 'info');";
+
         var btnSave = {
             "type": "StyledButton",
             "id": "btn_submit",
@@ -201,35 +391,72 @@ Item {
                 "onClicked": cancelLogic
             }
         };
+
         visualItems.push({
             "type": "StyledRow",
             "id": "row_actions",
             "props": {
                 "key": "row_actions",
                 "layoutType": "fill",
-                "alignment": 4 // Center (Qt.AlignHCenter)
-                ,
+                "alignment": 4,
                 "spacing": 20,
                 "paddingTop": 20,
                 "paddingBottom": 20,
-                "paddingLeft": 0,
-                "paddingRight": 0,
                 "wrap": false
             },
             "children": [btnCancel, btnSave]
         });
-        // 赋值给可视化编辑器
-        generatorLoader.item.formModel = visualItems;
-        console.log("已生成默认布局，包含 " + visualItems.length + " 行");
     }
 
-    // 从可视化编辑器同步回状态
+    // [新增] 递归遍历可视化模型，同步回 Tab 1
+    function syncFromVisualRecursively(model, columnMap) {
+        for (var i = 0; i < model.length; i++) {
+            var item = model[i];
+            if (item.props && item.props.key && columnMap[item.props.key]) {
+                var col = columnMap[item.props.key];
+                // 标记为正在编辑（因为存在于可视化布局中）
+                col.isEdit = true;
+                // 同步属性回 Tab 1
+                col.columnComment = item.props.label || col.columnComment;
+                col.isRequired = (item.props.required === true);
+                // 同步显示类型
+                if (item.type && item.type.startsWith("Styled")) {
+                    col.displayType = item.type;
+                }
+            }
+            if (item.children && item.children.length > 0) {
+                syncFromVisualRecursively(item.children, columnMap);
+            }
+        }
+    }
+
+    // [修改] 双向同步：从可视化编辑器同步回 Tab 1
     function syncFromVisual() {
         if (!generatorLoader.item)
             return;
-        // 保存当前模型状态，以便下次进入时恢复
+
+        // 1. 保存当前视觉状态
         savedVisualModel = generatorLoader.item.formModel;
-        console.log("已保存可视化布局修改");
+
+        // 2. 准备 columnMap
+        var columnMap = {};
+        for (var i = 0; i < columnModel.length; i++) {
+            // 先默认设为 false，如果在 visual 中找到则设为 true
+            columnModel[i].isEdit = false;
+            columnMap[columnModel[i].cppField] = columnModel[i];
+        }
+
+        // 3. 递归更新
+        if (savedVisualModel) {
+            syncFromVisualRecursively(savedVisualModel, columnMap);
+        }
+
+        // 4. 强制刷新 ListView (Model 重置)
+        var temp = columnModel;
+        columnModel = [];
+        columnModel = temp;
+
+        console.log("Synced visual changes back to column config");
     }
 
     ColumnLayout {
@@ -256,12 +483,9 @@ Item {
                 text: "提交生成"
                 highlighted: true
                 onClicked: {
-                    // 1. 同步最新状态
-                    if (generatorLoader.item) {
+                    if (generatorLoader.item)
                         syncFromVisual();
-                    }
 
-                    // 2. 准备生成配置
                     var config = {
                         "tableName": tableName,
                         "author": authorName,
@@ -270,21 +494,18 @@ Item {
                         "version": version,
                         "columns": columnModel
                     };
-                    // 3. 获取可视化生成的 QML 代码
                     if (generatorLoader.item) {
                         var qmlBody = generatorLoader.item.getGeneratedCode();
                         config.customEditQml = qmlBody;
-                        config.injectFunctions = true; // 标记需要注入 helper 函数
+                        config.injectFunctions = true;
                     }
 
-                    console.log("Generating code with config:", JSON.stringify(config));
+                    console.log("Generating code...");
                     var success = CodeGenerator.generate(config);
 
                     if (success) {
-                        console.log("Code generated successfully!");
                         MessageManager.showToast("代码生成成功！", "success");
                     } else {
-                        console.error("Code generation failed!");
                         MessageManager.showToast("代码生成失败，请检查日志", "error");
                     }
                     root.back();
@@ -309,7 +530,6 @@ Item {
                 if (currentIndex === 2) {
                     syncToVisual();
                 } else {
-                    // 离开可视化 Tab 时自动保存
                     if (generatorLoader.item) {
                         syncFromVisual();
                     }
@@ -400,8 +620,8 @@ Item {
                             font.bold: true
                         }
                         Text {
-                            Layout.preferredWidth: 100
-                            text: "字典类型"
+                            Layout.preferredWidth: 150
+                            text: "字典数据"
                             font.bold: true
                         }
                     }
@@ -513,6 +733,7 @@ Item {
                                 }
                             }
                             ComboBox {
+                                id: displayTypeCombo
                                 Layout.preferredWidth: 100
                                 textRole: "label"
                                 valueRole: "type"
@@ -530,9 +751,38 @@ Item {
                                     root.columnModel[index].displayType = currentValue;
                                 }
                             }
+
+                            // 字典选择下拉框
                             ComboBox {
-                                Layout.preferredWidth: 100
-                                model: ["请选择"]
+                                Layout.preferredWidth: 150
+                                model: root.dictTypeModel
+                                textRole: "text"
+                                valueRole: "value"
+                                enabled: displayTypeCombo.currentValue === "StyledComboBox"
+
+                                Component.onCompleted: {
+                                    var currentDict = modelData.dictType || "";
+                                    var foundIndex = -1;
+                                    for (var i = 0; i < root.dictTypeModel.length; i++) {
+                                        if (root.dictTypeModel[i].value === currentDict) {
+                                            foundIndex = i;
+                                            break;
+                                        }
+                                    }
+                                    if (foundIndex >= 0)
+                                        currentIndex = foundIndex;
+                                    else
+                                        currentIndex = 0;
+                                }
+
+                                onActivated: {
+                                    var selectedType = currentValue;
+                                    modelData.dictType = selectedType;
+                                    root.columnModel[index].dictType = selectedType;
+                                    var opts = fetchDictOptions(selectedType);
+                                    modelData.options = opts;
+                                    root.columnModel[index].options = opts;
+                                }
                             }
                         }
                         Rectangle {
@@ -599,7 +849,6 @@ Item {
                     id: generatorLoader
                     source: "../generator/FormGenerator.qml"
                     anchors.fill: parent
-
                     onLoaded: {
                         if (item) {
                             item.previewMode = false;

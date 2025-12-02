@@ -18,6 +18,23 @@ Item {
     property int pageNum: 1
     property int pageSize: 10
     
+    // [新增] 字典选项数据，用于列表转义显示
+    {{# columns }}
+    {{# hasOptions }}
+    property var options_{{ cppField }}: {{ optionsStr }}
+    {{/ hasOptions }}
+    {{/ columns }}
+
+    // [新增] 字典值翻译函数
+    function getOptionLabel(options, value) {
+        if (!options || !Array.isArray(options)) return value;
+        for (var i = 0; i < options.length; i++) {
+            // 使用宽松相等 (==) 以匹配字符串 "1" 和数字 1
+            if (options[i].value == value) return options[i].label;
+        }
+        return value;
+    }
+
     // Controller Instance
     {{ className }}Controller {
         id: controller
@@ -186,7 +203,15 @@ Item {
                     Text {
                         Layout.preferredWidth: 120
                         Layout.fillWidth: true
+                        
+                        // [新增] 如果有字典选项，显示翻译后的标签，否则显示原值
+                        {{# hasOptions }}
+                        text: getOptionLabel(root.options_{{ cppField }}, modelData["{{ cppField }}"])
+                        {{/ hasOptions }}
+                        {{^ hasOptions }}
                         text: modelData["{{ cppField }}"]
+                        {{/ hasOptions }}
+                        
                         elide: Text.ElideRight
                         color: "#333333"
                     }

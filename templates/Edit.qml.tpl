@@ -86,12 +86,13 @@ Item {
                         Layout.fillWidth: true
                         showLabel: false 
                         {{# isString }}placeholderText: "请输入{{ columnComment }}"{{/ isString }}
+                        {{# hasOptions }}model: {{ optionsStr }}{{/ hasOptions }}
                     }
                 }
                 {{/ isEdit }}
                 {{/ columns }}
             }
-            
+
             Item { Layout.preferredHeight: 20 }
             
             RowLayout {

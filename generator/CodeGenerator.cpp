@@ -1,5 +1,6 @@
 #include "CodeGenerator.h"
 #include <QStandardPaths>
+#include <QJsonDocument>
 
 CodeGenerator::CodeGenerator(QObject *parent) : QObject(parent)
 {
@@ -11,7 +12,6 @@ bool CodeGenerator::generate(const QJsonObject &config)
     QVariantMap data = prepareData(config);
     
     // List of templates to process
-    // Format: templateName -> outputFileName
     QMap<QString, QString> templates;
     QString className = data["className"].toString();
     QString customEditQml = config["customEditQml"].toString();
@@ -22,13 +22,10 @@ bool CodeGenerator::generate(const QJsonObject &config)
     templates["Controller.h.tpl"] = className + "Controller.h";
     templates["Controller.cpp.tpl"] = className + "Controller.cpp";
     templates["List.qml.tpl"] = className + "List.qml";
-    
-    // 如果有自定义 QML，我们仍然生成文件，但内容不同
     templates["Edit.qml.tpl"] = className + "Edit.qml";
 
     bool success = true;
     
-    // Ensure output directory exists
     QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString outputDir = desktopPath + "/GeneratedCode/" + className;
     QDir dir(outputDir);
@@ -42,41 +39,29 @@ bool CodeGenerator::generate(const QJsonObject &config)
         
         QString rendered;
         
-        // 特殊处理 Edit.qml
         if (tplName == "Edit.qml.tpl" && !customEditQml.isEmpty()) {
             rendered = customEditQml;
             
-            // 注入功能函数 (saveData, closeForm, onCompleted)
             if (injectFunctions) {
-                // 1. 添加必要的属性定义 (如果 FormGenerator 生成的代码没有包含)
-                // FormGeneratorLogic 通常生成一个纯 Item，我们需要把它包装成 Edit 页面的上下文
-                
                 QString props = QString(
                     "    property var controller: null\n"
                     "    property bool isAdd: true\n"
                     "    property var formData: ({})\n\n"
                     "    Component.onCompleted: {\n"
                     "        if (!isAdd && formData) {\n"
-                    "            // Auto-fill logic would go here, but visual binding handles keys\n"
-                    "            // We need to iterate over controls and set values\n"
-                    "            // Since we use 'key' property in Styled components, we can potentially find children\n"
                     "            initFormData(formData);\n"
                     "        }\n"
                     "    }\n\n"
                 );
                 
-                // 插入属性到 Item { 之后
                 int firstBrace = rendered.indexOf("{");
                 if (firstBrace != -1) {
                     rendered.insert(firstBrace + 1, "\n" + props);
                 }
                 
-                // 2. 添加 saveData 和 closeForm 函数
                 QString funcs = QString(
                     "\n    function saveData() {\n"
                     "        var data = {};\n"
-                    "        // Collect data from children (Recursive or Flattened)\n"
-                    "        // Simpler approach: Rely on 'key' property\n"
                     "        collectData(root, data);\n"
                     "        \n"
                     "        if (!isAdd) {\n"
@@ -93,12 +78,10 @@ bool CodeGenerator::generate(const QJsonObject &config)
                     "        if (root.StackView.view) root.StackView.view.pop();\n"
                     "        else root.visible = false;\n"
                     "    }\n\n"
-                    "    // Helper to collect data from Styled controls recursively\n"
                     "    function collectData(item, data) {\n"
                     "        for (var i = 0; i < item.children.length; i++) {\n"
                     "            var child = item.children[i];\n"
                     "            if (child.key && child.key !== \"\") {\n"
-                    "                // Check for value property\n"
                     "                if (child.hasOwnProperty(\"text\")) data[child.key] = child.text;\n"
                     "                else if (child.hasOwnProperty(\"value\")) data[child.key] = child.value;\n"
                     "                else if (child.hasOwnProperty(\"currentText\")) data[child.key] = child.currentText;\n"
@@ -107,7 +90,6 @@ bool CodeGenerator::generate(const QJsonObject &config)
                     "            collectData(child, data);\n"
                     "        }\n"
                     "    }\n\n"
-                    "    // Helper to init data\n"
                     "    function initFormData(data) {\n"
                     "        fillData(root, data);\n"
                     "    }\n\n"
@@ -117,7 +99,7 @@ bool CodeGenerator::generate(const QJsonObject &config)
                     "            if (child.key && child.key !== \"\" && data[child.key] !== undefined) {\n"
                     "                if (child.hasOwnProperty(\"text\")) child.text = data[child.key];\n"
                     "                else if (child.hasOwnProperty(\"value\")) child.value = data[child.key];\n"
-                    "                else if (child.hasOwnProperty(\"currentText\")) child.currentIndex = child.find(data[child.key]);\n" // Simple combo handling
+                    "                else if (child.hasOwnProperty(\"currentText\")) child.currentIndex = child.find(data[child.key]);\n"
                     "                else if (child.hasOwnProperty(\"checked\")) child.checked = data[child.key];\n"
                     "            }\n"
                     "            fillData(child, data);\n"
@@ -125,7 +107,6 @@ bool CodeGenerator::generate(const QJsonObject &config)
                     "    }\n"
                 ).arg(data["pkCppField"].toString());
                 
-                // Append functions before last brace
                 int lastBrace = rendered.lastIndexOf("}");
                 if (lastBrace != -1) {
                     rendered.insert(lastBrace, funcs);
@@ -133,7 +114,6 @@ bool CodeGenerator::generate(const QJsonObject &config)
             }
             
         } else {
-            // 标准模板生成
             QFile tplFile(":/templates/" + tplName);
             if (!tplFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
                 qCritical() << "Failed to open template:" << tplName;
@@ -271,20 +251,17 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
     data["className"] = className;
     data["instanceName"] = instanceName;
     
-    // Add current date
     data["createDate"] = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
     
     QVariantList colsList;
     QJsonArray columns = config["columns"].toArray();
     
-    // 预定义主键字段名，默认为 id
     QString pkCppField = "id";
 
     for (const QJsonValue &val : columns) {
         QJsonObject obj = val.toObject();
         QVariantMap colMap = obj.toVariantMap();
         
-        // [修复] 如果没有注释，使用更友好的驼峰属性名或列名
         QString comment = colMap["columnComment"].toString();
         if (comment.trimmed().isEmpty()) {
             QString friendlyName = colMap["cppField"].toString();
@@ -292,7 +269,6 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
             colMap["columnComment"] = friendlyName;
         }
 
-        // Add helper booleans/strings
         colMap["isString"] = (colMap["cppType"].toString() == "String");
         colMap["isInteger"] = (colMap["cppType"].toString() == "Integer");
         colMap["isLong"] = (colMap["cppType"].toString() == "Long");
@@ -300,18 +276,15 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
         colMap["isBoolean"] = (colMap["cppType"].toString() == "Boolean");
         colMap["isDateTime"] = (colMap["cppType"].toString() == "DateTime");
         
-        // Capitalized field name for getters/setters
         QString field = colMap["cppField"].toString();
         if (!field.isEmpty()) {
             colMap["cppFieldCap"] = field.at(0).toUpper() + field.mid(1);
         }
         
-        // [新增] 识别主键并保存到根数据中
         if (colMap["isPk"].toBool()) {
             pkCppField = field;
         }
 
-        // Map to actual C++ types
         QString cppType = colMap["cppType"].toString();
         if (cppType == "String") colMap["cppType"] = "QString";
         else if (cppType == "Integer") colMap["cppType"] = "int";
@@ -320,7 +293,6 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
         else if (cppType == "Boolean") colMap["cppType"] = "bool";
         else if (cppType == "DateTime") colMap["cppType"] = "QDateTime";
         
-        // Determine value property for QML
         QString displayType = colMap["displayType"].toString();
         if (displayType == "StyledSpinBox") {
             colMap["valueProperty"] = "value";
@@ -329,8 +301,23 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
         } else {
             colMap["valueProperty"] = "text";
         }
+
+        // [新增] 处理 options (字典数据)
+        // 将 QJsonArray 转换为 JSON 字符串，以便模板直接嵌入
+        if (colMap.contains("options")) {
+            QJsonArray opts = obj["options"].toArray();
+            if (!opts.isEmpty()) {
+                QJsonDocument doc(opts);
+                QString jsonStr = doc.toJson(QJsonDocument::Compact);
+                colMap["hasOptions"] = true;
+                colMap["optionsStr"] = jsonStr;
+            } else {
+                colMap["hasOptions"] = false;
+            }
+        } else {
+            colMap["hasOptions"] = false;
+        }
         
-        // Query Type Booleans
         QString queryType = colMap["queryType"].toString();
         colMap["isQueryLike"] = (queryType == "LIKE");
         colMap["isQueryEqual"] = (queryType == "=");
@@ -344,7 +331,6 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
         colMap["isQueryIsNotNull"] = (queryType == "IS NOT NULL");
         colMap["isQueryIn"] = (queryType == "IN");
         
-        // Ensure booleans are set correctly
         colMap["isQuery"] = colMap["isQuery"].toBool();
         colMap["isList"] = colMap["isList"].toBool();
         colMap["isEdit"] = colMap["isEdit"].toBool();
@@ -354,8 +340,6 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
         colsList.append(colMap);
     }
     data["columns"] = colsList;
-    
-    // [新增] 将找到的主键字段名注入到模板数据中
     data["pkCppField"] = pkCppField;
     
     return data;
