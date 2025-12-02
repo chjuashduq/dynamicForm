@@ -4,14 +4,10 @@ import QtQuick.Layouts 1.4
 import "../Common"
 import "../core"
 import "../components"
+import "../mysqlhelper"
 
 /**
- * 控件工厂
- *
- * 主要功能：
- * - 根据JSON配置动态创建各种类型的表单控件
- * - 处理控件的布局、样式和事件绑定
- * - 注入必填(required)和验证状态(valid)属性
+ * 控件工厂 - 完整版
  */
 QtObject {
     id: controlFactory
@@ -32,7 +28,6 @@ QtObject {
     property Component spinBoxComponent: Component {
         StyledSpinBox {}
     }
-    // [新增] 日期时间组件模板
     property Component dateTimeComponent: Component {
         StyledDateTime {}
     }
@@ -65,7 +60,6 @@ QtObject {
         if (!parentGrid)
             return;
 
-        // ===== 第一步：创建行布局容器 =====
         var container = rowLayoutComponent.createObject(parentGrid);
         container.Layout.row = config.row;
         container.Layout.column = config.column;
@@ -75,16 +69,13 @@ QtObject {
         container.Layout.fillHeight = true;
         container.spacing = 5;
 
-        // ===== 第二步：设置尺寸约束 =====
         _setRowHeight(container, config);
         _setColumnWidth(container, config);
 
-        // ===== 第三步：创建子组件 =====
         var label = _createLabel(container, config);
         var input = _createInput(container, config);
 
         if (input) {
-            // ===== 第四步：注册控件 =====
             var controlKey = config.key || config.label;
             controlsMap[controlKey] = input;
 
@@ -92,12 +83,10 @@ QtObject {
                 labelsMap[controlKey] = label;
             }
 
-            // ===== 第五步：注册控件配置（包含验证信息）=====
             if (formAPI) {
                 formAPI.registerControlConfig(controlKey, config);
             }
 
-            // ===== 第六步：应用配置 =====
             if (config.required !== undefined) {
                 try {
                     input.required = config.required;
@@ -155,13 +144,8 @@ QtObject {
         return label;
     }
 
-    /**
-     * 创建输入控件组件
-     */
     function _createInput(container, config) {
         var input = null;
-
-        // 兼容处理：统一类型名称
         var type = config.type;
         if (type === "StyledDateTime")
             type = "datetime";
@@ -176,7 +160,7 @@ QtObject {
             input = spinBoxComponent.createObject(container);
             input.value = config.value || 0;
             break;
-        case "datetime": // [新增] 日期时间控件
+        case "datetime":
             input = dateTimeComponent.createObject(container);
             input.placeholderText = config.placeholder || "请选择时间";
             if (config.displayFormat)
@@ -215,20 +199,51 @@ QtObject {
         return input;
     }
 
+    // [新增] 动态从数据库加载字典数据
+    function _loadDictData(dictType) {
+        var items = [];
+        try {
+            if (typeof MySqlHelper !== "undefined") {
+                var result = MySqlHelper.select("sys_dict_data", ["dict_label", "dict_value"], "dict_type='" + dictType + "' AND status='0' ORDER BY dict_sort");
+                for (var i = 0; i < result.length; i++) {
+                    items.push({
+                        "label": result[i].dict_label,
+                        "value": result[i].dict_value
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("ControlFactory: Error loading dict:", dictType, e);
+        }
+        return items;
+    }
+
+    // [修改] 设置下拉框选项
     function _setupDropdownOptions(comboBox, config) {
-        if (!config.options || !Array.isArray(config.options))
-            return;
         var labels = [];
         var values = [];
+        var finalOptions = [];
 
-        for (var i = 0; i < config.options.length; i++) {
-            var option = config.options[i];
+        // 1. 优先检查是否有 dictType (动态绑定)
+        if (config.dictType && config.dictType !== "") {
+            // 如果有 dictType，也要设置给 ComboBox 属性，以便它知道自己的类型
+            if (comboBox.hasOwnProperty("dictType"))
+                comboBox.dictType = config.dictType;
+            finalOptions = _loadDictData(config.dictType);
+        } else
+        // 2. 其次使用 config.options (静态配置)
+        if (config.options && Array.isArray(config.options)) {
+            finalOptions = config.options;
+        }
+
+        for (var i = 0; i < finalOptions.length; i++) {
+            var option = finalOptions[i];
             if (typeof option === "string") {
                 labels.push(option);
                 values.push(option);
-            } else if (option && option.label && option.value) {
-                labels.push(option.label);
-                values.push(option.value);
+            } else if (option && (option.label || option.dict_label)) {
+                labels.push(option.label || option.dict_label);
+                values.push(option.value || option.dict_value);
             }
         }
 
@@ -332,9 +347,6 @@ QtObject {
         }
     }
 
-    /**
-     * 绑定事件
-     */
     function _bindEvents(input, config) {
         if (!scriptEngine)
             return;
@@ -357,7 +369,6 @@ QtObject {
             return true;
         };
 
-        // 焦点丢失事件
         if (config.type === "text" || config.type === "password" || config.type === "datetime" || config.type === "StyledDateTime") {
             if (input.hasOwnProperty("focusChanged")) {
                 input.focusChanged.connect(function () {
@@ -373,7 +384,6 @@ QtObject {
             }
         }
 
-        // Number
         if (config.type === "number") {
             if (input.hasOwnProperty("activeFocusChanged")) {
                 input.activeFocusChanged.connect(function () {
@@ -389,7 +399,6 @@ QtObject {
             }
         }
 
-        // Dropdown
         if (config.type === "dropdown") {
             if (input.hasOwnProperty("popup")) {
                 input.popup.closed.connect(function () {
@@ -406,7 +415,6 @@ QtObject {
         if (!config.events)
             return;
 
-        // 通用变化事件
         if (input.hasOwnProperty("textChanged") && config.events.onTextChanged) {
             input.textChanged.connect(function () {
                 scriptEngine.executeFunction(config.events.onTextChanged, {

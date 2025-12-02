@@ -16,10 +16,7 @@ Item {
     property var queryTypes: ["=", "!=", ">", ">=", "<", "<=", "LIKE", "BETWEEN", "IS NULL", "IS NOT NULL", "IN"]
     property var cppTypes: ["String", "Integer", "Long", "Double", "Boolean", "DateTime"]
 
-    // 字典类型列表模型
     property var dictTypeModel: []
-
-    // 保存可视化编辑器修改后的模型
     property var savedVisualModel: null
 
     signal back
@@ -35,7 +32,6 @@ Item {
     onTableNameChanged: {
         if (tableName) {
             loadColumns();
-            // [修复] 切换表时彻底清空缓存和预览状态
             savedVisualModel = null;
             if (bar)
                 bar.currentIndex = 0;
@@ -196,8 +192,9 @@ Item {
             if (colData) {
                 newItem.props.label = colData.columnComment || colData.columnName;
                 newItem.props.required = colData.isRequired;
-
                 newItem.props.key = colData.cppField;
+
+                // 同步 dictType
                 newItem.props.dictType = colData.dictType;
 
                 if (colData.displayType && newItem.type !== colData.displayType) {
@@ -438,6 +435,7 @@ Item {
                     col.cppField = item.props.key;
                 }
 
+                // 同步 dictType
                 if (item.props.dictType)
                     col.dictType = item.props.dictType;
 
@@ -509,6 +507,7 @@ Item {
                         "columns": columnModel
                     };
                     if (generatorLoader.item) {
+                        // 调用新增的公开函数
                         var qmlBody = generatorLoader.item.getGeneratedCode();
                         config.customEditQml = qmlBody;
                         config.injectFunctions = true;
@@ -648,9 +647,7 @@ Item {
                     clip: true
                     model: root.columnModel
                     delegate: Rectangle {
-                        // [核心修复 1] 显式捕获行索引，避免与 ComboBox 的 index 参数冲突
                         property int rowIndex: index
-
                         width: ListView.view.width
                         height: 50
                         color: index % 2 === 0 ? "white" : "#f9f9f9"
@@ -685,7 +682,6 @@ Item {
                                 Layout.preferredWidth: 80
                                 model: root.cppTypes
                                 currentIndex: root.cppTypes.indexOf(modelData.cppType)
-                                // [修复 2] 使用 function(idx) 避免参数名冲突，使用 rowIndex 操作数据
                                 onActivated: function (idx) {
                                     modelData.cppType = currentText;
                                     root.columnModel[rowIndex].cppType = currentText;
@@ -793,15 +789,11 @@ Item {
                                         currentIndex = 0;
                                 }
 
-                                // [核心修复 3] 正确处理字典选择逻辑，使用 comboIndex 参数名，通过 rowIndex 访问 Model
                                 onActivated: function (comboIndex) {
                                     var selectedType = currentValue;
-                                    // 更新当前 Model Data (界面回显)
                                     modelData.dictType = selectedType;
-                                    // 更新数据源 (保证切Tab后还在)
                                     root.columnModel[rowIndex].dictType = selectedType;
 
-                                    // 立即获取选项并保存
                                     var opts = fetchDictOptions(selectedType);
                                     modelData.options = opts;
                                     root.columnModel[rowIndex].options = opts;

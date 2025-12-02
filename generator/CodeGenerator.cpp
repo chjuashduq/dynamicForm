@@ -1,17 +1,75 @@
 #include "CodeGenerator.h"
 #include <QStandardPaths>
 #include <QJsonDocument>
+#include <QRegularExpression>
+#include <QDebug>
 
 CodeGenerator::CodeGenerator(QObject *parent) : QObject(parent)
 {
 
 }
 
+// [新增] 代码清洗函数：去除多余空行，保持代码整洁
+// 将连续的3个及以上换行（包含中间的空白字符）替换为2个换行
+QString cleanUpCode(const QString &code) {
+    QString result = code;
+    static QRegularExpression regex("(\\n\\s*){3,}");
+    result.replace(regex, "\n\n");
+    return result;
+}
+
+// [新增] 自动包裹可视化生成的代码片段，解决 Syntax Error
+// 为可视化编辑器生成的子控件代码添加 import 和根 Item
+QString wrapVisualCode(const QString &componentCode) {
+    QString header = 
+        "import QtQuick\n"
+        "import QtQuick.Controls\n"
+        "import QtQuick.Layouts\n"
+        "import \"../components\"\n"
+        "import \"../mysqlhelper\"\n\n"
+        "Item {\n"
+        "    id: root\n"
+        "    width: parent ? parent.width : 800\n"
+        "    height: parent ? parent.height : 600\n\n"
+        "    // 背景遮罩\n"
+        "    Rectangle {\n"
+        "        anchors.fill: parent\n"
+        "        color: \"#f5f7fa\"\n"
+        "    }\n\n"
+        "    // 居中卡片容器\n"
+        "    Rectangle {\n"
+        "        id: formCard\n"
+        "        width: Math.min(parent.width - 40, 900)\n"
+        "        height: Math.min(parent.height - 40, contentScroll.contentHeight + 60)\n"
+        "        anchors.centerIn: parent\n"
+        "        color: \"white\"\n"
+        "        radius: 8\n"
+        "        border.color: \"#e0e0e0\"\n"
+        "        border.width: 1\n\n"
+        "        ScrollView {\n"
+        "            id: contentScroll\n"
+        "            anchors.fill: parent\n"
+        "            anchors.margins: 20\n"
+        "            clip: true\n\n"
+        "            ColumnLayout {\n"
+        "                width: parent.width\n"
+        "                anchors.horizontalCenter: parent.horizontalCenter\n"
+        "                spacing: 20\n\n";
+
+    QString footer = 
+        "\n            }\n"
+        "        }\n"
+        "    }\n"
+        "}\n";
+
+    return header + componentCode + footer;
+}
+
 bool CodeGenerator::generate(const QJsonObject &config)
 {
     QVariantMap data = prepareData(config);
     
-    // List of templates to process
+    // 模板文件映射
     QMap<QString, QString> templates;
     QString className = data["className"].toString();
     QString customEditQml = config["customEditQml"].toString();
@@ -36,13 +94,15 @@ bool CodeGenerator::generate(const QJsonObject &config)
     for (auto it = templates.begin(); it != templates.end(); ++it) {
         QString tplName = it.key();
         QString outName = it.value();
-        
         QString rendered;
         
+        // 特殊处理 Edit.qml (如果是自定义的可视化代码)
         if (tplName == "Edit.qml.tpl" && !customEditQml.isEmpty()) {
-            rendered = customEditQml;
+            // [关键修复] 包裹代码，解决 Syntax error
+            rendered = wrapVisualCode(customEditQml);
             
             if (injectFunctions) {
+                // 注入属性和生命周期
                 QString props = QString(
                     "    property var controller: null\n"
                     "    property bool isAdd: true\n"
@@ -51,27 +111,41 @@ bool CodeGenerator::generate(const QJsonObject &config)
                     "        if (!isAdd && formData) {\n"
                     "            initFormData(formData);\n"
                     "        }\n"
-                    "    }\n\n"
+                    "    }\n"
+                    "    // [新增] 动态加载字典数据函数\n"
+                    "    function loadDictData(dictType) {\n"
+                    "        var items = [];\n"
+                    "        try {\n"
+                    "            if (typeof MySqlHelper !== \"undefined\") {\n"
+                    "                var result = MySqlHelper.select(\"sys_dict_data\", [\"dict_label\", \"dict_value\"], \"dict_type='\" + dictType + \"' AND status='0' ORDER BY dict_sort\");\n"
+                    "                for (var i = 0; i < result.length; i++) {\n"
+                    "                    items.push({ \"label\": result[i].dict_label, \"value\": result[i].dict_value });\n"
+                    "                }\n"
+                    "            }\n"
+                    "        } catch (e) {\n"
+                    "            console.error(\"Error loading dict:\", dictType, e);\n"
+                    "        }\n"
+                    "        return items;\n"
+                    "    }\n"
                 );
                 
+                // 插入到 Item { 之后 (这里找的是 wrapVisualCode 生成的 Item {)
                 int firstBrace = rendered.indexOf("{");
                 if (firstBrace != -1) {
                     rendered.insert(firstBrace + 1, "\n" + props);
                 }
                 
+                // 注入通用函数
                 QString funcs = QString(
                     "\n    function saveData() {\n"
                     "        var data = {};\n"
                     "        collectData(root, data);\n"
-                    "        \n"
                     "        if (!isAdd) {\n"
-                    "             data[\"%1\"] = formData[\"%1\"];\n" // pkField
+                    "             data[\"%1\"] = formData[\"%1\"];\n"
                     "        }\n"
-                    "        \n"
                     "        var success = false;\n"
                     "        if (isAdd) success = controller.add(data);\n"
                     "        else success = controller.update(data);\n"
-                    "        \n"
                     "        if (success) closeForm();\n"
                     "    }\n\n"
                     "    function closeForm() {\n"
@@ -114,6 +188,7 @@ bool CodeGenerator::generate(const QJsonObject &config)
             }
             
         } else {
+            // 使用内置模板
             QFile tplFile(":/templates/" + tplName);
             if (!tplFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
                 qCritical() << "Failed to open template:" << tplName;
@@ -127,6 +202,9 @@ bool CodeGenerator::generate(const QJsonObject &config)
             rendered = render(tplContent, data);
         }
         
+        // [关键修改] 最终代码清洗，去除多余空行
+        rendered = cleanUpCode(rendered);
+
         if (!writeToFile(outputDir + "/" + outName, rendered)) {
             success = false;
         }
@@ -302,8 +380,15 @@ QVariantMap CodeGenerator::prepareData(const QJsonObject &config)
             colMap["valueProperty"] = "text";
         }
 
-        // [新增] 处理 options (字典数据)
-        // 将 QJsonArray 转换为 JSON 字符串，以便模板直接嵌入
+        // [新增] 检测是否包含 dictType
+        if (colMap.contains("dictType") && !colMap["dictType"].toString().isEmpty()) {
+            colMap["hasDictType"] = true;
+            colMap["dictType"] = colMap["dictType"].toString();
+        } else {
+            colMap["hasDictType"] = false;
+        }
+
+        // 处理 options (作为后备)
         if (colMap.contains("options")) {
             QJsonArray opts = obj["options"].toArray();
             if (!opts.isEmpty()) {

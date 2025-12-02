@@ -1,7 +1,7 @@
-import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
-import "../Common"
+import QtQuick 6.5
+import QtQuick.Controls 6.5
+import QtQuick.Layouts 1.15
+import "../Common" as Common
 
 /**
  * 美化的数字输入框
@@ -10,7 +10,6 @@ StyledBase {
     id: root
     label: "数字输入"
 
-    // 导出属性
     property alias from: control.from
     property alias to: control.to
     property alias value: control.value
@@ -21,17 +20,23 @@ StyledBase {
         "label": "数字输入",
         "from": 0,
         "to": 100,
-        "value": 0
+        "value": 0,
+        "enabled": true,
+        "visible": true,
+        "labelWidth": 80,
+        "showLabel": true
     })
 
     function generateCode(props, childrenCode, indent, events, functions) {
         var layoutProps = generateLayoutCode(props, indent);
-        var code = "StyledSpinBox {\n" + indent + "    label: \"" + props.label + "\"\n" + indent + "    labelWidth: " + props.labelWidth + "\n" + indent + "    showLabel: " + props.showLabel + "\n" + indent + "    from: " + props.from + "\n" + indent + "    to: " + props.to + "\n" + indent + "    value: " + props.value + "\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps;
+
+        // [修复] 增加默认值保护
+        var code = "StyledSpinBox {\n" + indent + "    label: \"" + (props.label || "") + "\"\n" + indent + "    labelWidth: " + (props.labelWidth || 80) + "\n" + indent + "    showLabel: " + (props.showLabel !== false) + "\n" + indent + "    from: " + (props.from || 0) + "\n" + indent + "    to: " + (props.to || 100) + "\n" + indent + "    value: " + (props.value || 0) + "\n" + indent + "    enabled: " + (props.enabled !== false) + "\n" + layoutProps;
+
         if (props.key && props.key.trim() !== "") {
             code += indent + "    key: \"" + props.key + "\"\n";
         }
 
-        // 处理数值变化事件
         if (events && events.hasOwnProperty("onValueModified")) {
             function wrapCode(c, args) {
                 var contextObj = "{self: root" + (args ? ", " + args : "") + "}";
@@ -41,7 +46,6 @@ StyledBase {
             if (props.key && props.key.trim() !== "" && functions) {
                 var funcName = props.key + "_ValueModified";
                 code += indent + "    onValueModified: " + funcName + "()\n";
-                // 添加注释
                 var comment = props.label ? (" // " + props.label + " 值改变") : "";
                 var body = events.onValueModified ? ("        " + wrapCode(events.onValueModified)) : "";
                 var funcCode = "    function " + funcName + "() {" + comment + "\n" + body + "\n    }";
@@ -62,12 +66,11 @@ StyledBase {
         editable: true
         onValueModified: root.valueModified()
 
-        // 自定义内容项以匹配整体风格
         contentItem: TextInput {
             z: 2
             text: control.textFromValue(control.value, control.locale)
             font: control.font
-            color: AppStyles.textPrimary
+            color: Common.AppStyles.textPrimary
             selectionColor: "#21be2b"
             selectedTextColor: "#ffffff"
             horizontalAlignment: Qt.AlignHCenter
@@ -77,17 +80,15 @@ StyledBase {
             inputMethodHints: Qt.ImhFormattedNumbersOnly
         }
 
-        // 自定义背景，支持错误状态显示
         background: Rectangle {
             implicitWidth: 140
             border.color: {
-                // 优先显示错误状态颜色
                 if (root.hasError)
                     return "red";
-                return control.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor;
+                return control.activeFocus ? Common.AppStyles.primaryColor : Common.AppStyles.borderColor;
             }
             border.width: (control.activeFocus || root.hasError) ? 2 : 1
-            radius: AppStyles.radiusMedium
+            radius: Common.AppStyles.radiusMedium
         }
     }
 

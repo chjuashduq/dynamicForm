@@ -1,7 +1,7 @@
-import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
-import "../Common"
+import QtQuick 6.5
+import QtQuick.Controls 6.5
+import QtQuick.Layouts 1.15
+import "../Common" as Common
 
 /**
  * 美化的下拉框组件
@@ -15,6 +15,11 @@ StyledBase {
     property alias currentIndex: control.currentIndex
     property alias currentText: control.currentText
     property alias editable: control.editable
+    property alias textRole: control.textRole
+    property alias valueRole: control.valueRole
+    property alias currentValue: control.currentValue
+
+    property string dictType: ""
 
     property var defaultProps: mergeProps({
         "label": "下拉框",
@@ -27,49 +32,37 @@ StyledBase {
                 "label": "选项2",
                 "value": "opt2"
             }
-        ]
+        ],
+        "dictType": "",
+        "enabled": true,
+        "visible": true
     })
+
+    // [关键修复] 暴露 find 函数，解决 TypeError: Property 'find' ... is not a function
+    function find(value) {
+        return control.find(value);
+    }
 
     function generateCode(props, childrenCode, indent, events, functions) {
         var layoutProps = generateLayoutCode(props, indent);
-        // 格式化模型数据
-        var modelStr = JSON.stringify(props.model, null, 4).replace(/\n/g, "\n" + indent + "    ");
-        var code = "StyledComboBox {\n" + indent + "    label: \"" + props.label + "\"\n" + indent + "    labelWidth: " + props.labelWidth + "\n" + indent + "    showLabel: " + props.showLabel + "\n" + indent + "    textRole: \"label\"\n" + indent + "    valueRole: \"value\"\n" + indent + "    model: " + modelStr + "\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps;
+
+        var modelStr;
+        if (props.dictType && props.dictType.trim() !== "") {
+            // 生成动态加载代码
+            modelStr = "loadDictData(\"" + props.dictType + "\")";
+        } else {
+            // 生成静态数组
+            modelStr = JSON.stringify(props.model || [], null, 4).replace(/\n/g, "\n" + indent + "    ");
+        }
+
+        var code = "StyledComboBox {\n" + indent + "    label: \"" + (props.label || "") + "\"\n" + indent + "    labelWidth: " + (props.labelWidth || 80) + "\n" + indent + "    showLabel: " + (props.showLabel !== false) + "\n" + indent + "    textRole: \"label\"\n" + indent + "    valueRole: \"value\"\n" + indent + "    model: " + modelStr + "\n" + indent + "    enabled: " + (props.enabled !== false) + "\n" + layoutProps;
+
         if (props.key && props.key.trim() !== "") {
             code += indent + "    key: \"" + props.key + "\"\n";
         }
 
-        function wrapCode(c, args) {
-            var contextObj = "{self: root" + (args ? ", " + args : "") + "}";
-            return "scriptEngine.executeFunction(" + JSON.stringify(c) + ", " + contextObj + ")";
-        }
-
-        // 处理选中项改变事件 (Activated)
-        if (events && events.hasOwnProperty("onActivated")) {
-            if (props.key && props.key.trim() !== "" && functions) {
-                var funcName = props.key + "_Activated";
-                code += indent + "    onActivated: " + funcName + "(index)\n";
-                var comment = props.label ? (" // " + props.label + " 选中改变") : "";
-                var body = events.onActivated ? ("        " + wrapCode(events.onActivated, "index: index")) : "";
-                var funcCode = "    function " + funcName + "(index) {" + comment + "\n" + body + "\n    }";
-                functions.push(funcCode);
-            } else if (events.onActivated) {
-                code += indent + "    onActivated: {\n" + indent + "        " + wrapCode(events.onActivated, "index: index") + "\n" + indent + "    }\n";
-            }
-        }
-
-        // 处理索引改变事件 (CurrentIndexChanged)
-        if (events && events.hasOwnProperty("onCurrentIndexChanged")) {
-            if (props.key && props.key.trim() !== "" && functions) {
-                var funcName = props.key + "_CurrentIndexChanged";
-                code += indent + "    onCurrentIndexChanged: " + funcName + "()\n";
-                var comment = props.label ? (" // " + props.label + " 索引改变") : "";
-                var body = events.onCurrentIndexChanged ? ("        " + wrapCode(events.onCurrentIndexChanged)) : "";
-                var funcCode = "    function " + funcName + "() {" + comment + "\n" + body + "\n    }";
-                functions.push(funcCode);
-            } else if (events.onCurrentIndexChanged) {
-                code += indent + "    onCurrentIndexChanged: {\n" + indent + "        " + wrapCode(events.onCurrentIndexChanged) + "\n" + indent + "    }\n";
-            }
+        if (props.dictType && props.dictType.trim() !== "") {
+            code += indent + "    dictType: \"" + props.dictType + "\"\n";
         }
 
         code += generateCommonEventsCode(props, events, indent, functions);
@@ -82,20 +75,19 @@ StyledBase {
         Layout.fillWidth: true
         textRole: "label"
         valueRole: "value"
+
         onActivated: index => root.activated(index)
 
-        // 自定义背景，支持错误状态显示
         background: Rectangle {
             implicitWidth: 120
             implicitHeight: 40
             border.color: {
-                // 优先显示错误状态颜色
                 if (root.hasError)
                     return "red";
-                return control.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor;
+                return control.activeFocus ? Common.AppStyles.primaryColor : Common.AppStyles.borderColor;
             }
             border.width: (control.activeFocus || root.hasError) ? 2 : 1
-            radius: AppStyles.radiusMedium
+            radius: Common.AppStyles.radiusMedium
         }
     }
 

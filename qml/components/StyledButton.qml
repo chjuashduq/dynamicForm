@@ -1,7 +1,7 @@
 import QtQuick 6.5
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
-import "../Common"
+import "../Common" as Common
 
 /**
  * 美化的按钮组件
@@ -13,14 +13,11 @@ StyledBase {
     implicitWidth: control.implicitWidth
     implicitHeight: control.implicitHeight
 
-    // 导出属性
     property alias text: control.text
     property alias checkable: control.checkable
     property alias checked: control.checked
     property string buttonType: "primary"
 
-    // [关键修改] 按钮不需要验证，设置为 undefined
-    // 覆盖 StyledBase 的默认逻辑，使其在验证时被跳过
     valid: undefined
 
     signal clicked
@@ -44,12 +41,15 @@ StyledBase {
         "visible": true,
         "enabled": true,
         "key": "",
-        "valid": undefined // 生成代码时也默认为 undefined
+        "valid": undefined
     }
 
     function generateCode(props, childrenCode, indent, events, functions) {
         var layoutProps = generateLayoutCode(props, indent);
-        var code = "StyledButton {\n" + indent + "    text: \"" + props.text + "\"\n" + indent + "    enabled: " + props.enabled + "\n" + layoutProps;
+
+        // [修复] 增加默认值保护
+        var code = "StyledButton {\n" + indent + "    text: \"" + (props.text || "Button") + "\"\n" + indent + "    enabled: " + (props.enabled !== false) + "\n" + layoutProps;
+
         if (props.key && props.key.trim() !== "") {
             code += indent + "    key: \"" + props.key + "\"\n";
         }
@@ -79,17 +79,17 @@ StyledBase {
     Button {
         id: control
         text: "Button"
-        height: AppStyles.buttonHeight
-        font.pixelSize: AppStyles.fontSizeMedium
-        font.family: AppStyles.fontFamily
+        height: Common.AppStyles.buttonHeight
+        font.pixelSize: Common.AppStyles.fontSizeMedium
+        font.family: Common.AppStyles.fontFamily
         font.bold: true
-        leftPadding: AppStyles.buttonPadding
-        rightPadding: AppStyles.buttonPadding
+        leftPadding: Common.AppStyles.buttonPadding
+        rightPadding: Common.AppStyles.buttonPadding
 
         contentItem: Text {
             text: control.text
             font: control.font
-            color: root.buttonType === "secondary" ? AppStyles.textPrimary : "white"
+            color: root.buttonType === "secondary" ? Common.AppStyles.textPrimary : "white"
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }
@@ -97,33 +97,33 @@ StyledBase {
         background: Rectangle {
             color: {
                 if (!control.enabled)
-                    return AppStyles.textDisabled;
+                    return Common.AppStyles.textDisabled;
                 if (control.pressed) {
                     if (root.buttonType === "primary")
-                        return AppStyles.buttonPrimaryPressed;
+                        return Common.AppStyles.buttonPrimaryPressed;
                     if (root.buttonType === "danger")
-                        return AppStyles.buttonDangerHover;
-                    return AppStyles.buttonSecondaryHover;
+                        return Common.AppStyles.buttonDangerHover;
+                    return Common.AppStyles.buttonSecondaryHover;
                 }
                 if (control.hovered) {
                     if (root.buttonType === "primary")
-                        return AppStyles.buttonPrimaryHover;
+                        return Common.AppStyles.buttonPrimaryHover;
                     if (root.buttonType === "danger")
-                        return AppStyles.buttonDangerHover;
-                    return AppStyles.buttonSecondaryHover;
+                        return Common.AppStyles.buttonDangerHover;
+                    return Common.AppStyles.buttonSecondaryHover;
                 }
                 if (root.buttonType === "primary")
-                    return AppStyles.buttonPrimary;
+                    return Common.AppStyles.buttonPrimary;
                 if (root.buttonType === "danger")
-                    return AppStyles.buttonDanger;
-                return AppStyles.buttonSecondary;
+                    return Common.AppStyles.buttonDanger;
+                return Common.AppStyles.buttonSecondary;
             }
-            radius: AppStyles.buttonRadius
+            radius: Common.AppStyles.buttonRadius
 
             Behavior on color {
                 enabled: root.enableAnimations
                 ColorAnimation {
-                    duration: AppStyles.animationDuration
+                    duration: Common.AppStyles.animationDuration
                 }
             }
         }
@@ -131,7 +131,6 @@ StyledBase {
         HoverHandler {
             cursorShape: Qt.PointingHandCursor
         }
-
         onClicked: root.clicked()
     }
 }

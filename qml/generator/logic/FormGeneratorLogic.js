@@ -98,7 +98,6 @@ function createItem(type, root) {
         props = { visible: true };
     }
 
-    // [修复] 强制确保所有组件都有 key，防止选择冲突
     if (!props.key || props.key === "") {
         props.key = type.toLowerCase() + "_" + Math.floor(Math.random() * 10000).toString();
     }
@@ -165,7 +164,8 @@ function moveItem(itemData, sourceParentList, targetParent, targetIndex, root) {
     root.selectedItem = findItemInModel(root.formModel, itemData.id);
 }
 
-function generateCode(root, codeDialog) {
+// [修改] 去除对话框参数，只返回代码字符串
+function generateCode(root) {
     var functions = [];
     var code = generateChildrenCode(root.formModel, 2, root, functions);
 
@@ -174,10 +174,6 @@ function generateCode(root, codeDialog) {
         code += functions.join("\n\n") + "\n";
     }
 
-    if (codeDialog) {
-        codeDialog.code = code;
-        codeDialog.open();
-    }
     return code;
 }
 
@@ -209,8 +205,7 @@ function generateItemCode(item, indentLevel, root, functions) {
                     childrenCode = generateChildrenCode(item.children, indentLevel + 1, root, functions);
                 }
 
-                var propsWithId = item.props;
-                // 确保有 ID，优先使用 key
+                var propsWithId = JSON.parse(JSON.stringify(item.props));
                 if (!propsWithId.id && propsWithId.key) {
                     if (propsWithId.key === "submit") propsWithId.id = "btn_submit";
                     else if (propsWithId.key === "cancel") propsWithId.id = "btn_cancel";
