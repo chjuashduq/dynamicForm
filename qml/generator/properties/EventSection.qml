@@ -110,12 +110,39 @@ ColumnLayout {
     function updateEvent(eventName, code) {
         if (!targetItem)
             return;
-
         var events = targetItem.events ? JSON.parse(JSON.stringify(targetItem.events)) : {};
         events[eventName] = code;
-
         if (onPropertyChanged) {
             onPropertyChanged("events", events);
+        }
+    }
+
+    // Helper component for Code Editor with Scroll
+    component CodeEditor: ScrollView {
+        property alias text: area.text
+        property alias placeholderText: area.placeholderText
+        property string eventName: ""
+
+        Layout.fillWidth: true
+        Layout.preferredHeight: 200
+        clip: true
+        ScrollBar.vertical.policy: ScrollBar.AlwaysOn
+
+        TextArea {
+            id: area
+            width: parent.width
+            wrapMode: TextArea.Wrap
+            selectByMouse: true
+            font.family: "Consolas, Monaco, monospace" // 更好的代码字体
+
+            background: Rectangle {
+                border.color: area.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
+                radius: 4
+            }
+            onTextChanged: {
+                if (activeFocus)
+                    updateEvent(eventName, text);
+            }
         }
     }
 
@@ -126,19 +153,10 @@ ColumnLayout {
         title: "点击事件 (onClicked)"
         isExpanded: false
 
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
+        CodeEditor {
+            eventName: "onClicked"
             text: getEventCode("onClicked")
             placeholderText: "console.log('Clicked');"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onClicked", text);
-            }
         }
     }
 
@@ -149,19 +167,10 @@ ColumnLayout {
         title: "编辑完成 (onEditingFinished)"
         isExpanded: false
 
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
+        CodeEditor {
+            eventName: "onEditingFinished"
             text: getEventCode("onEditingFinished")
             placeholderText: "console.log('Finished');"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onEditingFinished", text);
-            }
         }
     }
 
@@ -172,19 +181,10 @@ ColumnLayout {
         title: "文本改变 (onTextEdited)"
         isExpanded: false
 
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
+        CodeEditor {
+            eventName: "onTextEdited"
             text: getEventCode("onTextEdited")
             placeholderText: "console.log('Edited');"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onTextEdited", text);
-            }
         }
     }
 
@@ -195,19 +195,10 @@ ColumnLayout {
         title: "选中改变 (onActivated)"
         isExpanded: false
 
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
+        CodeEditor {
+            eventName: "onActivated"
             text: getEventCode("onActivated")
             placeholderText: "console.log('Activated: ' + index);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onActivated", text);
-            }
         }
     }
 
@@ -218,19 +209,10 @@ ColumnLayout {
         title: "值改变 (onCurrentIndexChanged)"
         isExpanded: false
 
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
+        CodeEditor {
+            eventName: "onCurrentIndexChanged"
             text: getEventCode("onCurrentIndexChanged")
             placeholderText: "console.log('Index Changed: ' + currentIndex);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onCurrentIndexChanged", text);
-            }
         }
     }
 
@@ -241,19 +223,10 @@ ColumnLayout {
         title: "值改变 (onValueModified)"
         isExpanded: false
 
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
+        CodeEditor {
+            eventName: "onValueModified"
             text: getEventCode("onValueModified")
             placeholderText: "console.log('Value: ' + value);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onValueModified", text);
-            }
         }
     }
 
@@ -264,19 +237,10 @@ ColumnLayout {
         title: "可见性改变 (onVisibleChanged)"
         isExpanded: false
 
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
+        CodeEditor {
+            eventName: "onVisibleChanged"
             text: getEventCode("onVisibleChanged")
             placeholderText: "console.log('Visible: ' + visible);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onVisibleChanged", text);
-            }
         }
     }
 
@@ -286,19 +250,10 @@ ColumnLayout {
         title: "启用状态改变 (onEnabledChanged)"
         isExpanded: false
 
-        TextArea {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
+        CodeEditor {
+            eventName: "onEnabledChanged"
             text: getEventCode("onEnabledChanged")
             placeholderText: "console.log('Enabled: ' + enabled);"
-            background: Rectangle {
-                border.color: parent.activeFocus ? AppStyles.primaryColor : AppStyles.borderColor
-                radius: 4
-            }
-            onTextChanged: {
-                if (activeFocus)
-                    updateEvent("onEnabledChanged", text);
-            }
         }
     }
 }

@@ -283,16 +283,15 @@ Rectangle {
                 // [修复] 获取详细的 padding 值，如果未定义则回退到 padding 或 0
                 var pt = (itemData.props && (itemData.props.paddingTop !== undefined ? itemData.props.paddingTop : (itemData.props.padding || 0))) || 0;
                 var pb = (itemData.props && (itemData.props.paddingBottom !== undefined ? itemData.props.paddingBottom : (itemData.props.padding || 0))) || 0;
-
                 if (previewMode) {
                     // In preview mode, height is determined by content
                     // If no children, height is 0
                     if (!itemData.children || itemData.children.length === 0)
                         return 0;
-                    return rowLayout.childrenRect.height + pt + pb;
+                    return layoutLoader.item ? (layoutLoader.item.height + pt + pb) : 0;
                 } else {
                     // In edit mode, ensure minimum height for drop area
-                    return Math.max(100, rowLayout.childrenRect.height + pt + pb + 40);
+                    return Math.max(100, (layoutLoader.item ? layoutLoader.item.height : 0) + pt + pb + 40);
                 }
             }
             height: implicitHeight
@@ -321,22 +320,22 @@ Rectangle {
                     console.log("容器内部 DropArea 触发");
                     var targetIndex = -1;
 
-                    var point = rowLayout.mapFromItem(dropArea, drop.x, drop.y);
-                    var visualIndex = 0;
-                    for (var i = 0; i < rowLayout.children.length; i++) {
-                        var child = rowLayout.children[i];
-                        // Skip Repeater or other non-visual items
-                        // We can check if it has 'itemData' property which we set on Loaders
-                        // Check if it is a Loader with a loaded item that has itemData
-                        if (!child.item || !child.item.hasOwnProperty("itemData"))
-                            continue;
-                        // Check if point is before this child
-                        // For Flow (LeftToRight), we check X primarily, but also Y for wrapping
-                        if (point.y < child.y + child.height && point.x < child.x + child.width / 2) {
-                            targetIndex = visualIndex;
-                            break;
+                    // 使用 Loader 的 item 作为参照
+                    if (layoutLoader.item) {
+                        var point = layoutLoader.item.mapFromItem(dropArea, drop.x, drop.y);
+                        var visualIndex = 0;
+                        for (var i = 0; i < layoutLoader.item.children.length; i++) {
+                            var child = layoutLoader.item.children[i];
+                            // Skip Repeater or other non-visual items
+                            if (!child.item || !child.item.hasOwnProperty("itemData"))
+                                continue;
+                            // Check if point is before this child
+                            if (point.y < child.y + child.height && point.x < child.x + child.width / 2) {
+                                targetIndex = visualIndex;
+                                break;
+                            }
+                            visualIndex++;
                         }
-                        visualIndex++;
                     }
 
                     if (itemRoot.generatorRoot) {
@@ -354,60 +353,112 @@ Rectangle {
                 }
             }
 
-            Flow {
-                id: rowLayout
-                width: (itemData.props.alignment === Qt.AlignHCenter) ? Math.min(implicitWidth, parent.width) : parent.width
-                anchors.horizontalCenter: (itemData.props.alignment === Qt.AlignHCenter) ? parent.horizontalCenter : undefined
+            // [修改] 使用 Loader 根据 wrap 属性动态切换 Flow 或 Row
+            Loader {
+                id: layoutLoader
+                property bool isWrap: (itemData.props && itemData.props.wrap !== undefined) ? itemData.props.wrap : true
+                sourceComponent: isWrap ? flowLayoutComp : rowLayoutComp
 
-                layoutDirection: (itemData.props.alignment === Qt.AlignRight) ? Qt.RightToLeft : Qt.LeftToRight
+                // 统一的属性计算
+                property int align: itemData.props.alignment || 0
+                property int padTop: (itemData.props && (itemData.props.paddingTop !== undefined ? itemData.props.paddingTop : (itemData.props.padding || 0))) || 0
+                property int padLeft: (itemData.props && (itemData.props.paddingLeft !== undefined ? itemData.props.paddingLeft : (itemData.props.padding || 0))) || 0
+                property int padRight: (itemData.props && (itemData.props.paddingRight !== undefined ? itemData.props.paddingRight : (itemData.props.padding || 0))) || 0
+                property int padBottom: (itemData.props && (itemData.props.paddingBottom !== undefined ? itemData.props.paddingBottom : (itemData.props.padding || 0))) || 0
+                property int space: (itemData.props && itemData.props.spacing) || 0
+            }
 
-                anchors.top: parent.top
-                // [修复] 优先使用 paddingTop
-                anchors.topMargin: (itemData.props && (itemData.props.paddingTop !== undefined ? itemData.props.paddingTop : (itemData.props.padding || 0))) || 0
+            // Flow 布局组件 (换行)
+            Component {
+                id: flowLayoutComp
+                Flow {
+                    id: flowImpl
+                    // Flow 必须有明确宽度才能换行
+                    width: (layoutLoader.align === Qt.AlignHCenter) ? Math.min(implicitWidth, parent.parent.width) : parent.parent.width
 
-                anchors.left: (itemData.props.alignment === Qt.AlignHCenter) ? undefined : parent.left
-                // [修复] 优先使用 paddingLeft
-                anchors.leftMargin: (itemData.props && (itemData.props.paddingLeft !== undefined ? itemData.props.paddingLeft : (itemData.props.padding || 0))) || 0
+                    anchors.horizontalCenter: (layoutLoader.align === Qt.AlignHCenter) ? parent.parent.horizontalCenter : undefined
+                    anchors.top: parent.parent.top
+                    anchors.topMargin: layoutLoader.padTop
+                    anchors.left: (layoutLoader.align === Qt.AlignHCenter) ? undefined : parent.parent.left
+                    anchors.leftMargin: layoutLoader.padLeft
+                    anchors.right: (layoutLoader.align === Qt.AlignHCenter) ? undefined : parent.parent.right
+                    anchors.rightMargin: layoutLoader.padRight
 
-                anchors.right: (itemData.props.alignment === Qt.AlignHCenter) ? undefined : parent.right
-                // [修复] 优先使用 paddingRight
-                anchors.rightMargin: (itemData.props && (itemData.props.paddingRight !== undefined ? itemData.props.paddingRight : (itemData.props.padding || 0))) || 0
+                    layoutDirection: (layoutLoader.align === Qt.AlignRight) ? Qt.RightToLeft : Qt.LeftToRight
+                    spacing: layoutLoader.space
+                    flow: Flow.LeftToRight
 
-                spacing: (itemData.props && itemData.props.spacing) || 0
+                    Repeater {
+                        model: itemData.children
+                        delegate: childDelegate
+                    }
+                }
+            }
 
-                Repeater {
-                    id: repeater
-                    model: itemData.children
-                    delegate: Loader {
-                        width: {
-                            var containerWidth = rowLayout.width;
-                            if (modelData.props.layoutType === "fixed")
-                                return modelData.props.width || 350;
-                            if (modelData.props.layoutType === "percent")
-                                return containerWidth * ((modelData.props.widthPercent || 100) / 100);
-                            return containerWidth;
-                        }
+            // Row 布局组件 (不换行)
+            Component {
+                id: rowLayoutComp
+                Row {
+                    id: rowImpl
+                    // Row 宽度由内容决定，若居中则设置为 implicitWidth
+                    width: (layoutLoader.align === Qt.AlignHCenter) ? implicitWidth : parent.parent.width
 
-                        source: "CanvasItem.qml"
-                        onLoaded: {
-                            item.itemData = modelData;
-                            item.index = index;
-                            item.parentModel = itemData.children;
-                            item.isNested = true;
-                        }
-                        Binding {
-                            target: item
-                            property: "itemData"
-                            value: modelData
-                            when: item !== null
-                        }
+                    anchors.horizontalCenter: (layoutLoader.align === Qt.AlignHCenter) ? parent.parent.horizontalCenter : undefined
+                    anchors.top: parent.parent.top
+                    anchors.topMargin: layoutLoader.padTop
+                    anchors.left: (layoutLoader.align === Qt.AlignHCenter) ? undefined : parent.parent.left
+                    anchors.leftMargin: layoutLoader.padLeft
+                    anchors.right: (layoutLoader.align === Qt.AlignHCenter) ? undefined : parent.parent.right
+                    anchors.rightMargin: layoutLoader.padRight
+
+                    layoutDirection: (layoutLoader.align === Qt.AlignRight) ? Qt.RightToLeft : Qt.LeftToRight
+                    spacing: layoutLoader.space
+
+                    Repeater {
+                        model: itemData.children
+                        delegate: childDelegate
+                    }
+                }
+            }
+
+            // 统一的子组件 Delegate
+            Component {
+                id: childDelegate
+                Loader {
+                    // [修复] 在 Row/Flow 内部，parent.width 可能是容器的宽度
+                    // 对于 Row，我们不限制宽度以免压缩，对于 Flow，限制为容器宽
+                    width: {
+                        // 使用 Loader 的 parent (Row 或 Flow) 的宽度作为基准
+                        var containerWidth = parent ? parent.width : 350;
+
+                        if (modelData.props.layoutType === "fixed")
+                            return modelData.props.width || 350;
+                        if (modelData.props.layoutType === "percent")
+                            return containerWidth * ((modelData.props.widthPercent || 100) / 100);
+
+                        // 如果是 Row 且没有指定宽度，使用默认
+                        return containerWidth > 0 ? containerWidth : 350;
+                    }
+
+                    source: "CanvasItem.qml"
+                    onLoaded: {
+                        item.itemData = modelData;
+                        item.index = index;
+                        item.parentModel = itemData.children;
+                        item.isNested = true;
+                    }
+                    Binding {
+                        target: item
+                        property: "itemData"
+                        value: modelData
+                        when: item !== null
                     }
                 }
             }
 
             Text {
                 anchors.centerIn: parent
-                text: "拖拽组件到此处 (横向布局)"
+                text: "拖拽组件到此处 (" + (itemData.props && itemData.props.wrap === false ? "横向不换行" : "横向换行") + ")"
                 color: "#999"
                 font.pixelSize: 14
                 visible: (!itemData.children || itemData.children.length === 0) && !previewMode
