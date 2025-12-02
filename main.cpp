@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     felgo.initialize(engine); // 传 engine 指针即可
 
     // Initialize Felgo Live Client
-    // static FelgoLiveClient liveClient(engine);
+    //static FelgoLiveClient liveClient(engine);
 
     // 添加 QML 模块搜索路径
     engine->addImportPath(QDir::currentPath() + "/qml");

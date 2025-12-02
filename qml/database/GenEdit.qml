@@ -37,7 +37,8 @@ Item {
             loadColumns();
             // [修复] 切换表时彻底清空缓存和预览状态
             savedVisualModel = null;
-            bar.currentIndex = 0; // 重置到第一个Tab
+            if (bar)
+                bar.currentIndex = 0;
             if (generatorLoader.item) {
                 generatorLoader.item.formModel = [];
                 generatorLoader.item.selectedItem = null;
@@ -51,7 +52,7 @@ Item {
                 var groups = JSON.parse(componentJson);
             } else {
                 console.warn("componentJson is undefined, using default list");
-                var defaultJson = '[{"group":"布局组件","items":[{"type":"StyledRow","label":"横向布局","icon":"▤"}]},{"group":"基础组件","items":[{"type":"StyledTextField","label":"文本输入","icon":"✎","supportFormConfig":true},{"type":"StyledSpinBox","label":"数字输入","icon":"123","supportFormConfig":true},{"type":"StyledComboBox","label":"下拉选择","icon":"▼","supportFormConfig":true},{"type":"StyledButton","label":"按钮","icon":"ok"},{"type":"StyledLabel","label":"文本标签","icon":"T"}]}]';
+                var defaultJson = '[{"group":"布局组件","items":[{"type":"StyledRow","label":"横向布局","icon":"▤"}]},{"group":"基础组件","items":[{"type":"StyledTextField","label":"文本输入","icon":"✎","supportFormConfig":true},{"type":"StyledSpinBox","label":"数字输入","icon":"123","supportFormConfig":true},{"type":"StyledDateTime","label":"日期时间","icon":"🕒","supportFormConfig":true},{"type":"StyledComboBox","label":"下拉选择","icon":"▼","supportFormConfig":true},{"type":"StyledButton","label":"按钮","icon":"ok"},{"type":"StyledLabel","label":"文本标签","icon":"T"}]}]';
                 var groups = JSON.parse(defaultJson);
             }
             var types = [];
@@ -135,14 +136,14 @@ Item {
 
                     if (cols[i].cppType === "Integer" || cols[i].cppType === "Long" || cols[i].cppType === "Double") {
                         cols[i].displayType = "StyledSpinBox";
+                    } else if (cols[i].cppType === "DateTime") {
+                        cols[i].displayType = "StyledDateTime";
                     }
 
                     var colName = cols[i].columnName;
 
-                    // [修改] 增加 flag 结尾判断
                     if (colName.endsWith("code") || colName.endsWith("flag")) {
                         cols[i].displayType = "StyledComboBox";
-
                         var foundDict = false;
                         for (var d = 0; d < dictTypeModel.length; d++) {
                             if (dictTypeModel[d].value === colName) {
@@ -150,7 +151,6 @@ Item {
                                 break;
                             }
                         }
-
                         if (foundDict) {
                             cols[i].dictType = colName;
                             cols[i].options = fetchDictOptions(colName);
@@ -170,52 +170,60 @@ Item {
     property string moduleName: "system"
     property string version: "1.0.0"
 
-    // [新增] 递归遍历可视化模型，寻找并更新 Item
+    function findColumnByBindName(columnMap, bindName) {
+        for (var key in columnMap) {
+            if (columnMap[key].columnName === bindName) {
+                return columnMap[key];
+            }
+        }
+        return null;
+    }
+
     function updateVisualModelRecursively(model, columnMap, unvisitedKeys) {
         var newModel = [];
         for (var i = 0; i < model.length; i++) {
             var item = model[i];
-            var newItem = JSON.parse(JSON.stringify(item)); // 深拷贝
+            var newItem = JSON.parse(JSON.stringify(item));
             var keepItem = true;
+            var colData = null;
 
-            // 检查是否是数据字段 (拥有 key 且不是布局容器或按钮)
-            // 简单判断：如果 key 在 columnMap 中，说明是字段
-            if (newItem.props && newItem.props.key && columnMap[newItem.props.key]) {
-                var colData = columnMap[newItem.props.key];
+            if (newItem.props && newItem.props.bindColumn) {
+                colData = findColumnByBindName(columnMap, newItem.props.bindColumn);
+            } else if (newItem.props && newItem.props.key) {
+                colData = columnMap[newItem.props.key];
+            }
 
-                // 1. 同步属性 (Tab 1 -> Tab 3)
+            if (colData) {
                 newItem.props.label = colData.columnComment || colData.columnName;
                 newItem.props.required = colData.isRequired;
 
-                // 如果类型变了，更新类型 (例如手动改了 displayType)
+                newItem.props.key = colData.cppField;
+                newItem.props.dictType = colData.dictType;
+
                 if (colData.displayType && newItem.type !== colData.displayType) {
                     newItem.type = colData.displayType;
+                    if (newItem.type === "StyledDateTime") {
+                        newItem.props.displayFormat = "yyyy-MM-dd HH:mm:ss";
+                        newItem.props.outputFormat = "yyyyMMddHHmmsszzz";
+                    }
                 }
 
-                // 如果是下拉框，同步选项
                 if (newItem.type === "StyledComboBox" && colData.options) {
                     newItem.props.model = colData.options;
                 }
 
-                // 标记已访问
-                var keyIndex = unvisitedKeys.indexOf(newItem.props.key);
+                var keyIndex = unvisitedKeys.indexOf(colData.cppField);
                 if (keyIndex > -1) {
                     unvisitedKeys.splice(keyIndex, 1);
                 }
 
-                // 如果 Tab 1 中取消了“编辑”，则在可视化中移除
                 if (!colData.isEdit) {
                     keepItem = false;
                 }
-            } else
-            // 此外：如果是一个看起来像字段的组件，但在 columnMap 中找不到 key，说明 Tab 1 删除了该列或改了名
-            // 我们选择移除它，除非它是纯 UI 组件（如 Row/Label/Button）
-            if (isDataComponent(newItem.type) && newItem.props && newItem.props.key) {
-                // 这是一个数据组件，但其 key 不在当前的 columnModel 中 -> 移除
+            } else if (isDataComponent(newItem.type) && newItem.props && newItem.props.key) {
                 keepItem = false;
             }
 
-            // 递归处理子元素
             if (keepItem && newItem.children && newItem.children.length > 0) {
                 newItem.children = updateVisualModelRecursively(newItem.children, columnMap, unvisitedKeys);
             }
@@ -228,17 +236,15 @@ Item {
     }
 
     function isDataComponent(type) {
-        return ["StyledTextField", "StyledSpinBox", "StyledComboBox"].indexOf(type) !== -1;
+        return ["StyledTextField", "StyledSpinBox", "StyledComboBox", "StyledDateTime"].indexOf(type) !== -1;
     }
 
-    // [修改] 双向同步：将字段配置同步到可视化编辑器 (合并模式)
     function syncToVisual() {
         if (!generatorLoader.item)
             return;
 
-        // 1. 准备数据映射
         var columnMap = {};
-        var unvisitedKeys = []; // 记录所有需要显示的字段 Key
+        var unvisitedKeys = [];
         for (var i = 0; i < columnModel.length; i++) {
             var col = columnModel[i];
             columnMap[col.cppField] = col;
@@ -247,21 +253,19 @@ Item {
             }
         }
 
-        // 2. 如果已有可视化模型，进行合并更新
         if (savedVisualModel && savedVisualModel.length > 0) {
-            // 递归更新现有模型（更新属性，移除被禁用的字段）
             var updatedModel = updateVisualModelRecursively(savedVisualModel, columnMap, unvisitedKeys);
 
-            // 3. 处理剩余未访问的 Key（新增的字段）
-            // 将它们添加到末尾
             if (unvisitedKeys.length > 0) {
                 var newItems = createVisualItemsFromKeys(unvisitedKeys, columnMap);
-                // 尝试添加到最后一个 Row 中，如果没有 Row 则新建
                 if (updatedModel.length > 0 && updatedModel[updatedModel.length - 1].type === "StyledRow") {
                     var lastRow = updatedModel[updatedModel.length - 1];
-                    lastRow.children = lastRow.children.concat(newItems);
+                    if (lastRow.props && lastRow.props.key === "row_actions") {
+                        updatedModel.splice(updatedModel.length - 1, 0, createRow(updatedModel.length, newItems));
+                    } else {
+                        lastRow.children = lastRow.children.concat(newItems);
+                    }
                 } else {
-                    // 创建新行
                     updatedModel.push(createRow(updatedModel.length + 1, newItems));
                 }
             }
@@ -269,7 +273,6 @@ Item {
             generatorLoader.item.formModel = updatedModel;
             console.log("Synced column changes to existing visual layout");
         } else {
-            // 4. 没有历史模型，完全重新生成
             generateDefaultLayout();
         }
     }
@@ -290,11 +293,21 @@ Item {
                 "visible": true,
                 "enabled": true,
                 "labelRatio": 0.2,
-                "required": col.isRequired
+                "required": col.isRequired,
+                "bindColumn": col.columnName,
+                "dictType": col.dictType
             };
-            if (col.displayType === "StyledComboBox" && col.options) {
-                props.model = col.options;
+
+            if (col.displayType === "StyledComboBox") {
+                if (col.options)
+                    props.model = col.options;
             }
+            if (col.displayType === "StyledDateTime") {
+                props.displayFormat = "yyyy-MM-dd HH:mm:ss";
+                props.outputFormat = "yyyyMMddHHmmsszzz";
+                props.placeholder = "请选择时间";
+            }
+
             items.push({
                 "type": col.displayType || "StyledTextField",
                 "id": "field_" + col.cppField,
@@ -353,7 +366,6 @@ Item {
         }
         pushRow();
 
-        // 底部按钮
         addBottomButtons(visualItems);
         generatorLoader.item.formModel = visualItems;
         console.log("Generated default layout");
@@ -362,7 +374,6 @@ Item {
     function addBottomButtons(visualItems) {
         var submitLogic = "// 1. 验证所有字段\nvar validation = validateAll();\nif (!validation.valid) return;\n\n// 2. 收集数据\nvar data = getAllValues();\n\n// 3. 环境检查\nif (typeof controller === 'undefined') {\n    console.log('Preview Submit:', JSON.stringify(data));\n    showMessage('验证通过！(预览模式)', 'success');\n    return;\n}\n\n// 4. 处理主键\nif (isEditMode && formData && formData.id) {\n    data['id'] = formData.id;\n}\n\n// 5. 调用Controller\nvar success = isEditMode ? controller.update(data) : controller.add(data);\n\n// 6. 关闭\nif (success) {\n    if (typeof closeForm === 'function') closeForm();\n    else showMessage('保存成功', 'success');\n}";
         var cancelLogic = "if (typeof closeForm === 'function') closeForm();\nelse if (typeof root !== 'undefined' && root.StackView && root.StackView.view) root.StackView.view.pop();\nelse showMessage('取消操作', 'info');";
-
         var btnSave = {
             "type": "StyledButton",
             "id": "btn_submit",
@@ -391,7 +402,6 @@ Item {
                 "onClicked": cancelLogic
             }
         };
-
         visualItems.push({
             "type": "StyledRow",
             "id": "row_actions",
@@ -408,18 +418,29 @@ Item {
         });
     }
 
-    // [新增] 递归遍历可视化模型，同步回 Tab 1
     function syncFromVisualRecursively(model, columnMap) {
         for (var i = 0; i < model.length; i++) {
             var item = model[i];
-            if (item.props && item.props.key && columnMap[item.props.key]) {
-                var col = columnMap[item.props.key];
-                // 标记为正在编辑（因为存在于可视化布局中）
+
+            var col = null;
+            if (item.props && item.props.bindColumn) {
+                col = findColumnByBindName(columnMap, item.props.bindColumn);
+            } else if (item.props && item.props.key) {
+                col = columnMap[item.props.key];
+            }
+
+            if (col) {
                 col.isEdit = true;
-                // 同步属性回 Tab 1
                 col.columnComment = item.props.label || col.columnComment;
                 col.isRequired = (item.props.required === true);
-                // 同步显示类型
+
+                if (item.props.key && item.props.key !== col.cppField) {
+                    col.cppField = item.props.key;
+                }
+
+                if (item.props.dictType)
+                    col.dictType = item.props.dictType;
+
                 if (item.type && item.type.startsWith("Styled")) {
                     col.displayType = item.type;
                 }
@@ -430,28 +451,22 @@ Item {
         }
     }
 
-    // [修改] 双向同步：从可视化编辑器同步回 Tab 1
     function syncFromVisual() {
         if (!generatorLoader.item)
             return;
 
-        // 1. 保存当前视觉状态
         savedVisualModel = generatorLoader.item.formModel;
 
-        // 2. 准备 columnMap
         var columnMap = {};
         for (var i = 0; i < columnModel.length; i++) {
-            // 先默认设为 false，如果在 visual 中找到则设为 true
             columnModel[i].isEdit = false;
             columnMap[columnModel[i].cppField] = columnModel[i];
         }
 
-        // 3. 递归更新
         if (savedVisualModel) {
             syncFromVisualRecursively(savedVisualModel, columnMap);
         }
 
-        // 4. 强制刷新 ListView (Model 重置)
         var temp = columnModel;
         columnModel = [];
         columnModel = temp;
@@ -464,7 +479,6 @@ Item {
         anchors.margins: 10
         spacing: 10
 
-        // Top Bar
         RowLayout {
             Layout.fillWidth: true
             Button {
@@ -634,6 +648,9 @@ Item {
                     clip: true
                     model: root.columnModel
                     delegate: Rectangle {
+                        // [核心修复 1] 显式捕获行索引，避免与 ComboBox 的 index 参数冲突
+                        property int rowIndex: index
+
                         width: ListView.view.width
                         height: 50
                         color: index % 2 === 0 ? "white" : "#f9f9f9"
@@ -644,7 +661,7 @@ Item {
                             spacing: 5
                             Text {
                                 Layout.preferredWidth: 40
-                                text: index + 1
+                                text: rowIndex + 1
                             }
                             Text {
                                 Layout.preferredWidth: 100
@@ -656,7 +673,7 @@ Item {
                                 text: modelData.columnComment
                                 onEditingFinished: {
                                     modelData.columnComment = text;
-                                    root.columnModel[index].columnComment = text;
+                                    root.columnModel[rowIndex].columnComment = text;
                                 }
                             }
                             Text {
@@ -668,9 +685,10 @@ Item {
                                 Layout.preferredWidth: 80
                                 model: root.cppTypes
                                 currentIndex: root.cppTypes.indexOf(modelData.cppType)
-                                onActivated: {
+                                // [修复 2] 使用 function(idx) 避免参数名冲突，使用 rowIndex 操作数据
+                                onActivated: function (idx) {
                                     modelData.cppType = currentText;
-                                    root.columnModel[index].cppType = currentText;
+                                    root.columnModel[rowIndex].cppType = currentText;
                                 }
                             }
                             TextField {
@@ -678,7 +696,7 @@ Item {
                                 text: modelData.cppField
                                 onEditingFinished: {
                                     modelData.cppField = text;
-                                    root.columnModel[index].cppField = text;
+                                    root.columnModel[rowIndex].cppField = text;
                                 }
                             }
                             CheckBox {
@@ -686,7 +704,7 @@ Item {
                                 checked: modelData.isInsert
                                 onToggled: {
                                     modelData.isInsert = checked;
-                                    root.columnModel[index].isInsert = checked;
+                                    root.columnModel[rowIndex].isInsert = checked;
                                 }
                             }
                             CheckBox {
@@ -694,7 +712,7 @@ Item {
                                 checked: modelData.isEdit
                                 onToggled: {
                                     modelData.isEdit = checked;
-                                    root.columnModel[index].isEdit = checked;
+                                    root.columnModel[rowIndex].isEdit = checked;
                                 }
                             }
                             CheckBox {
@@ -702,7 +720,7 @@ Item {
                                 checked: modelData.isList
                                 onToggled: {
                                     modelData.isList = checked;
-                                    root.columnModel[index].isList = checked;
+                                    root.columnModel[rowIndex].isList = checked;
                                 }
                             }
                             CheckBox {
@@ -711,7 +729,7 @@ Item {
                                 checked: modelData.isQuery
                                 onToggled: {
                                     modelData.isQuery = checked;
-                                    root.columnModel[index].isQuery = checked;
+                                    root.columnModel[rowIndex].isQuery = checked;
                                 }
                             }
                             ComboBox {
@@ -719,9 +737,9 @@ Item {
                                 model: root.queryTypes
                                 currentIndex: root.queryTypes.indexOf(modelData.queryType)
                                 enabled: queryCheckBox.checked
-                                onActivated: {
+                                onActivated: function (idx) {
                                     modelData.queryType = currentText;
-                                    root.columnModel[index].queryType = currentText;
+                                    root.columnModel[rowIndex].queryType = currentText;
                                 }
                             }
                             CheckBox {
@@ -729,7 +747,7 @@ Item {
                                 checked: modelData.isRequired
                                 onToggled: {
                                     modelData.isRequired = checked;
-                                    root.columnModel[index].isRequired = checked;
+                                    root.columnModel[rowIndex].isRequired = checked;
                                 }
                             }
                             ComboBox {
@@ -746,9 +764,9 @@ Item {
                                         }
                                     }
                                 }
-                                onActivated: {
+                                onActivated: function (idx) {
                                     modelData.displayType = currentValue;
-                                    root.columnModel[index].displayType = currentValue;
+                                    root.columnModel[rowIndex].displayType = currentValue;
                                 }
                             }
 
@@ -775,13 +793,20 @@ Item {
                                         currentIndex = 0;
                                 }
 
-                                onActivated: {
+                                // [核心修复 3] 正确处理字典选择逻辑，使用 comboIndex 参数名，通过 rowIndex 访问 Model
+                                onActivated: function (comboIndex) {
                                     var selectedType = currentValue;
+                                    // 更新当前 Model Data (界面回显)
                                     modelData.dictType = selectedType;
-                                    root.columnModel[index].dictType = selectedType;
+                                    // 更新数据源 (保证切Tab后还在)
+                                    root.columnModel[rowIndex].dictType = selectedType;
+
+                                    // 立即获取选项并保存
                                     var opts = fetchDictOptions(selectedType);
                                     modelData.options = opts;
-                                    root.columnModel[index].options = opts;
+                                    root.columnModel[rowIndex].options = opts;
+
+                                    console.log("Row " + rowIndex + " dict updated to: " + selectedType);
                                 }
                             }
                         }

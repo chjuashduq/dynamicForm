@@ -2,7 +2,6 @@ import QtQuick 6.5
 
 /**
  * 控件类型管理器
- * 负责控件类型相关的工具函数和配置
  */
 QtObject {
     id: controlTypeManager
@@ -22,6 +21,14 @@ QtObject {
             label: "数字框",
             color: "#e8f5e8",
             borderColor: "#4caf50"
+        },
+        // [新增]
+        {
+            type: "datetime",
+            icon: "🕒",
+            label: "日期时间",
+            color: "#e0f7fa",
+            borderColor: "#00bcd4"
         },
         {
             type: "password",
@@ -62,9 +69,8 @@ QtObject {
 
     function getControlTypeInfo(type) {
         for (var i = 0; i < controlTypes.length; i++) {
-            if (controlTypes[i].type === type) {
+            if (controlTypes[i].type === type)
                 return controlTypes[i];
-            }
         }
         return {
             type: type,
@@ -78,12 +84,13 @@ QtObject {
     function getDefaultLabel(type) {
         if (type === "button")
             return "";
-
         switch (type) {
         case "text":
             return "文本输入";
         case "number":
             return "数字输入";
+        case "datetime":
+            return "日期时间"; // [新增]
         case "password":
             return "密码输入";
         case "dropdown":
@@ -98,17 +105,16 @@ QtObject {
     }
 
     function createDefaultControl(type) {
+        var realType = (type === "StyledDateTime") ? "datetime" : type;
         var control = {
-            "type": type,
-            "key": type + "_" + Date.now(),
-            "label": getDefaultLabel(type),
+            "type": realType,
+            "key": realType + "_" + Date.now(),
+            "label": getDefaultLabel(realType),
             "rowSpan": 1,
             "colSpan": 1,
-            // [修改] 默认标签占比改为 0.2 (20%)
-            "labelRatio": type === "button" ? 0 : 0.2
+            "labelRatio": realType === "button" ? 0 : 0.2
         };
-
-        addTypeSpecificProperties(control, type);
+        addTypeSpecificProperties(control, realType);
         return control;
     }
 
@@ -132,6 +138,11 @@ QtObject {
             control.value = 0;
             control.min = 0;
             control.max = 100;
+            break;
+        case "datetime": // [新增]
+            control.placeholder = "请选择时间";
+            control.displayFormat = "yyyy-MM-dd HH:mm:ss";
+            control.outputFormat = "yyyyMMddHHmmsszzz";
             break;
         case "password":
             control.placeholder = "请输入密码";
@@ -157,7 +168,7 @@ QtObject {
     }
 
     function hasChangeEvent(type) {
-        return ["text", "number", "password", "button", "dropdown"].indexOf(type) !== -1;
+        return ["text", "number", "datetime", "password", "button", "dropdown"].indexOf(type) !== -1;
     }
 
     function getChangeEventLabel(type) {
@@ -167,6 +178,8 @@ QtObject {
             return "文本变化事件:";
         case "number":
             return "数值变化事件:";
+        case "datetime":
+            return "时间选择事件:"; // [新增]
         case "button":
             return "点击事件:";
         case "dropdown":
@@ -177,69 +190,21 @@ QtObject {
     }
 
     function hasTypeSpecificProps(type) {
-        return ["text", "number", "dropdown", "checkbox", "radio", "button"].indexOf(type) !== -1;
+        return ["text", "number", "datetime", "dropdown", "checkbox", "radio", "button"].indexOf(type) !== -1;
     }
 
     function getTypeColor(type) {
-        switch (type) {
-        case "text":
-            return "#e3f2fd";
-        case "number":
-            return "#e8f5e8";
-        case "password":
-            return "#f3e5f5";
-        case "dropdown":
-            return "#fff3e0";
-        case "checkbox":
-            return "#ffebee";
-        case "radio":
-            return "#f5f5f5";
-        case "button":
-            return "#ffebee";
-        default:
-            return "#ffffff";
-        }
+        var info = getControlTypeInfo(type);
+        return info.color;
     }
 
     function getTypeBorderColor(type) {
-        switch (type) {
-        case "text":
-            return "#2196f3";
-        case "number":
-            return "#4caf50";
-        case "password":
-            return "#9c27b0";
-        case "dropdown":
-            return "#ff9800";
-        case "checkbox":
-            return "#f44336";
-        case "radio":
-            return "#9e9e9e";
-        case "button":
-            return "#f44336";
-        default:
-            return "#dee2e6";
-        }
+        var info = getControlTypeInfo(type);
+        return info.borderColor;
     }
 
     function getTypeIcon(type) {
-        switch (type) {
-        case "text":
-            return "📝";
-        case "number":
-            return "🔢";
-        case "password":
-            return "🔒";
-        case "dropdown":
-            return "📋";
-        case "checkbox":
-            return "☑️";
-        case "radio":
-            return "🔘";
-        case "button":
-            return "🎯";
-        default:
-            return "❓";
-        }
+        var info = getControlTypeInfo(type);
+        return info.icon;
     }
 }

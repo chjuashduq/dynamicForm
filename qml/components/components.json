@@ -25,6 +25,12 @@
                 "supportFormConfig": true
             },
             {
+                "type": "StyledDateTime",
+                "label": "日期时间",
+                "icon": "🕒",
+                "supportFormConfig": true
+            },
+            {
                 "type": "StyledComboBox",
                 "label": "下拉选择",
                 "icon": "▼",

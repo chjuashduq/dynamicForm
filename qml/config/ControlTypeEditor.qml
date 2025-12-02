@@ -4,13 +4,12 @@ import QtQuick.Layouts 1.4
 
 /**
  * 控件类型特定属性编辑器
- * 根据控件类型显示相应的配置选项
  */
 Column {
     id: typeEditor
-    
+
     property var controlConfig: ({})
-    
+
     width: parent.width
     spacing: 15
 
@@ -21,19 +20,61 @@ Column {
         columnSpacing: 15
         rowSpacing: 10
         width: parent.width
-
-        Label { text: "占位符文本:" }
+        Label {
+            text: "占位符文本:"
+        }
         TextField {
             id: placeholderField
             text: controlConfig.placeholder || ""
             Layout.fillWidth: true
         }
-
-        Label { text: "默认值:" }
+        Label {
+            text: "默认值:"
+        }
         TextField {
             id: textValueField
             text: controlConfig.value || ""
             Layout.fillWidth: true
+        }
+    }
+
+    // [新增] 日期时间属性
+    GridLayout {
+        visible: controlConfig.type === "datetime" || controlConfig.type === "StyledDateTime"
+        columns: 2
+        columnSpacing: 15
+        rowSpacing: 10
+        width: parent.width
+
+        Label {
+            text: "占位符文本:"
+        }
+        TextField {
+            id: datePlaceholderField
+            text: controlConfig.placeholder || "YYYY-MM-DD"
+            Layout.fillWidth: true
+        }
+
+        Label {
+            text: "显示格式:"
+        }
+        ComboBox {
+            id: displayFormatCombo
+            editable: true
+            model: ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd", "HH:mm:ss", "yyyy/MM/dd"]
+            Layout.fillWidth: true
+            Component.onCompleted: currentIndex = find(controlConfig.displayFormat || "yyyy-MM-dd HH:mm:ss")
+        }
+
+        Label {
+            text: "返回格式 (API):"
+        }
+        ComboBox {
+            id: outputFormatCombo
+            editable: true
+            model: ["yyyyMMddHHmmsszzz", "yyyy-MM-dd HH:mm:ss", "yyyyMMdd", "zzz"] // zzz是毫秒
+            Layout.fillWidth: true
+            Component.onCompleted: currentIndex = find(controlConfig.outputFormat || "yyyyMMddHHmmsszzz")
         }
     }
 
@@ -44,8 +85,9 @@ Column {
         columnSpacing: 15
         rowSpacing: 10
         width: parent.width
-
-        Label { text: "默认数值:" }
+        Label {
+            text: "默认数值:"
+        }
         SpinBox {
             id: numberValueSpinBox
             from: -999999
@@ -54,15 +96,16 @@ Column {
         }
     }
 
-    // 密码框属性
+    // 密码框
     GridLayout {
         visible: controlConfig.type === "password"
         columns: 2
         columnSpacing: 15
         rowSpacing: 10
         width: parent.width
-
-        Label { text: "占位符文本:" }
+        Label {
+            text: "占位符文本:"
+        }
         TextField {
             id: passwordPlaceholderField
             text: controlConfig.placeholder || ""
@@ -70,48 +113,48 @@ Column {
         }
     }
 
-    // 下拉框属性
+    // 下拉框
     Column {
         visible: controlConfig.type === "dropdown"
         spacing: 10
         width: parent.width
-
-        Label { text: "选项列表 (格式: 显示文本|值，每行一个):" }
+        Label {
+            text: "选项列表 (格式: 显示文本|值，每行一个):"
+        }
         ScrollView {
             width: parent.width
             height: 100
-
             TextArea {
                 id: dropdownOptionsArea
                 text: controlConfig.options ? formatOptionsForEdit(controlConfig.options) : ""
                 wrapMode: TextArea.Wrap
-                placeholderText: "例如:\n选项1|option1\n选项2|option2"
+                placeholderText: "例如:\n选项1|option1"
             }
         }
     }
 
-    // 复选框属性
+    // 复选框
     Column {
         visible: controlConfig.type === "checkbox"
         spacing: 10
         width: parent.width
-
-        Label { text: "选项列表 (格式: 显示文本|值，每行一个):" }
+        Label {
+            text: "选项列表:"
+        }
         ScrollView {
             width: parent.width
             height: 100
-
             TextArea {
                 id: checkboxOptionsArea
                 text: controlConfig.options ? formatOptionsForEdit(controlConfig.options) : ""
                 wrapMode: TextArea.Wrap
-                placeholderText: "例如:\n选项1|option1\n选项2|option2"
             }
         }
-
         RowLayout {
             width: parent.width
-            Label { text: "排列方向:" }
+            Label {
+                text: "排列方向:"
+            }
             ComboBox {
                 id: directionCombo
                 model: ["horizontal", "vertical"]
@@ -120,45 +163,44 @@ Column {
         }
     }
 
-    // 单选框属性
+    // 单选框
     Column {
         visible: controlConfig.type === "radio"
         spacing: 10
         width: parent.width
-
-        Label { text: "选项列表 (格式: 显示文本|值，每行一个):" }
+        Label {
+            text: "选项列表:"
+        }
         ScrollView {
             width: parent.width
             height: 100
-
             TextArea {
                 id: radioOptionsArea
                 text: controlConfig.options ? formatOptionsForEdit(controlConfig.options) : ""
                 wrapMode: TextArea.Wrap
-                placeholderText: "例如:\n选项1|option1\n选项2|option2"
             }
         }
     }
 
-    // 按钮属性
+    // 按钮
     GridLayout {
         visible: controlConfig.type === "button"
         columns: 2
         columnSpacing: 15
         rowSpacing: 10
         width: parent.width
-
-        Label { text: "按钮文本:" }
+        Label {
+            text: "按钮文本:"
+        }
         TextField {
             id: buttonTextField
             text: controlConfig.text || ""
             Layout.fillWidth: true
         }
     }
-    
+
     function getTypeSpecificConfig() {
         var config = {};
-        
         switch (controlConfig.type) {
         case "text":
             config.placeholder = placeholderField.text;
@@ -166,6 +208,12 @@ Column {
             break;
         case "number":
             config.value = numberValueSpinBox.value;
+            break;
+        case "datetime": // [新增]
+        case "StyledDateTime":
+            config.placeholder = datePlaceholderField.text;
+            config.displayFormat = displayFormatCombo.currentText;
+            config.outputFormat = outputFormatCombo.currentText;
             break;
         case "password":
             config.placeholder = passwordPlaceholderField.text;
@@ -184,14 +232,14 @@ Column {
             config.text = buttonTextField.text;
             break;
         }
-        
+
         return config;
     }
-    
+
     function formatOptionsForEdit(options) {
-        if (!options || !Array.isArray(options)) return "";
-        
-        return options.map(function(option) {
+        if (!options || !Array.isArray(options))
+            return "";
+        return options.map(function (option) {
             if (typeof option === "string") {
                 return option + "|" + option;
             } else if (option && option.label && option.value) {
@@ -200,15 +248,14 @@ Column {
             return "";
         }).join("\\n");
     }
-    
+
     function parseOptionsFromEdit(text) {
-        if (!text || text.trim() === "") return [];
-        
-        var lines = text.split("\\n").filter(function(line) {
+        if (!text || text.trim() === "")
+            return [];
+        var lines = text.split("\\n").filter(function (line) {
             return line.trim() !== "";
         });
-        
-        return lines.map(function(line) {
+        return lines.map(function (line) {
             var parts = line.split("|");
             if (parts.length >= 2) {
                 return {

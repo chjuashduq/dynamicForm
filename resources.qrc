@@ -57,5 +57,6 @@
     <file>qml/mysqlhelper/qmldir</file>
     <file>qml/utils/FileHelper.qml</file>
     <file>qml/utils/qmldir</file>
+    <file>qml/components/StyledDateTime.qml</file>
   </qresource>
 </RCC>
