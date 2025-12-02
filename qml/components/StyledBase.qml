@@ -27,15 +27,15 @@ RowLayout {
     property bool required: false
 
     // [关键修改] valid 状态枚举
-    // 0: Unchecked (待验证) - 必填项的初始状态
-    // 1: Valid (合格) - 非必填项的初始状态，或验证通过
-    // 2: Invalid (不合格) - 验证失败
+    // "unchecked": (待验证) - 必填项的初始状态
+    // true: (合格) - 非必填项的初始状态，或验证通过
+    // false: (不合格) - 验证失败
     // undefined: 不参与验证 (如按钮)
-    property var valid: required ? 0 : 1
+    property var valid: required ? "unchecked" : true
 
     // [修改] 错误状态计算属性
-    // 只有状态明确为 2 (Invalid) 时才标红
-    property bool hasError: valid === 2
+    // 只有状态明确为 false (Invalid) 时才标红
+    property bool hasError: valid === false
 
     // Common default properties for all components
     readonly property var baseDefaultProps: ({
@@ -50,7 +50,7 @@ RowLayout {
             "enabled": true,
             "key": "",
             "required": false,
-            "valid": 1 // 默认合格
+            "valid": true // 默认合格
         })
 
     function mergeProps(specificProps) {

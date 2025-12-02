@@ -104,9 +104,9 @@ QtObject {                                               // 控件工厂对象
                     input.required = config.required;
 
                     // 如果是动态创建的对象（没有继承 StyledBase），需要手动设置 valid 初始值
-                    // 0: Unchecked, 1: Valid
+                    // "unchecked": Unchecked, true: Valid
                     if (!input.hasOwnProperty("baseDefaultProps")) {
-                        input.valid = config.required ? 0 : 1;
+                        input.valid = config.required ? "unchecked" : true;
                     }
                 } catch (e) {
                     console.warn("ControlFactory: Cannot set required property on control", controlKey);
@@ -255,8 +255,8 @@ QtObject {                                               // 控件工厂对象
         var layoutType = (config.direction === "horizontal") ? "RowLayout" : "ColumnLayout";
 
         // [新增] 注入 required 和 valid 属性
-        // 0: Unchecked (待验证), 1: Valid (合格)
-        var properties = "property var checkboxList: []; " + "property var valuesList: []; " + "property bool required: false; " + "property int valid: required ? 0 : 1; ";
+        // "unchecked": Unchecked (待验证), true: Valid (合格)
+        var properties = "property var checkboxList: []; " + "property var valuesList: []; " + "property bool required: false; " + "property var valid: required ? \"unchecked\" : true; ";
 
         var qmlString = 'import QtQuick.Controls 6.5; import QtQuick.Layouts 1.4; ' + layoutType + ' { ' + 'spacing: 10; ' + properties + 'function getValue() { ' + 'var selectedValues = []; ' + 'for (var i = 0; i < checkboxList.length; i++) { ' + 'if (checkboxList[i].checked) { ' + 'selectedValues.push(checkboxList[i].optionValue); ' + '} ' + '} ' + 'return selectedValues; ' + '} ' + '}';
 
@@ -300,7 +300,7 @@ QtObject {                                               // 控件工厂对象
      */
     function _createRadioGroup(container, config) {
         // [新增] 注入 required 和 valid 属性
-        var properties = "property var radioList: []; " + "property var valuesList: []; " + "property bool required: false; " + "property int valid: required ? 0 : 1; ";
+        var properties = "property var radioList: []; " + "property var valuesList: []; " + "property bool required: false; " + "property var valid: required ? \"unchecked\" : true; ";
 
         var qmlString = 'import QtQuick.Controls 6.5; import QtQuick.Layouts 1.4; ColumnLayout { ' + properties + 'function getValue() { ' + 'for (var i = 0; i < radioList.length; i++) { ' + 'if (radioList[i].checked) { ' + 'return radioList[i].optionValue; ' + '} ' + '} ' + 'return ""; ' + '} ' + '}';
 
@@ -372,13 +372,13 @@ QtObject {                                               // 控件工厂对象
                 var result = formAPI.validateControl(controlKey, false);
                 var label = labelsMap[controlKey];
 
-                // 验证结果直接反映在控件的 valid 属性上 (0, 1, 2)
+                // 验证结果直接反映在控件的 valid 属性上 ("unchecked", true, false)
                 // 仅需处理标签颜色
                 if (label) {
-                    if (result.valid) { // valid === 1 (合格)
+                    if (result.valid) { // valid === true (合格)
                         // 验证成功：恢复原始颜色
                         label.color = config.style && config.style.labelColor ? config.style.labelColor : "#000000";
-                    } else { // valid === 2 (不合格)
+                    } else { // valid === false (不合格)
                         label.color = "#ff0000";  // 验证失败：标红
                     }
                 }

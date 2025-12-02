@@ -213,7 +213,8 @@ Item {
                 "paddingTop": 20,
                 "paddingBottom": 20,
                 "paddingLeft": 0,
-                "paddingRight": 0
+                "paddingRight": 0,
+                "wrap": false
             },
             "children": [btnCancel, btnSave]
         });

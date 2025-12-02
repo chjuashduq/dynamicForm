@@ -57,7 +57,7 @@ ColumnLayout {
                     text: `
 ### 全局对象
 - **self**: 当前触发事件的控件对象
-  - **self.valid**: (bool) 设置控件验证状态，false表示验证失败
+  - **self.valid**: (var) 设置控件验证状态，true:合格, false:不合格, "unchecked":待验证
 - **formAPI**: 表单操作API对象
 - **MySqlHelper**: 数据库操作对象
 - **MessageManager**: 消息管理器 (显示Toast消息)

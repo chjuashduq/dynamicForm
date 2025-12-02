@@ -8,7 +8,7 @@ import "Common"
  * 职责：界面布局和组件协调
  */
 ApplicationWindow {
-    id: root
+    id: appWindow
     visible: true
     width: 800
     height: 600
@@ -118,9 +118,9 @@ ApplicationWindow {
 
         // 1. Static/System Routes (Keep-Alive)
         var staticRoutes = {
-            "generator": root.loaderInstance.generatorLoader,
-            "config": root.loaderInstance.configEditorLoader,
-            "db_tables": root.loaderInstance.dbTableListLoader
+            "generator": appWindow.loaderInstance.generatorLoader,
+            "config": appWindow.loaderInstance.configEditorLoader,
+            "db_tables": appWindow.loaderInstance.dbTableListLoader
         };
 
         if (staticRoutes[target]) {
@@ -141,8 +141,8 @@ ApplicationWindow {
         }
 
         // 3. Dynamic Routes (URL or Map)
-        if (root.dynamicRoutes[target]) {
-            stackView.push(Qt.resolvedUrl(root.dynamicRoutes[target]));
+        if (appWindow.dynamicRoutes[target]) {
+            stackView.push(Qt.resolvedUrl(appWindow.dynamicRoutes[target]));
             return;
         }
 
@@ -158,7 +158,7 @@ ApplicationWindow {
     Component {
         id: homeComponent
         Home {
-            onNavigate: target => root.navigateTo(target)
+            onNavigate: target => appWindow.navigateTo(target)
         }
     }
 
@@ -172,12 +172,12 @@ ApplicationWindow {
                 height: parent.height
                 source: "dynamic/dynamicList.qml"
                 onLoaded: {
-                    root.loaderInstance.dynamicListLoadingLoader = dynamicListLoadingLoader;
+                    appWindow.loaderInstance.dynamicListLoadingLoader = dynamicListLoadingLoader;
                     if (item) {
                         item.stackViewRef = stackView;
-                        item.loaderInstanceRef = root.loaderInstance;
+                        item.loaderInstanceRef = appWindow.loaderInstance;
 
-                        root.editorLoaded.connect(function (loader) {
+                        appWindow.editorLoaded.connect(function (loader) {
                             item.loaderInstanceRef.configEditorLoader = loader;
                         });
                     }
@@ -199,12 +199,12 @@ ApplicationWindow {
                 active: true
                 visible: false // Managed by navigation
                 onLoaded: {
-                    root.loaderInstance.formPreviewLoader = formPreviewLoader;
+                    appWindow.loaderInstance.formPreviewLoader = formPreviewLoader;
                     if (item) {
-                        item.formConfig = root.formConfig;
-                        item.controlsMap = root.controlsMap;
+                        item.formConfig = appWindow.formConfig;
+                        item.controlsMap = appWindow.controlsMap;
                         item.stackViewRef = stackView;
-                        item.loaderInstanceRef = root.loaderInstance;
+                        item.loaderInstanceRef = appWindow.loaderInstance;
                     }
                 }
             }
@@ -213,15 +213,15 @@ ApplicationWindow {
                 id: dataRecordListLoader
                 width: parent.width
                 height: parent.height
-                source: "dynamic/dataRecordList.qml"
+                source: "dynamic/DataRecordList.qml"
                 asynchronous: true
                 active: true
                 visible: false
                 onLoaded: {
-                    root.loaderInstance.dataRecordListLoader = dataRecordListLoader;
+                    appWindow.loaderInstance.dataRecordListLoader = dataRecordListLoader;
                     if (item) {
                         item.stackViewRef = stackView;
-                        item.loaderInstanceRef = root.loaderInstance;
+                        item.loaderInstanceRef = appWindow.loaderInstance;
                     }
                 }
             }
@@ -242,19 +242,19 @@ ApplicationWindow {
                 active: true        // 始终加载（后台加载）
                 visible: false       // Managed by navigation
                 onLoaded: {
-                    root.loaderInstance.configEditorLoader = configEditorLoader;
-                    root.editorLoaded(configEditorLoader);
+                    appWindow.loaderInstance.configEditorLoader = configEditorLoader;
+                    appWindow.editorLoaded(configEditorLoader);
                     if (item) {
                         item.stackViewRef = stackView;
-                        item.loaderInstanceRef = root.loaderInstance;
+                        item.loaderInstanceRef = appWindow.loaderInstance;
                         // 连接配置管理器的信号
                         if (item.configManager) {
                             item.configManager.internalConfigChanged.connect(function (newConfig) {
-                                root.formConfig = newConfig;
+                                appWindow.formConfig = newConfig;
                                 // 通过 loaderInstance 访问 formPreviewLoader
-                                if (root.loaderInstance.formPreviewLoader && root.loaderInstance.formPreviewLoader.item) {
-                                    root.loaderInstance.formPreviewLoader.item.formConfig = newConfig;
-                                    root.loaderInstance.formPreviewLoader.item.reloadForm();
+                                if (appWindow.loaderInstance.formPreviewLoader && appWindow.loaderInstance.formPreviewLoader.item) {
+                                    appWindow.loaderInstance.formPreviewLoader.item.formConfig = newConfig;
+                                    appWindow.loaderInstance.formPreviewLoader.item.reloadForm();
                                 }
                             });
                         }
@@ -277,7 +277,7 @@ ApplicationWindow {
                 active: true
                 visible: false // Managed by navigation
                 onLoaded: {
-                    root.loaderInstance.generatorLoader = generatorLoader;
+                    appWindow.loaderInstance.generatorLoader = generatorLoader;
                     // item.stackViewRef = stackView;
                 }
             }
@@ -299,7 +299,7 @@ ApplicationWindow {
 
                 Component.onCompleted: {
                     console.log("dbTableListLoader created. Registering instance. Status:", status);
-                    root.loaderInstance.dbTableListLoader = dbTableListLoader;
+                    appWindow.loaderInstance.dbTableListLoader = dbTableListLoader;
                 }
 
                 onLoaded: {
@@ -307,8 +307,8 @@ ApplicationWindow {
                     if (item) {
                         item.editTable.connect(function (tableName) {
                             console.log("Edit table requested:", tableName);
-                            if (root.loaderInstance.genEditLoader) {
-                                var loader = root.loaderInstance.genEditLoader;
+                            if (appWindow.loaderInstance.genEditLoader) {
+                                var loader = appWindow.loaderInstance.genEditLoader;
                                 loader.visible = true;
                                 if (loader.item) {
                                     loader.item.tableName = tableName;
@@ -347,7 +347,7 @@ ApplicationWindow {
                 visible: false
 
                 Component.onCompleted: {
-                    root.loaderInstance.genEditLoader = genEditLoader;
+                    appWindow.loaderInstance.genEditLoader = genEditLoader;
                 }
 
                 onLoaded: {
@@ -362,12 +362,13 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
+        console.log("Main.qml loaded, appWindow id:", appWindow);
         // Instantiate tabs for background loading/state preservation
-        var a = configEditorTab.createObject(root);
-        var b = formPreviewTab.createObject(root);
-        var c = generatorTab.createObject(root);
-        var d = dbTableListTab.createObject(root);
-        var e = genEditTab.createObject(root);
-        MessageManager.registerRootItem(root.contentItem);
+        var a = configEditorTab.createObject(appWindow);
+        var b = formPreviewTab.createObject(appWindow);
+        var c = generatorTab.createObject(appWindow);
+        var d = dbTableListTab.createObject(appWindow);
+        var e = genEditTab.createObject(appWindow);
+        MessageManager.registerRootItem(appWindow.contentItem);
     }
 }

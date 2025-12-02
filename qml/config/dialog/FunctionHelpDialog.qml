@@ -10,14 +10,14 @@ import QtQuick.Layouts 1.4
 Dialog {
     id: functionHelpDialog
     title: "函数编写"
-    width: 900
-    height: 700
+    width: 1000
+    height: 800
     anchors.centerIn: parent
     modal: true
 
     property string currentEventType: ""
     property string currentEventCode: ""
-    
+
     signal functionSaved(string eventType, string code)
 
     RowLayout {
@@ -47,7 +47,7 @@ Dialog {
                         height: 30
                         color: "#e3f2fd"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "1. 基础变量"
@@ -56,23 +56,46 @@ Dialog {
                         }
                     }
 
-
                     Repeater {
                         model: [
-                            {name: "self", desc: "当前控件对象", code: "self.value"},
-                            {name: "value", desc: "当前控件的值", code: "value"},
-                            {name: "formId", desc: "表单ID", code: "formId"},
-                            {name: "formData", desc: "表单数据(JSON)", code: "formData"},
-                            {name: "isEditMode", desc: "是否为编辑模式", code: "if (isEditMode) { /* 编辑 */ } else { /* 新增 */ }"},
-                            {name: "dataRecordId", desc: "数据记录ID(编辑)", code: "dataRecordId"}
+                            {
+                                name: "self",
+                                desc: "当前控件对象",
+                                code: "self.value"
+                            },
+                            {
+                                name: "value",
+                                desc: "当前控件的值",
+                                code: "value"
+                            },
+                            {
+                                name: "formId",
+                                desc: "表单ID",
+                                code: "formId"
+                            },
+                            {
+                                name: "formData",
+                                desc: "表单数据(JSON)",
+                                code: "formData"
+                            },
+                            {
+                                name: "isEditMode",
+                                desc: "是否为编辑模式",
+                                code: "if (isEditMode) { /* 编辑 */ } else { /* 新增 */ }"
+                            },
+                            {
+                                name: "dataRecordId",
+                                desc: "数据记录ID(编辑)",
+                                code: "dataRecordId"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width - 10
                             height: 35
                             text: modelData.name + " - " + modelData.desc
                             font.pixelSize: 11
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
@@ -85,7 +108,7 @@ Dialog {
                         height: 30
                         color: "#fff3cd"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "2. 获取控件值"
@@ -96,15 +119,23 @@ Dialog {
 
                     Repeater {
                         model: [
-                            {name: "getAllValues", desc: "获取所有控件值", code: "var allData = getAllValues();\nconsole.log('表单数据:', JSON.stringify(allData));"},
-                            {name: "getControlValue", desc: "获取指定控件值", code: "var username = getControlValue('username');\nconsole.log('用户名:', username);"}
+                            {
+                                name: "getAllValues",
+                                desc: "获取所有控件值",
+                                code: "var allData = getAllValues();\nconsole.log('表单数据:', JSON.stringify(allData));"
+                            },
+                            {
+                                name: "getControlValue",
+                                desc: "获取指定控件值",
+                                code: "var username = getControlValue('username');\nconsole.log('用户名:', username);"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width
                             height: 40
                             text: modelData.name + " - " + modelData.desc
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
@@ -117,7 +148,7 @@ Dialog {
                         height: 30
                         color: "#d4edda"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "3. 设置控件值"
@@ -128,16 +159,28 @@ Dialog {
 
                     Repeater {
                         model: [
-                            {name: "setControlValue", desc: "设置控件值", code: "setControlValue('age', 25);"},
-                            {name: "resetControl", desc: "重置单个控件", code: "resetControl('username');"},
-                            {name: "resetForm", desc: "重置整个表单", code: "resetForm();\nshowMessage('表单已重置', 'info');"}
+                            {
+                                name: "setControlValue",
+                                desc: "设置控件值",
+                                code: "setControlValue('age', 25);"
+                            },
+                            {
+                                name: "resetControl",
+                                desc: "重置单个控件",
+                                code: "resetControl('username');"
+                            },
+                            {
+                                name: "resetForm",
+                                desc: "重置整个表单",
+                                code: "resetForm();\nshowMessage('表单已重置', 'info');"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width
                             height: 40
                             text: modelData.name + " - " + modelData.desc
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
@@ -150,7 +193,7 @@ Dialog {
                         height: 30
                         color: "#e2e3e5"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "4. 控件状态控制"
@@ -161,24 +204,43 @@ Dialog {
 
                     Repeater {
                         model: [
-                            {name: "enableControl", desc: "启用控件", code: "enableControl('submit_btn');"},
-                            {name: "disableControl", desc: "禁用控件", code: "disableControl('submit_btn');"},
-                            {name: "showControl", desc: "显示控件", code: "showControl('email');"},
-                            {name: "hideControl", desc: "隐藏控件", code: "hideControl('email');"},
-                            {name: "focusControl", desc: "聚焦控件", code: "focusControl('username');"}
+                            {
+                                name: "enableControl",
+                                desc: "启用控件",
+                                code: "enableControl('submit_btn');"
+                            },
+                            {
+                                name: "disableControl",
+                                desc: "禁用控件",
+                                code: "disableControl('submit_btn');"
+                            },
+                            {
+                                name: "showControl",
+                                desc: "显示控件",
+                                code: "showControl('email');"
+                            },
+                            {
+                                name: "hideControl",
+                                desc: "隐藏控件",
+                                code: "hideControl('email');"
+                            },
+                            {
+                                name: "focusControl",
+                                desc: "聚焦控件",
+                                code: "focusControl('username');"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width
                             height: 40
                             text: modelData.name + " - " + modelData.desc
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
                         }
                     }
-
 
                     // ========== 5. 验证函数 ==========
                     Rectangle {
@@ -186,7 +248,7 @@ Dialog {
                         height: 30
                         color: "#d1ecf1"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "5. 验证函数"
@@ -197,21 +259,53 @@ Dialog {
 
                     Repeater {
                         model: [
-                            {name: "validateAll", desc: "验证所有控件", code: "var result = validateAll();\nif (result.valid) {\n    showMessage('验证通过', 'success');\n}"},
-                            {name: "isControlValid", desc: "检查单个控件验证状态", code: "if (formAPI.isControlValid('email')) {\n    console.log('邮箱验证通过');\n}"},
-                            {name: "areControlsValid", desc: "检查多个控件验证状态", code: "if (formAPI.areControlsValid(['name', 'age', 'email'])) {\n    showMessage('所有必填项验证通过', 'success');\n} else {\n    showMessage('请先完成所有必填项', 'warning');\n}"},
-                            {name: "validateEmail", desc: "验证邮箱格式", code: "if (!validateEmail(value)) {\n    return false;\n}"},
-                            {name: "validatePhone", desc: "验证手机号", code: "if (!validatePhone(value)) {\n    return false;\n}"},
-                            {name: "validateIdCard", desc: "验证身份证号", code: "if (!validateIdCard(value)) {\n    return false;\n}"},
-                            {name: "validateNumber", desc: "验证数字范围", code: "if (!validateNumber(value, 0, 100)) {\n    return false;\n}"},
-                            {name: "validateRegex", desc: "正则验证", code: "if (!validateRegex(value, '^\\\\d{6}$', '请输入6位数字')) {\n    return false;\n}"}
+                            {
+                                name: "validateAll",
+                                desc: "验证所有控件",
+                                code: "var result = validateAll();\nif (result.valid) {\n    showMessage('验证通过', 'success');\n}"
+                            },
+                            {
+                                name: "isControlValid",
+                                desc: "检查单个控件验证状态",
+                                code: "if (formAPI.isControlValid('email')) {\n    console.log('邮箱验证通过');\n}"
+                            },
+                            {
+                                name: "areControlsValid",
+                                desc: "检查多个控件验证状态",
+                                code: "if (formAPI.areControlsValid(['name', 'age', 'email'])) {\n    showMessage('所有必填项验证通过', 'success');\n} else {\n    showMessage('请先完成所有必填项', 'warning');\n}"
+                            },
+                            {
+                                name: "validateEmail",
+                                desc: "验证邮箱格式",
+                                code: "if (!validateEmail(value)) {\n    return false;\n}"
+                            },
+                            {
+                                name: "validatePhone",
+                                desc: "验证手机号",
+                                code: "if (!validatePhone(value)) {\n    return false;\n}"
+                            },
+                            {
+                                name: "validateIdCard",
+                                desc: "验证身份证号",
+                                code: "if (!validateIdCard(value)) {\n    return false;\n}"
+                            },
+                            {
+                                name: "validateNumber",
+                                desc: "验证数字范围",
+                                code: "if (!validateNumber(value, 0, 100)) {\n    return false;\n}"
+                            },
+                            {
+                                name: "validateRegex",
+                                desc: "正则验证",
+                                code: "if (!validateRegex(value, '^\\\\d{6}$', '请输入6位数字')) {\n    return false;\n}"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width
                             height: 40
                             text: modelData.name + " - " + modelData.desc
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
@@ -224,7 +318,7 @@ Dialog {
                         height: 30
                         color: "#f8d7da"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "6. 消息提示"
@@ -235,14 +329,18 @@ Dialog {
 
                     Repeater {
                         model: [
-                            {name: "showMessage", desc: "显示消息", code: "showMessage('操作成功', 'success');\n// 类型: info, success, warning, error"}
+                            {
+                                name: "showMessage",
+                                desc: "显示消息",
+                                code: "showMessage('操作成功', 'success');\n// 类型: info, success, warning, error"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width
                             height: 40
                             text: modelData.name + " - " + modelData.desc
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
@@ -255,7 +353,7 @@ Dialog {
                         height: 30
                         color: "#d1ecf1"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "7. 临时存储"
@@ -266,16 +364,28 @@ Dialog {
 
                     Repeater {
                         model: [
-                            {name: "setTempValue", desc: "设置临时存储值", code: "// 在一个事件中存储数据\nsetTempValue('selectedCountry', getControlValue('country'));\nsetTempValue('userChoice', 'option1');"},
-                            {name: "getTempValue", desc: "获取临时存储值", code: "// 在另一个事件中获取之前存储的数据\nvar country = getTempValue('selectedCountry');\nif (country === '00') {\n    showMessage('您选择了中国', 'info');\n}"},
-                            {name: "clearTempStorage", desc: "清除临时存储", code: "// 清除单个键\nclearTempStorage('selectedCountry');\n\n// 清除所有临时存储\nclearTempStorage();"}
+                            {
+                                name: "setTempValue",
+                                desc: "设置临时存储值",
+                                code: "// 在一个事件中存储数据\nsetTempValue('selectedCountry', getControlValue('country'));\nsetTempValue('userChoice', 'option1');"
+                            },
+                            {
+                                name: "getTempValue",
+                                desc: "获取临时存储值",
+                                code: "// 在另一个事件中获取之前存储的数据\nvar country = getTempValue('selectedCountry');\nif (country === '00') {\n    showMessage('您选择了中国', 'info');\n}"
+                            },
+                            {
+                                name: "clearTempStorage",
+                                desc: "清除临时存储",
+                                code: "// 清除单个键\nclearTempStorage('selectedCountry');\n\n// 清除所有临时存储\nclearTempStorage();"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width
                             height: 50
                             text: modelData.name + " - " + modelData.desc
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
@@ -288,7 +398,7 @@ Dialog {
                         height: 30
                         color: "#cfe2ff"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "8. 工具函数"
@@ -299,20 +409,23 @@ Dialog {
 
                     Repeater {
                         model: [
-                            {name: "formatDateTime", desc: "格式化日期时间", code: "var now = formatDateTime();\n// 结果: '2025-11-18 13:31:33'\nvar customDate = formatDateTime(new Date('2025-01-01'));\n// 结果: '2025-01-01 00:00:00'"}
+                            {
+                                name: "formatDateTime",
+                                desc: "格式化日期时间",
+                                code: "var now = formatDateTime();\n// 结果: '2025-11-18 13:31:33'\nvar customDate = formatDateTime(new Date('2025-01-01'));\n// 结果: '2025-01-01 00:00:00'"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width
                             height: 50
                             text: modelData.name + " - " + modelData.desc
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
                         }
                     }
-
 
                     // ========== 9. 数据库操作 ==========
                     Rectangle {
@@ -320,7 +433,7 @@ Dialog {
                         height: 30
                         color: "#fff3cd"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "9. 数据库操作"
@@ -331,17 +444,33 @@ Dialog {
 
                     Repeater {
                         model: [
-                            {name: "INSERT - 插入数据", desc: "新增记录", code: "var data = {\n    username: getControlValue('username'),\n    email: getControlValue('email'),\n    createTime: formatDateTime()\n};\ntry {\n    var result = MySqlHelper.insert('users', data);\n    if (result) {\n        showMessage('提交成功！', 'success');\n        resetForm();\n    } else {\n        showMessage('提交失败', 'error');\n    }\n} catch(e) {\n    showMessage('提交失败: ' + e, 'error');\n}"},
-                            {name: "SELECT - 查询数据", desc: "查询记录", code: "try {\n    var result = MySqlHelper.select('users', ['*'], 'username=\"张三\"');\n    console.log('查询结果:', JSON.stringify(result));\n    if (result.length > 0) {\n        showMessage('找到 ' + result.length + ' 条记录', 'success');\n    }\n} catch(e) {\n    showMessage('查询失败: ' + e, 'error');\n}"},
-                            {name: "UPDATE - 更新数据", desc: "修改记录", code: "var data = {\n    email: getControlValue('email'),\n    age: getControlValue('age')\n};\nvar where = 'id=' + dataRecordId;\ntry {\n    MySqlHelper.update('users', data, where);\n    showMessage('更新成功！', 'success');\n} catch(e) {\n    showMessage('更新失败: ' + e, 'error');\n}"},
-                            {name: "DELETE - 删除数据", desc: "删除记录", code: "var userId = getControlValue('user_id');\nvar where = 'id=' + userId;\ntry {\n    MySqlHelper.remove('users', where);\n    showMessage('删除成功！', 'success');\n} catch(e) {\n    showMessage('删除失败: ' + e, 'error');\n}"}
+                            {
+                                name: "INSERT - 插入数据",
+                                desc: "新增记录",
+                                code: "var data = {\n    username: getControlValue('username'),\n    email: getControlValue('email'),\n    createTime: formatDateTime()\n};\ntry {\n    var result = MySqlHelper.insert('users', data);\n    if (result) {\n        showMessage('提交成功！', 'success');\n        resetForm();\n    } else {\n        showMessage('提交失败', 'error');\n    }\n} catch(e) {\n    showMessage('提交失败: ' + e, 'error');\n}"
+                            },
+                            {
+                                name: "SELECT - 查询数据",
+                                desc: "查询记录",
+                                code: "try {\n    var result = MySqlHelper.select('users', ['*'], 'username=\"张三\"');\n    console.log('查询结果:', JSON.stringify(result));\n    if (result.length > 0) {\n        showMessage('找到 ' + result.length + ' 条记录', 'success');\n    }\n} catch(e) {\n    showMessage('查询失败: ' + e, 'error');\n}"
+                            },
+                            {
+                                name: "UPDATE - 更新数据",
+                                desc: "修改记录",
+                                code: "var data = {\n    email: getControlValue('email'),\n    age: getControlValue('age')\n};\nvar where = 'id=' + dataRecordId;\ntry {\n    MySqlHelper.update('users', data, where);\n    showMessage('更新成功！', 'success');\n} catch(e) {\n    showMessage('更新失败: ' + e, 'error');\n}"
+                            },
+                            {
+                                name: "DELETE - 删除数据",
+                                desc: "删除记录",
+                                code: "var userId = getControlValue('user_id');\nvar where = 'id=' + userId;\ntry {\n    MySqlHelper.remove('users', where);\n    showMessage('删除成功！', 'success');\n} catch(e) {\n    showMessage('删除失败: ' + e, 'error');\n}"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width
                             height: 50
                             text: modelData.name + " - " + modelData.desc
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
@@ -354,7 +483,7 @@ Dialog {
                         height: 30
                         color: "#d1ecf1"
                         radius: 4
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "10. 完整示例"
@@ -365,15 +494,23 @@ Dialog {
 
                     Repeater {
                         model: [
-                            {name: "提交按钮完整示例", desc: "验证+提交", code: "// 1. 验证所有字段\nvar validation = validateAll();\nif (!validation.valid) {\n    return;\n}\n\n// 2. 准备提交数据\nvar submitData = {\n    dynamicId: formId,\n    data: JSON.stringify(formData),\n    createTime: formatDateTime()\n};\n\n// 3. 提交到数据库\ntry {\n    if (isEditMode) {\n        // 编辑模式：UPDATE\n        var where = 'id=' + dataRecordId;\n        var result = MySqlHelper.update('dynamicData', submitData, where);\n        if (result) {\n            showMessage('更新成功！', 'success');\n        }\n    } else {\n        // 新增模式：INSERT\n        var result = MySqlHelper.insert('dynamicData', submitData);\n        if (result) {\n            showMessage('提交成功！', 'success');\n            resetForm();\n        }\n    }\n} catch(e) {\n    showMessage('操作失败: ' + e, 'error');\n}"},
-                            {name: "查询并填充表单", desc: "查询+自动填充", code: "// 根据用户名查询并填充表单\nvar username = getControlValue('search_username');\n\nif (!username) {\n    showMessage('请输入用户名', 'warning');\n    return;\n}\n\ntry {\n    var result = MySqlHelper.select('users', ['*'], 'username=\"' + username + '\"');\n    \n    if (result.length > 0) {\n        var user = result[0];\n        \n        // 自动填充表单\n        setControlValue('email', user.email);\n        setControlValue('age', user.age);\n        setControlValue('gender', user.gender);\n        \n        showMessage('查询成功', 'success');\n    } else {\n        showMessage('未找到该用户', 'warning');\n    }\n} catch(e) {\n    showMessage('查询失败: ' + e, 'error');\n}"}
+                            {
+                                name: "提交按钮完整示例",
+                                desc: "验证+提交",
+                                code: "// 1. 验证所有字段\nvar validation = validateAll();\nif (!validation.valid) {\n    return;\n}\n\n// 2. 准备提交数据\nvar submitData = {\n    dynamicId: formId,\n    data: JSON.stringify(formData),\n    createTime: formatDateTime()\n};\n\n// 3. 提交到数据库\ntry {\n    if (isEditMode) {\n        // 编辑模式：UPDATE\n        var where = 'id=' + dataRecordId;\n        var result = MySqlHelper.update('dynamicData', submitData, where);\n        if (result) {\n            showMessage('更新成功！', 'success');\n        }\n    } else {\n        // 新增模式：INSERT\n        var result = MySqlHelper.insert('dynamicData', submitData);\n        if (result) {\n            showMessage('提交成功！', 'success');\n            resetForm();\n        }\n    }\n} catch(e) {\n    showMessage('操作失败: ' + e, 'error');\n}"
+                            },
+                            {
+                                name: "查询并填充表单",
+                                desc: "查询+自动填充",
+                                code: "// 根据用户名查询并填充表单\nvar username = getControlValue('search_username');\n\nif (!username) {\n    showMessage('请输入用户名', 'warning');\n    return;\n}\n\ntry {\n    var result = MySqlHelper.select('users', ['*'], 'username=\"' + username + '\"');\n    \n    if (result.length > 0) {\n        var user = result[0];\n        \n        // 自动填充表单\n        setControlValue('email', user.email);\n        setControlValue('age', user.age);\n        setControlValue('gender', user.gender);\n        \n        showMessage('查询成功', 'success');\n    } else {\n        showMessage('未找到该用户', 'warning');\n    }\n} catch(e) {\n    showMessage('查询失败: ' + e, 'error');\n}"
+                            }
                         ]
-                        
+
                         Button {
                             width: parent.width
                             height: 60
                             text: modelData.name + " - " + modelData.desc
-                            
+
                             onClicked: {
                                 insertFunction(modelData.code);
                             }
@@ -383,86 +520,82 @@ Dialog {
             }
         }
 
-
         // 右侧：代码编辑区域
         GroupBox {
             title: "代码编辑区域"
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            ScrollView {
+            ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 10
-                clip: true
+                spacing: 10
 
-                Column {
-                    width: parent.width
-                    spacing: 15
+                Text {
+                    Layout.fillWidth: true
+                    text: getEventDescription()
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 14
+                }
 
-                    Text {
-                        width: parent.width
-                        text: getEventDescription()
-                        wrapMode: Text.WordWrap
-                        font.pixelSize: 14
-                    }
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: "#f8f9fa"
+                    border.color: "#dee2e6"
+                    border.width: 1
+                    radius: 4
 
-                    Rectangle {
-                        width: parent.width
-                        height: 350
-                        color: "#f8f9fa"
-                        border.color: "#dee2e6"
-                        border.width: 1
-                        radius: 4
+                    ScrollView {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        clip: true
+                        ScrollBar.vertical.policy: ScrollBar.AlwaysOn
 
-                        ScrollView {
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            clip: true
+                        TextArea {
+                            id: codeEditArea
+                            width: parent.width // Ensure it fills the width
+                            text: currentEventCode
+                            wrapMode: TextArea.Wrap
+                            font.family: "Consolas, Monaco, monospace"
+                            font.pixelSize: 14 // Increased font size slightly
+                            selectByMouse: true
+                            placeholderText: "在此编写JavaScript代码，点击左侧函数按钮可在光标处插入函数..."
+                            background: null // Remove default background to avoid double borders
 
-                            TextArea {
-                                id: codeEditArea
-                                text: currentEventCode
-                                wrapMode: TextArea.Wrap
-                                font.family: "Consolas, Monaco, monospace"
-                                font.pixelSize: 12
-                                selectByMouse: true
-                                placeholderText: "在此编写JavaScript代码，点击左侧函数按钮可在光标处插入函数..."
-                                
-                                onTextChanged: {
-                                    currentEventCode = text;
-                                }
+                            onTextChanged: {
+                                currentEventCode = text;
                             }
                         }
                     }
+                }
 
-                    RowLayout {
-                        width: parent.width
-                        spacing: 10
-                        
-                        Button {
-                            text: "保存并关闭"
-                            onClicked: {
-                                functionSaved(currentEventType, currentEventCode);
-                                functionHelpDialog.close();
-                            }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Button {
+                        text: "保存并关闭"
+                        onClicked: {
+                            functionSaved(currentEventType, currentEventCode);
+                            functionHelpDialog.close();
                         }
-                        
-                        Button {
-                            text: "清空代码"
-                            onClicked: {
-                                codeEditArea.text = "";
-                            }
+                    }
+
+                    Button {
+                        text: "清空代码"
+                        onClicked: {
+                            codeEditArea.text = "";
                         }
-                        
-                        Item {
-                            Layout.fillWidth: true
-                        }
-                        
-                        Button {
-                            text: "取消"
-                            onClicked: {
-                                functionHelpDialog.close();
-                            }
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Button {
+                        text: "取消"
+                        onClicked: {
+                            functionHelpDialog.close();
                         }
                     }
                 }
@@ -477,11 +610,11 @@ Dialog {
         var currentText = codeEditArea.text;
         var beforeCursor = currentText.substring(0, cursorPosition);
         var afterCursor = currentText.substring(cursorPosition);
-        
+
         // 在光标处插入代码
         var newText = beforeCursor + code + afterCursor;
         codeEditArea.text = newText;
-        
+
         // 将光标移动到插入代码的末尾
         codeEditArea.cursorPosition = cursorPosition + code.length;
         codeEditArea.focus = true;
@@ -515,10 +648,10 @@ Dialog {
         currentEventCode = eventCode || "";
         open();
     }
-    
+
     function showChangeEventHelp(controlType, eventCode) {
         title = "编写变化事件函数";
-        
+
         switch (controlType) {
         case "text":
         case "password":
@@ -531,7 +664,7 @@ Dialog {
         default:
             currentEventType = "valueChanged";
         }
-        
+
         currentEventCode = eventCode || "";
         open();
     }

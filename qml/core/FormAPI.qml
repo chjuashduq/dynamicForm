@@ -15,9 +15,10 @@ QtObject {
     property var scriptEngine: null
 
     // [新增] 验证状态常量
-    readonly property int statusUnchecked: 0
-    readonly property int statusValid: 1
-    readonly property int statusInvalid: 2
+    // [新增] 验证状态常量
+    readonly property string statusUnchecked: "unchecked"
+    readonly property bool statusValid: true
+    readonly property bool statusInvalid: false
 
     function initializeForm() {
         validationStates = {};
@@ -182,7 +183,7 @@ QtObject {
         // 如果控件有 valid 属性 (不是 undefined)，则重置
         if (control.valid !== undefined) {
             var isRequired = (config && config.required === true);
-            // 必填 -> 0 (Unchecked), 非必填 -> 1 (Valid)
+            // 必填 -> "unchecked", 非必填 -> true (Valid)
             control.valid = isRequired ? statusUnchecked : statusValid;
         }
 
@@ -303,8 +304,8 @@ QtObject {
         }
 
         // [关键修改] 更新控件状态
-        // 验证通过 -> 1 (Valid)
-        // 验证失败 -> 2 (Invalid)
+        // 验证通过 -> true (Valid)
+        // 验证失败 -> false (Invalid)
         if (control) {
             try {
                 control.valid = isValid ? statusValid : statusInvalid;
@@ -321,16 +322,16 @@ QtObject {
 
     /**
      * 检查单个控件是否验证通过
-     * 只有 valid === 1 才算通过
+     * 只有 valid === true 才算通过
      * undefined 视为跳过（返回 true）
-     * 0 (Unchecked) 和 2 (Invalid) 均视为 false
+     * "unchecked" 和 false 均视为 false
      */
     function isControlValid(controlKey) {
         var control = controlsMap[controlKey];
         if (control) {
             if (control.valid === undefined)
                 return true; // 不参与验证的控件
-            return control.valid === statusValid; // 只有状态为 1 才算通过
+            return control.valid === statusValid; // 只有状态为 true 才算通过
         }
         return true;
     }
@@ -355,25 +356,19 @@ QtObject {
             if (controlConfigs[key]) {
                 var config = controlConfigs[key];
                 var control = controlsMap[key];
-
                 // 跳过不参与验证的控件 (valid === undefined)
                 if (!control || control.valid === undefined)
                     continue;
-
-                // 触发验证，更新状态
-                var result = validateControl(key, false);
-
                 // 检查结果 (result.valid === false 表示验证不通过)
-                if (!result.valid) {
+                if (!control.valid) {
                     errors.push({
                         key: key,
-                        label: config.label || key,
-                        message: result.message
+                        label: config.label || key
                     });
                 }
             }
         }
-
+        console.log(errors);
         if (errors.length > 0) {
             var errorMsg = "表单验证失败，请检查以下字段：\n";
             for (var i = 0; i < Math.min(errors.length, 3); i++) {
